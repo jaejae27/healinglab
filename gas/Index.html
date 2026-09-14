@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>💊 힐링약국 (Healing Pharmacy) - Google Apps Script</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans KR"', 'sans-serif'],
+            jua: ['"Jua"', 'sans-serif']
+          },
+          colors: {
+            ivory: '#FDFCF0',
+            olive: '#5A5A40',
+            creamy: '#FFFBEB'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #FDFCF0;
+      color: #4A4A4A;
+      font-family: 'Noto Sans KR', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-jua { font-family: 'Jua', sans-serif; }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #FDFCF0; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 9999px; }
+    @media print {
+      body * { visibility: hidden; }
+      #printModalContent, #printModalContent * { visibility: visible; }
+      #printModalContent { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-x-hidden selection:bg-amber-200">
+
+  <!-- Ambient Light Glow Accents -->
+  <div class="fixed top-12 left-10 w-80 h-80 bg-[#D1FAE5] rounded-full filter blur-3xl opacity-25 pointer-events-none"></div>
+  <div class="fixed bottom-12 right-10 w-96 h-96 bg-[#FFEDD5] rounded-full filter blur-3xl opacity-30 pointer-events-none"></div>
+  <div class="fixed top-1/3 right-1/4 w-72 h-72 bg-[#EDE9FE] rounded-full filter blur-3xl opacity-20 pointer-events-none"></div>
+
+  <!-- Top App Navigation Bar -->
+  <header id="appHeader" class="bg-white/80 backdrop-blur-md border-b-2 border-white sticky top-0 z-30 px-4 py-2.5 transition-all">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl drop-shadow-xs">💊</span>
+        <div>
+          <h1 class="font-jua text-base text-[#5A5A40] leading-none">힐링약국</h1>
+          <p class="text-[10px] text-[#5A5A40]/60 font-medium leading-tight">마음 처방 & 행동 실천</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Student Info Badge (visible when logged in) -->
+        <div id="studentBadge" class="hidden flex items-center gap-1.5 bg-[#FFFBEB] px-3 py-1 rounded-full border border-white text-xs font-bold text-[#854D0E] shadow-2xs">
+          <span id="studentBadgeName">김민준</span>
+          <span class="text-[11px] bg-[#FEF08A] px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
+            🍪 <span id="studentBadgeCookies">5</span>
+          </span>
+        </div>
+        <!-- Teacher Switcher Button -->
+        <button onclick="toggleTeacherMode()" class="text-xs text-[#5A5A40] bg-white hover:bg-slate-50 border-2 border-white px-3 py-1.5 rounded-2xl shadow-sm flex items-center gap-1 font-bold transition-all">
+          <span class="text-xs">🔒</span>
+          <span id="teacherBtnText">선생님</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main id="mainContainer" class="flex-1 max-w-md mx-auto w-full px-4 py-4 pb-24 relative z-10">
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 1: STUDENT LOGIN -->
+    <!-- ========================================================================= -->
+    <div id="viewLogin" class="space-y-6 pt-4">
+      <div class="bg-white/85 backdrop-blur-md rounded-[44px] border-4 border-white shadow-2xl p-7 text-center relative overflow-hidden">
+        <!-- Healy Character Mascot Stage -->
+        <div class="flex flex-col items-center mb-5">
+          <div id="healyAvatarLogin" class="w-24 h-24 mb-2">
+            <!-- Animated Healy SVG -->
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md transition-transform hover:scale-105">
+              <ellipse cx="50" cy="52" rx="42" ry="38" fill="#FFFBEB" stroke="#5A5A40" stroke-width="3" />
+              <!-- Cheeks -->
+              <ellipse cx="26" cy="58" rx="7" ry="4" fill="#FECDD3" />
+              <ellipse cx="74" cy="58" rx="7" ry="4" fill="#FECDD3" />
+              <!-- Eyes -->
+              <ellipse cx="34" cy="48" rx="4.5" ry="6" fill="#5A5A40" />
+              <ellipse cx="66" cy="48" rx="4.5" ry="6" fill="#5A5A40" />
+              <circle cx="36" cy="45" r="1.5" fill="#FFFFFF" />
+              <circle cx="68" cy="45" r="1.5" fill="#FFFFFF" />
+              <!-- Smiling Mouth -->
+              <path d="M 42 56 Q 50 64 58 56" stroke="#5A5A40" stroke-width="3" fill="none" stroke-linecap="round" />
+              <!-- Pharmacy Cross Hat -->
+              <rect x="42" y="10" width="16" height="16" rx="4" fill="#34D399" stroke="#5A5A40" stroke-width="2.5" />
+              <rect x="47" y="13" width="6" height="10" fill="#FFFFFF" rx="1" />
+              <rect x="45" y="15" width="10" height="6" fill="#FFFFFF" rx="1" />
+            </svg>
+          </div>
+          <h2 class="font-jua text-xl text-[#5A5A40]">어서 와! 여기는 힐링약국이야</h2>
+          <p class="text-xs text-[#5A5A40]/70 mt-1 font-medium">오늘 네 마음 상태를 같이 살펴보고 처방전을 받아볼까?</p>
+        </div>
+
+        <!-- Login Form -->
+        <form id="studentLoginForm" onsubmit="handleStudentLogin(event)" class="space-y-3.5 text-left">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-[#5A5A40] mb-1.5 ml-1">학년 선택</label>
+              <select id="loginGrade" onchange="updateStudentOptions()" class="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-3.5 py-2.5 text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm">
+                <option value="1">1학년</option>
+                <option value="2">2학년</option>
+                <option value="3">3학년</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-[#5A5A40] mb-1.5 ml-1">반 선택</label>
+              <select id="loginClass" onchange="updateStudentOptions()" class="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-3.5 py-2.5 text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm">
+                <option value="1">1반</option>
+                <option value="2">2반</option>
+                <option value="3">3반</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-[#5A5A40] mb-1.5 ml-1">내 이름 (번호)</label>
+            <select id="loginStudent" required class="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-4 py-3 text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm">
+              <option value="">-- 내 이름을 선택해주세요 --</option>
+            </select>
+          </div>
+
+          <button type="submit" class="w-full mt-2 bg-gradient-to-r from-amber-400 via-rose-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-white font-jua text-lg py-3.5 rounded-2xl shadow-xl border-2 border-white flex items-center justify-center gap-2 transition-transform active:scale-98">
+            <span>✨</span>
+            <span>힐링약국 들어가기</span>
+          </button>
+        </form>
+
+        <div class="mt-5 pt-4 border-t-2 border-white/60 text-center">
+          <p class="text-[11px] text-[#5A5A40]/70 leading-relaxed font-medium">
+            🌱 힐링약국의 가상 증상은 실제 질병을 진단하는 것이 아닙니다. 내 마음 상태를 재미있는 이름으로 알아차려보는 사회정서 실천 공간입니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 2: STUDENT HOME -->
+    <!-- ========================================================================= -->
+    <div id="viewHome" class="hidden space-y-5">
+      <!-- Mascot Stage Card -->
+      <div class="bg-[#FFFBEB] border-4 border-white rounded-[40px] shadow-xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
+        <div class="w-20 h-20 mb-2">
+          <!-- Cheering Healy SVG -->
+          <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+            <ellipse cx="50" cy="52" rx="42" ry="38" fill="#FFFBEB" stroke="#5A5A40" stroke-width="3" />
+            <ellipse cx="26" cy="58" rx="7" ry="4" fill="#FECDD3" />
+            <ellipse cx="74" cy="58" rx="7" ry="4" fill="#FECDD3" />
+            <ellipse cx="34" cy="48" rx="4.5" ry="6" fill="#5A5A40" />
+            <ellipse cx="66" cy="48" rx="4.5" ry="6" fill="#5A5A40" />
+            <circle cx="36" cy="45" r="1.5" fill="#FFFFFF" />
+            <circle cx="68" cy="45" r="1.5" fill="#FFFFFF" />
+            <path d="M 40 54 Q 50 66 60 54" stroke="#5A5A40" stroke-width="3" fill="#FB7185" stroke-linecap="round" />
+            <!-- Hat -->
+            <rect x="42" y="10" width="16" height="16" rx="4" fill="#34D399" stroke="#5A5A40" stroke-width="2.5" />
+            <rect x="47" y="13" width="6" height="10" fill="#FFFFFF" rx="1" />
+            <rect x="45" y="15" width="10" height="6" fill="#FFFFFF" rx="1" />
+          </svg>
+        </div>
+        <h3 id="healyHomeGreeting" class="font-jua text-lg text-[#5A5A40]">안녕! 오늘 네 마음은 어때?</h3>
+        <p id="healyHomeSub" class="text-xs text-[#5A5A40]/70 mt-0.5 font-medium">가상 증상과 맞춤 행동 처방전이 준비되어 있어 💊</p>
+
+        <div class="mt-3 flex items-center gap-2 bg-white/80 px-4 py-1.5 rounded-full border border-white text-xs font-bold text-[#5A5A40]">
+          <span class="w-2 h-2 rounded-full bg-[#34D399] animate-pulse"></span>
+          <span>스스로 마음을 돌보는 멋진 하루</span>
+        </div>
+      </div>
+
+      <!-- Active Prescription Card (if present) -->
+      <div id="activePrescriptionCard" class="hidden bg-white/90 backdrop-blur-md rounded-[32px] border-4 border-white p-5 shadow-lg space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-[#854D0E] bg-[#FEF08A]/80 px-3 py-1 rounded-full border border-white">
+            🏃 실천 진행 중인 마음 처방전
+          </span>
+          <span id="activeCondCode" class="text-xs font-mono font-bold text-[#5A5A40]/60">A01</span>
+        </div>
+        <h4 id="activeCondTitle" class="font-jua text-xl text-[#5A5A40]">내일부터 시작병</h4>
+        <div id="activeMissionsList" class="space-y-1.5 text-xs text-[#4A4A4A]"></div>
+        <div class="pt-3 border-t-2 border-[#5A5A40]/10 flex items-center justify-between">
+          <button onclick="openWorkbookPrintModal()" class="text-xs font-jua text-[#5A5A40]/70 hover:text-[#5A5A40] flex items-center gap-1">
+            <span>🖨️ 실물 워크북 양식 보기</span>
+          </button>
+          <button onclick="showView('doneForm')" class="text-xs font-jua text-[#0D9488] bg-[#CCFBF1] px-3.5 py-1.5 rounded-xl border border-white shadow-2xs hover:bg-[#99F6E4]">
+            기록 작성하러 가기 ➔
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Primary Action Cards -->
+      <div class="grid grid-cols-2 gap-3.5">
+        <!-- 1. 오늘 마음 진료 -->
+        <button onclick="showView('diagnosis')" class="bg-white/80 hover:bg-[#FDF4FF] border-4 border-white rounded-[32px] p-4 flex flex-col items-center gap-2.5 shadow-lg transform transition-transform hover:scale-102 active:scale-98 text-center">
+          <div class="w-14 h-14 bg-[#F5D0FE] rounded-2xl flex items-center justify-center text-3xl shadow-inner">🩺</div>
+          <div>
+            <p class="text-base font-black text-[#86198F] font-jua">오늘 마음 진료</p>
+            <p class="text-[11px] text-[#86198F]/60 mt-0.5 font-medium">가상 증상과 처방 받기</p>
+          </div>
+        </button>
+
+        <!-- 2. 처방 다했어요 -->
+        <button onclick="showView('doneForm')" class="bg-white/80 hover:bg-[#F0FDFA] border-4 border-white rounded-[32px] p-4 flex flex-col items-center gap-2.5 shadow-lg transform transition-transform hover:scale-102 active:scale-98 text-center">
+          <div class="w-14 h-14 bg-[#99F6E4] rounded-2xl flex items-center justify-center text-3xl shadow-inner">✅</div>
+          <div>
+            <p class="text-base font-black text-[#0D9488] font-jua">처방 다했어요</p>
+            <p class="text-[11px] text-[#0D9488]/60 mt-0.5 font-medium">미션 실천 결과 기록</p>
+          </div>
+        </button>
+
+        <!-- 3. 나의 마음기록 -->
+        <button onclick="showView('mypage')" class="bg-white/80 hover:bg-[#FEFCE8] border-4 border-white rounded-[32px] p-4 flex flex-col items-center gap-2.5 shadow-lg transform transition-transform hover:scale-102 active:scale-98 text-center">
+          <div class="w-14 h-14 bg-[#FEF08A] rounded-2xl flex items-center justify-center text-3xl shadow-inner">📒</div>
+          <div>
+            <p class="text-base font-black text-[#854D0E] font-jua">나의 마음기록</p>
+            <p class="text-[11px] text-[#854D0E]/60 mt-0.5 font-medium">지금까지 처방 서랍</p>
+          </div>
+        </button>
+
+        <!-- 4. 칭찬쿠키 가챠 -->
+        <button onclick="showView('gacha')" class="bg-white/80 hover:bg-[#EFF6FF] border-4 border-white rounded-[32px] p-4 flex flex-col items-center gap-2.5 shadow-lg transform transition-transform hover:scale-102 active:scale-98 text-center">
+          <div class="w-14 h-14 bg-[#BFDBFE] rounded-2xl flex items-center justify-center text-3xl shadow-inner">🎰</div>
+          <div>
+            <p class="text-base font-black text-[#1E40AF] font-jua">칭찬쿠키 가챠</p>
+            <p class="text-[11px] text-[#1E40AF]/60 mt-0.5 font-medium">랜덤 보상 받으러 가기</p>
+          </div>
+        </button>
+      </div>
+
+      <!-- 3 Emotional Enrichment Cards -->
+      <div class="pt-2">
+        <h4 class="font-jua text-sm text-[#5A5A40] mb-2.5 px-1 flex items-center gap-1.5">
+          <span>✨ 힐링약국 따뜻한 즐길 거리</span>
+        </h4>
+        <div class="grid grid-cols-3 gap-2.5">
+          <button onclick="openFortuneModal()" class="p-3 bg-white/80 hover:bg-[#FFFBEB] border-2 border-white rounded-[24px] text-center shadow-md transition-transform active:scale-95 flex flex-col items-center gap-1">
+            <span class="text-2xl">🥠</span>
+            <span class="font-jua text-xs text-[#D97706]">마음포춘</span>
+            <span class="text-[10px] text-[#5A5A40]/60">따뜻한 한마디</span>
+          </button>
+          <button onclick="openWorryModal()" class="p-3 bg-white/80 hover:bg-[#FAF5FF] border-2 border-white rounded-[24px] text-center shadow-md transition-transform active:scale-95 flex flex-col items-center gap-1">
+            <span class="text-2xl">🔮</span>
+            <span class="font-jua text-xs text-[#7C3AED]">고민가챠</span>
+            <span class="text-[10px] text-[#5A5A40]/60">시야 넓히기</span>
+          </button>
+          <button onclick="openNewMedModal()" class="p-3 bg-white/80 hover:bg-[#F0F9FF] border-2 border-white rounded-[24px] text-center shadow-md transition-transform active:scale-95 flex flex-col items-center gap-1">
+            <span class="text-2xl">🔬</span>
+            <span class="font-jua text-xs text-[#0284C7]">신약개발소</span>
+            <span class="text-[10px] text-[#5A5A40]/60">새 증상 제안</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 3: DIAGNOSIS FLOW -->
+    <!-- ========================================================================= -->
+    <div id="viewDiagnosis" class="hidden space-y-4">
+      <!-- Step 1: Category Selection -->
+      <div id="diagStepCategory" class="space-y-4">
+        <div class="bg-white/85 border-4 border-white rounded-[36px] p-5 shadow-lg text-center">
+          <h3 class="font-jua text-lg text-[#5A5A40]">오늘은 어떤 일로 마음이 복잡해?</h3>
+          <p class="text-xs text-[#5A5A40]/70 mt-1 font-medium">가장 가까운 영역 1가지를 골라봐!</p>
+        </div>
+        <div id="categoriesGrid" class="grid grid-cols-2 gap-3"></div>
+      </div>
+
+      <!-- Step 2: Checklist -->
+      <div id="diagStepChecklist" class="hidden space-y-4">
+        <div class="bg-white/85 border-4 border-white rounded-[36px] p-5 shadow-lg text-center">
+          <h3 class="font-jua text-lg text-[#5A5A40]">지금 내 마음에 해당하는 신호를 체크해줘</h3>
+          <p class="text-xs text-[#5A5A40]/70 mt-1 font-medium">솔직하게 느낀 대로 편안하게 골라봐!</p>
+        </div>
+        <div class="bg-white/90 backdrop-blur-md rounded-[36px] border-4 border-white p-5 shadow-xl space-y-3">
+          <div id="checklistItems" class="space-y-2"></div>
+          <button onclick="proceedToChecklistResults()" class="w-full mt-4 bg-gradient-to-r from-amber-400 via-rose-400 to-pink-500 text-white font-jua text-base py-3.5 rounded-2xl shadow-lg border-2 border-white flex items-center justify-center gap-2 transition-transform active:scale-98">
+            가까운 가상 증상 찾아보기 ➔
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Recommend Symptoms -->
+      <div id="diagStepRecommend" class="hidden space-y-4">
+        <div class="bg-white/85 border-4 border-white rounded-[36px] p-5 shadow-lg text-center">
+          <h3 class="font-jua text-lg text-[#5A5A40]">지금 네 마음에서 발견된 신호들이야!</h3>
+          <p class="text-xs text-[#5A5A40]/70 mt-1 font-medium">나와 가장 비슷한 증상을 1개 선택해줘.</p>
+        </div>
+        <div id="recommendedConditionsList" class="space-y-3"></div>
+        <button id="btnIssuePrescription" onclick="issuePrescription()" disabled class="w-full bg-gradient-to-r from-amber-400 via-rose-400 to-pink-500 text-white font-jua text-base py-3.5 rounded-2xl shadow-xl border-2 border-white flex items-center justify-center gap-2 transition-transform active:scale-98 disabled:opacity-50">
+          💊 처방전 발급받기
+        </button>
+      </div>
+
+      <!-- Step 4: Prescription Result -->
+      <div id="diagStepIssued" class="hidden space-y-4">
+        <div class="bg-gradient-to-r from-[#FEF08A] to-[#FDE047] text-[#5A5A40] rounded-[32px] border-4 border-white p-5 shadow-xl text-center">
+          <p class="text-xs font-bold uppercase tracking-wider text-[#854D0E]">교실 실물 워크북 연결 번호</p>
+          <h3 id="prescribedCodeText" class="font-jua text-2xl mt-0.5 tracking-wide text-[#5A5A40]">A01 처방전</h3>
+          <p class="text-xs font-medium mt-1 text-[#5A5A40]/90 break-keep">
+            교실 뒤편 힐링약국 서류함에서 <span id="prescribedNameText" class="font-bold underline"></span> 워크북을 1장 챙겨가세요!
+          </p>
+          <button onclick="openWorkbookPrintModal()" class="mt-3 inline-flex items-center gap-1.5 bg-white text-[#5A5A40] text-xs font-jua px-4 py-2 rounded-2xl shadow-sm border border-white hover:bg-amber-50">
+            🖨️ 실물 워크북 양식 미리보기
+          </button>
+        </div>
+
+        <div class="bg-white/90 backdrop-blur-md rounded-[36px] border-4 border-white p-5 shadow-xl space-y-3">
+          <h4 class="font-jua text-base text-[#5A5A40]">💊 이번에 실천해볼 3가지 행동 처방</h4>
+          <div id="prescribedMissionsList" class="space-y-2"></div>
+          <button onclick="showView('home')" class="w-full mt-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-jua text-base py-3.5 rounded-2xl shadow-lg border-2 border-white">
+            확인했어요! 홈으로 이동
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 4: DONE FORM (처방 다했어요) -->
+    <!-- ========================================================================= -->
+    <div id="viewDoneForm" class="hidden space-y-4">
+      <div class="bg-white/85 border-4 border-white rounded-[36px] p-5 shadow-lg text-center">
+        <h3 class="font-jua text-lg text-[#5A5A40]">처방전 실천 결과를 들려줘!</h3>
+        <p class="text-xs text-[#5A5A40]/70 mt-1 font-medium">기록을 완료하면 칭찬쿠키 2개와 처방약이 기다리고 있어 🍪</p>
+      </div>
+
+      <form id="doneFormSubmit" onsubmit="handleDoneFormSubmit(event)" class="bg-white/90 backdrop-blur-md rounded-[36px] border-4 border-white p-5 shadow-xl space-y-4">
+        <div>
+          <label class="block font-jua text-sm text-[#5A5A40] mb-2">1. 3가지 처방 미션 실천 만족도 (1~5점)</label>
+          <div id="doneRatingMissions" class="space-y-2 text-xs"></div>
+        </div>
+
+        <div>
+          <label class="block font-jua text-sm text-[#5A5A40] mb-1.5">2. 가장 큰 도움이 된 미션은?</label>
+          <select id="doneBestMission" required class="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-3.5 py-2.5 text-xs font-bold text-[#5A5A40] shadow-sm">
+            <option value="1">미션 1번</option>
+            <option value="2">미션 2번</option>
+            <option value="3">미션 3번</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-jua text-sm text-[#5A5A40] mb-1">3. 왜 도움이 되었나요? (성찰 한 줄)</label>
+          <textarea id="doneReflectionWhy" required rows="2" placeholder="예: 5분만 먼저 시작하니 생각보다 부담이 줄어들었어요." class="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl p-3 text-xs font-medium text-[#4A4A4A] shadow-sm focus:ring-2 focus:ring-amber-300"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-jua text-sm text-[#5A5A40] mb-1">4. 다음에 또 이 마음이 들면 어떻게 할까요?</label>
+          <textarea id="doneFuturePlan" rows="2" placeholder="예: 심호흡 3번 하고 폰을 서랍에 넣을 거예요." class="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl p-3 text-xs font-medium text-[#4A4A4A] shadow-sm focus:ring-2 focus:ring-amber-300"></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 text-white font-jua text-base py-3.5 rounded-2xl shadow-xl border-2 border-white flex items-center justify-center gap-2">
+          <span>✨</span>
+          <span>소감 제출하고 처방약 & 쿠키 받기</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 5: MY PAGE (나의 마음기록) -->
+    <!-- ========================================================================= -->
+    <div id="viewMypage" class="hidden space-y-4">
+      <div class="bg-white/85 border-4 border-white rounded-[36px] p-5 shadow-lg flex items-center justify-between">
+        <div>
+          <h3 id="myPageStudentName" class="font-jua text-xl text-[#5A5A40]">김민준 학생의 서랍</h3>
+          <p class="text-xs text-[#5A5A40]/70 mt-0.5">내가 알아차리고 실천한 마음 발자국들</p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-bold text-[#854D0E] bg-[#FEF08A] px-3 py-1.5 rounded-full border border-white">
+            🍪 <span id="myPageCookieCount">5</span>개 보유
+          </span>
+        </div>
+      </div>
+
+      <div class="bg-white/90 backdrop-blur-md rounded-[36px] border-4 border-white p-5 shadow-xl space-y-3">
+        <h4 class="font-jua text-base text-[#5A5A40]">🗂️ 처방 실천 히스토리</h4>
+        <div id="myPageVisitsList" class="space-y-2.5 text-xs"></div>
+      </div>
+
+      <div class="bg-white/90 backdrop-blur-md rounded-[36px] border-4 border-white p-5 shadow-xl space-y-3">
+        <h4 class="font-jua text-base text-[#5A5A40]">🎁 가챠 보상 인벤토리</h4>
+        <div id="myPageGachaList" class="space-y-2 text-xs"></div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 6: PRAISE COOKIE GACHA -->
+    <!-- ========================================================================= -->
+    <div id="viewGacha" class="hidden space-y-4 text-center">
+      <div class="bg-white/85 border-4 border-white rounded-[36px] p-6 shadow-lg">
+        <div class="text-5xl mb-2">🎰</div>
+        <h3 class="font-jua text-2xl text-[#1E40AF]">칭찬쿠키 가챠 머신</h3>
+        <p class="text-xs text-[#5A5A40]/70 mt-1 font-medium">
+          미션 실천으로 모은 칭찬쿠키로 특별한 보상을 뽑아보세요!<br>
+          <span class="text-[#D97706] font-bold">(1회 뽑기: 칭찬쿠키 3개)</span>
+        </p>
+        <div class="mt-4 inline-block bg-[#FEF08A] text-[#854D0E] font-bold text-xs px-4 py-1.5 rounded-full border border-white shadow-2xs">
+          내 칭찬쿠키: <span id="gachaCookieBalance">5</span>개
+        </div>
+      </div>
+
+      <div class="bg-white/90 rounded-[40px] border-4 border-white p-8 shadow-xl flex flex-col items-center justify-center">
+        <div id="gachaMachineDisplay" class="w-32 h-32 bg-[#EFF6FF] border-4 border-dashed border-[#BFDBFE] rounded-3xl flex items-center justify-center text-5xl mb-4 transition-all">
+          🎁
+        </div>
+        <button id="btnPullGacha" onclick="pullGachaMachine()" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-jua text-lg px-8 py-3.5 rounded-2xl shadow-xl border-2 border-white transition-transform active:scale-95">
+          레버 당기기 (-3쿠키)
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 7: TEACHER DASHBOARD -->
+    <!-- ========================================================================= -->
+    <div id="viewTeacher" class="hidden space-y-4">
+      <div class="bg-white/85 border-4 border-white rounded-[36px] p-5 shadow-lg flex items-center justify-between">
+        <div>
+          <h2 class="font-jua text-xl text-[#5A5A40]">선생님 관리자 센터</h2>
+          <p class="text-xs text-[#5A5A40]/70">학급 사회정서 진료 현황 및 워크북 확인</p>
+        </div>
+        <button onclick="toggleTeacherMode()" class="text-xs font-bold text-[#5A5A40] bg-white border-2 border-white px-3 py-1.5 rounded-xl shadow-xs">
+          학생 모드로 ➔
+        </button>
+      </div>
+
+      <!-- KPI Stats Grid -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-white/90 border-2 border-white p-3.5 rounded-2xl shadow-sm text-center">
+          <p class="text-[11px] text-[#5A5A40]/70 font-medium">총 진료 발급</p>
+          <p id="tStatTotal" class="font-jua text-2xl text-[#86198F] mt-0.5">0건</p>
+        </div>
+        <div class="bg-white/90 border-2 border-white p-3.5 rounded-2xl shadow-sm text-center">
+          <p class="text-[11px] text-[#5A5A40]/70 font-medium">실천 소감 제출</p>
+          <p id="tStatSubmitted" class="font-jua text-2xl text-[#0D9488] mt-0.5">0건</p>
+        </div>
+      </div>
+
+      <!-- Verification Station -->
+      <div class="bg-white/90 backdrop-blur-md rounded-[36px] border-4 border-white p-5 shadow-xl space-y-3">
+        <h4 class="font-jua text-base text-[#5A5A40]">📋 교실 실물 워크북 확인 스테이션</h4>
+        <p class="text-xs text-[#5A5A40]/70">학생이 종이 워크북을 제출하면 확인 체크하여 추가 보너스(+1쿠키)를 지급합니다.</p>
+        <div id="tVerificationTable" class="space-y-2 text-xs"></div>
+      </div>
+
+      <!-- Student Record Assistant -->
+      <div class="bg-white/90 backdrop-blur-md rounded-[36px] border-4 border-white p-5 shadow-xl space-y-3">
+        <h4 class="font-jua text-base text-[#5A5A40]">✍️ 학교생활기록부 AI 추천 문장 생성</h4>
+        <select id="tStudentRecordStudent" onchange="generateAiStudentRecordSentence()" class="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl p-2.5 text-xs font-bold text-[#5A5A40]"></select>
+        <div id="tAiSentenceResult" class="p-3 bg-[#FDFCF0] border-2 border-white rounded-2xl text-xs leading-relaxed text-[#4A4A4A] font-medium">
+          학생을 선택하면 실천 내역을 바탕으로 생활기록부 추천 문장이 생성됩니다.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Navigation Bar (Visible in Student Mode) -->
+  <nav id="bottomNav" class="hidden fixed bottom-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-md border-t-2 border-white/80 py-2 px-4 shadow-lg">
+    <div class="max-w-md mx-auto flex items-center justify-around text-center">
+      <button onclick="showView('home')" id="navHome" class="flex flex-col items-center py-1 px-3 rounded-2xl transition-all text-[#5A5A40] font-bold bg-white/90 border-2 border-white shadow-sm scale-105">
+        <span class="text-lg">🏠</span>
+        <span class="text-[10px] font-jua mt-0.5">홈</span>
+      </button>
+      <button onclick="showView('diagnosis')" id="navDiagnosis" class="flex flex-col items-center py-1 px-3 rounded-2xl transition-all text-[#5A5A40]/60 hover:text-[#5A5A40]">
+        <span class="text-lg">🩺</span>
+        <span class="text-[10px] font-jua mt-0.5">마음진료</span>
+      </button>
+      <button onclick="showView('doneForm')" id="navDone" class="flex flex-col items-center py-1 px-3 rounded-2xl transition-all text-[#5A5A40]/60 hover:text-[#5A5A40]">
+        <span class="text-lg">✅</span>
+        <span class="text-[10px] font-jua mt-0.5">처방다했어요</span>
+      </button>
+      <button onclick="showView('mypage')" id="navMypage" class="flex flex-col items-center py-1 px-3 rounded-2xl transition-all text-[#5A5A40]/60 hover:text-[#5A5A40]">
+        <span class="text-lg">📒</span>
+        <span class="text-[10px] font-jua mt-0.5">마음기록</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ========================================================================= -->
+  <!-- MODALS -->
+  <!-- ========================================================================= -->
+
+  <!-- Modal 1: Fortune Cookie -->
+  <div id="modalFortune" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white/95 rounded-[36px] border-4 border-white p-6 max-w-sm w-full shadow-2xl text-center space-y-4 animate-scaleUp">
+      <div class="text-5xl">🥠</div>
+      <h3 class="font-jua text-xl text-[#D97706]">오늘의 마음포춘</h3>
+      <div id="fortuneTextDisplay" class="p-4 bg-[#FFFBEB] rounded-2xl border-2 border-white text-xs font-bold text-[#854D0E] leading-relaxed">
+        포춘쿠키를 여는 중...
+      </div>
+      <button onclick="closeModal('modalFortune')" class="w-full bg-[#FEF08A] hover:bg-[#FDE047] text-[#854D0E] font-jua py-3 rounded-2xl border border-white">
+        마음에 담아두기
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal 2: Worry Gacha -->
+  <div id="modalWorry" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white/95 rounded-[36px] border-4 border-white p-6 max-w-sm w-full shadow-2xl text-center space-y-4 animate-scaleUp">
+      <div class="text-5xl">🔮</div>
+      <h3 class="font-jua text-xl text-[#7C3AED]">고민가챠: 시야 넓히기</h3>
+      <div id="worryTextDisplay" class="p-4 bg-[#FAF5FF] rounded-2xl border-2 border-white text-xs font-bold text-[#6B21A8] leading-relaxed">
+        새로운 관점 질문을 뽑는 중...
+      </div>
+      <button onclick="closeModal('modalWorry')" class="w-full bg-[#E9D5FF] hover:bg-[#D8B4FE] text-[#6B21A8] font-jua py-3 rounded-2xl border border-white">
+        생각해보기
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal 3: New Medicine Lab -->
+  <div id="modalNewMed" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white/95 rounded-[36px] border-4 border-white p-6 max-w-sm w-full shadow-2xl text-left space-y-3.5 animate-scaleUp">
+      <div class="flex items-center justify-between">
+        <h3 class="font-jua text-lg text-[#0284C7]">🔬 신약개발소 (새 증상 제안)</h3>
+        <button onclick="closeModal('modalNewMed')" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+      <p class="text-xs text-[#5A5A40]/70">내 마음에 딱 맞는 증상 이름이 없다면 직접 제안해주세요!</p>
+      <form onsubmit="handleNewMedSubmit(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-[#5A5A40] mb-1">제안할 증상 이름</label>
+          <input id="newMedName" required placeholder="예: 숙제 미루기 알러지" class="w-full bg-[#FDFCF0] border-2 border-white rounded-xl p-2.5 shadow-sm">
+        </div>
+        <div>
+          <label class="block font-bold text-[#5A5A40] mb-1">어떤 상황에서 나타나나요?</label>
+          <textarea id="newMedSituation" rows="2" required placeholder="책상에만 앉으면 딴 생각이 날 때" class="w-full bg-[#FDFCF0] border-2 border-white rounded-xl p-2.5 shadow-sm"></textarea>
+        </div>
+        <button type="submit" class="w-full bg-[#BAE6FD] hover:bg-[#7DD3FC] text-[#0369A1] font-jua py-3 rounded-2xl border border-white">
+          제안서 연구실에 제출하기 (+1쿠키)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: Physical Workbook Print Modal -->
+  <div id="modalPrint" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 my-8">
+      <div class="flex items-center justify-between pb-3 border-b">
+        <h3 class="font-jua text-lg text-[#5A5A40]">교실 실물 워크북 양식 (A4 미리보기)</h3>
+        <div class="flex items-center gap-2">
+          <button onclick="window.print()" class="bg-[#D1FAE5] text-[#065F46] px-3 py-1.5 rounded-xl text-xs font-jua border border-white">
+            🖨️ 인쇄하기
+          </button>
+          <button onclick="closeModal('modalPrint')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+        </div>
+      </div>
+      <!-- Printable Box Content -->
+      <div id="printModalContent" class="border-2 border-slate-800 p-6 rounded-2xl bg-[#FFFDF8] space-y-4 text-left">
+        <div class="border-b-2 border-slate-800 pb-3 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-mono font-bold bg-slate-200 px-2 py-0.5 rounded">A4 실물 워크북</span>
+            <h2 id="printTitle" class="font-jua text-2xl text-slate-900 mt-1">A01 내일부터 시작병 처방전</h2>
+          </div>
+          <div class="text-right text-xs">
+            <p>학년/반/번호: [ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ]</p>
+            <p>이름: [ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ]</p>
+          </div>
+        </div>
+        <div class="space-y-3 text-xs">
+          <div class="p-3 bg-slate-100 rounded-xl">
+            <h4 class="font-bold mb-1">■ 가상 증상 요약</h4>
+            <p id="printSummary">해야 할 공부나 과제를 자꾸 내일로 미루며 마음만 무거운 상태</p>
+          </div>
+          <div>
+            <h4 class="font-bold mb-2">■ 실천 행동 처방 3단계</h4>
+            <div id="printMissions" class="space-y-1.5">
+              <p>① 알아차리기: 오늘 하루 미루고 싶을 때 내 몸의 신호 관찰하기</p>
+              <p>② 행동하기: 딱 5분만 타이머 켜고 책 펴보기</p>
+              <p>③ 자기조절: 폰을 서랍에 넣고 심호흡 3번 하기</p>
+            </div>
+          </div>
+          <div class="pt-2 border-t border-dashed border-slate-400">
+            <h4 class="font-bold mb-1">■ 실천 후 소감 (교실 서류함 제출용)</h4>
+            <div class="h-16 border border-slate-300 rounded-lg p-2 text-slate-400">
+              미션을 해보고 느낀 점을 자유롭게 적어보세요...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- CLIENT JAVASCRIPT ENGINE (GAS API + LOCAL FALLBACK) -->
+  <!-- ========================================================================= -->
+  <script>
+    // State Management
+    let currentStudent = null;
+    let isTeacherMode = false;
+    let appData = {
+      categories: [
+        { id: 'self', code: 'S', name: '나 자신', subName: '자기이해 & 자존감', icon: '🪞', color: '#F472B6', bgLight: '#FDF2F8' },
+        { id: 'friends', code: 'R', name: '친구·관계', subName: '또래 관계 & 소통', icon: '💌', color: '#FB7185', bgLight: '#FFF1F2' },
+        { id: 'study', code: 'A', name: '공부·할 일', subName: '학습 & 실행력', icon: '📚', color: '#38BDF8', bgLight: '#F0F9FF' },
+        { id: 'worries', code: 'W', name: '걱정·생각', subName: '불안 & 생각 과다', icon: '🤯', color: '#A78BFA', bgLight: '#F5F3FF' },
+        { id: 'emotions', code: 'E', name: '감정 다루기', subName: '분노 & 롤러코스터', icon: '🌋', color: '#FB923C', bgLight: '#FFF7ED' },
+        { id: 'vitality', code: 'L', name: '피로·생활', subName: '에너지 & 수면', icon: '🪫', color: '#34D399', bgLight: '#ECFDF5' }
+      ],
+      students: [
+        { id: 'S1-1-01', grade: 1, classNum: 1, number: 1, name: '김민준', cookieBalance: 5 },
+        { id: 'S1-1-02', grade: 1, classNum: 1, number: 2, name: '이서연', cookieBalance: 7 },
+        { id: 'S1-1-03', grade: 1, classNum: 1, number: 3, name: '박도윤', cookieBalance: 3 },
+        { id: 'S1-1-04', grade: 1, classNum: 1, number: 4, name: '정하은', cookieBalance: 4 },
+        { id: 'S1-1-05', grade: 1, classNum: 1, number: 5, name: '최시우', cookieBalance: 2 }
+      ],
+      conditions: [
+        { id: 'A01', categoryId: 'study', name: '내일부터 시작병', summary: '해야 할 공부나 과제를 자꾸 내일로 미루며 마음만 무거운 상태' },
+        { id: 'A02', categoryId: 'study', name: '새벽 벼락치기 과부하증', summary: '시험 전날 밤샘을 반복하며 뇌가 타버릴 것 같은 피로감' },
+        { id: 'R01', categoryId: 'friends', name: '단톡방 알림 집착증', summary: '단톡방 메시지가 늦거나 답장이 없으면 심장이 쿵쾅거릴 때' },
+        { id: 'S01', categoryId: 'self', name: '유리구슬 자존감 증후군', summary: '작은 비판이나 실수에도 마음이 와장창 깨지는 느낌' },
+        { id: 'W01', categoryId: 'worries', name: '생각 꼬리물기 과열증', summary: '일어나지도 않은 온갖 불길한 시나리오가 재생될 때' },
+        { id: 'L01', categoryId: 'vitality', name: '스마트폰 좀비 증후군', summary: '자기 전 숏폼을 보느라 새벽 2시가 훌쩍 넘어버리는 상태' }
+      ],
+      visits: [],
+      fortunes: [
+        { id: 'F01', text: '네 속도대로 천천히 걸어가도 충분히 아름다워. 오늘 하루의 네 작은 걸음을 칭찬해줘.' },
+        { id: 'F02', text: '실수는 네가 새로운 도전을 했다는 가장 멋진 증거야. 툭툭 털고 일어나면 돼!' },
+        { id: 'F03', text: '완벽하지 않아도 괜찮아. 오늘의 최선이면 충분히 가치 있단다.' }
+      ],
+      worryHints: [
+        { id: 'W01', text: '1년 뒤의 내가 오늘의 이 고민을 본다면 뭐라고 웃으며 조언해줄까?' },
+        { id: 'W02', text: '내가 가장 아끼는 친한 친구가 나와 똑같은 고민을 한다면 뭐라고 위로해줄까?' },
+        { id: 'W03', text: '지금 일어날 수 있는 최악의 상황이 실제로 일어날 확률은 과연 몇 %나 될까?' }
+      ]
+    };
+
+    // Diagnosis Temporary State
+    let selectedCategory = 'study';
+    let selectedPrimaryCond = null;
+    let activeVisit = null;
+
+    // Initialize App
+    window.addEventListener('DOMContentLoaded', () => {
+      // Load saved storage if any
+      const savedStudents = localStorage.getItem('hp_students');
+      if (savedStudents) appData.students = JSON.parse(savedStudents);
+      const savedVisits = localStorage.getItem('hp_visits');
+      if (savedVisits) appData.visits = JSON.parse(savedVisits);
+
+      // If running inside Google Apps Script, fetch live data
+      if (window.google && google.script && google.script.run) {
+        google.script.run.withSuccessHandler((serverData) => {
+          if (serverData) {
+            console.log('GAS live data connected:', serverData);
+            if (serverData.students && serverData.students.length > 0) {
+              appData.students = serverData.students;
+            }
+          }
+        }).getFullInitialData();
+      }
+
+      updateStudentOptions();
+      renderCategories();
+    });
+
+    // Populate Student Select Options
+    function updateStudentOptions() {
+      const grade = Number(document.getElementById('loginGrade').value);
+      const classNum = Number(document.getElementById('loginClass').value);
+      const select = document.getElementById('loginStudent');
+      select.innerHTML = '<option value="">-- 내 이름을 선택해주세요 --</option>';
+
+      const filtered = appData.students.filter(s => s.grade === grade && s.classNum === classNum);
+      filtered.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.number}번 ${s.name}`;
+        select.appendChild(opt);
+      });
+    }
+
+    // Student Login Handler
+    function handleStudentLogin(e) {
+      e.preventDefault();
+      const studentId = document.getElementById('loginStudent').value;
+      const student = appData.students.find(s => s.id === studentId);
+      if (!student) return;
+
+      currentStudent = student;
+      document.getElementById('studentBadge').classList.remove('hidden');
+      document.getElementById('studentBadgeName').textContent = student.name;
+      document.getElementById('studentBadgeCookies').textContent = student.cookieBalance;
+      document.getElementById('bottomNav').classList.remove('hidden');
+
+      // Check active visit
+      activeVisit = appData.visits.find(v => v.studentId === student.id && v.status === 'issued');
+      updateHomePrescriptionCard();
+
+      showView('home');
+    }
+
+    // Switch View
+    function showView(viewId) {
+      const views = ['Login', 'Home', 'Diagnosis', 'DoneForm', 'Mypage', 'Gacha', 'Teacher'];
+      views.forEach(v => {
+        const el = document.getElementById('view' + v);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById('view' + viewId.charAt(0).toUpperCase() + viewId.slice(1));
+      if (target) target.classList.remove('hidden');
+
+      // Update Nav active styling
+      const navItems = ['Home', 'Diagnosis', 'Done', 'Mypage'];
+      navItems.forEach(n => {
+        const btn = document.getElementById('nav' + n);
+        if (btn) {
+          btn.className = 'flex flex-col items-center py-1 px-3 rounded-2xl transition-all text-[#5A5A40]/60 hover:text-[#5A5A40]';
+        }
+      });
+      const activeNav = document.getElementById('nav' + viewId.charAt(0).toUpperCase() + viewId.slice(1));
+      if (activeNav) {
+        activeNav.className = 'flex flex-col items-center py-1 px-3 rounded-2xl transition-all text-[#5A5A40] font-bold bg-white/90 border-2 border-white shadow-sm scale-105';
+      }
+
+      if (viewId === 'home') updateHomePrescriptionCard();
+      if (viewId === 'mypage') renderMyPage();
+      if (viewId === 'gacha') updateGachaDisplay();
+      if (viewId === 'doneForm') setupDoneForm();
+      if (viewId === 'teacher') renderTeacherDashboard();
+    }
+
+    // Update Home Screen Active Prescription Card
+    function updateHomePrescriptionCard() {
+      const card = document.getElementById('activePrescriptionCard');
+      if (activeVisit) {
+        card.classList.remove('hidden');
+        document.getElementById('activeCondCode').textContent = activeVisit.primaryConditionId;
+        document.getElementById('activeCondTitle').textContent = activeVisit.primaryConditionName;
+        const list = document.getElementById('activeMissionsList');
+        list.innerHTML = activeVisit.missions.map((m, i) => `
+          <div class="flex items-center gap-2 p-2 bg-[#FDFCF0] rounded-xl border border-white">
+            <span class="w-5 h-5 rounded-full bg-[#FFEDD5] text-[#D97706] font-jua text-[11px] flex items-center justify-center">${i+1}</span>
+            <span class="truncate font-semibold">${m.title}</span>
+          </div>
+        `).join('');
+      } else {
+        card.classList.add('hidden');
+      }
+    }
+
+    // Render Categories in Diagnosis Flow
+    function renderCategories() {
+      const grid = document.getElementById('categoriesGrid');
+      grid.innerHTML = appData.categories.map(cat => `
+        <button onclick="selectCategory('${cat.id}')" style="background-color:${cat.bgLight}" class="p-4 rounded-[28px] border-4 border-white text-left shadow-md hover:scale-102 transition-all flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-3xl">${cat.icon}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-[#5A5A40] border border-white">${cat.code} 영역</span>
+          </div>
+          <div>
+            <h4 class="font-jua text-base text-[#5A5A40]">${cat.name}</h4>
+            <p class="text-[11px] text-[#5A5A40]/70 font-medium line-clamp-1">${cat.subName}</p>
+          </div>
+        </button>
+      `).join('');
+    }
+
+    // Select Category and Proceed to Checklist
+    function selectCategory(catId) {
+      selectedCategory = catId;
+      document.getElementById('diagStepCategory').classList.add('hidden');
+      document.getElementById('diagStepChecklist').classList.remove('hidden');
+
+      const list = document.getElementById('checklistItems');
+      const questions = [
+        '할 일을 눈앞에 두고도 자꾸 다른 행동이나 딴짓을 하게 된다.',
+        '시작하기 전에 완벽하게 준비되어야 한다는 생각에 부담스럽다.',
+        '조금만 힘들어도 쉽게 피곤해지고 포기하고 싶어진다.',
+        '나만 뒤처지는 것 같아 조급하지만 손에 잘 잡히지 않는다.'
+      ];
+      list.innerHTML = questions.map((q, idx) => `
+        <label class="flex items-start gap-2.5 p-3 rounded-2xl border-2 border-white bg-[#FDFCF0] hover:bg-white transition-all cursor-pointer">
+          <input type="checkbox" class="mt-0.5 rounded text-[#D97706] focus:ring-amber-400 w-4 h-4 accent-[#D97706]">
+          <span class="text-xs leading-relaxed font-medium text-[#4A4A4A]">${q}</span>
+        </label>
+      `).join('');
+    }
+
+    // Checklist Next -> Show Recommended Conditions
+    function proceedToChecklistResults() {
+      document.getElementById('diagStepChecklist').classList.add('hidden');
+      document.getElementById('diagStepRecommend').classList.remove('hidden');
+
+      const conds = appData.conditions.filter(c => c.categoryId === selectedCategory || c.categoryId === 'study');
+      const list = document.getElementById('recommendedConditionsList');
+      list.innerHTML = conds.map(c => `
+        <div class="rounded-[28px] border-4 border-white p-4 shadow-lg bg-[#FFFBEB]">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-mono font-bold text-[#5A5A40]/70 bg-white/80 px-2.5 py-0.5 rounded-full border border-white">${c.id}</span>
+            <h4 class="font-jua text-lg text-[#5A5A40]">${c.name}</h4>
+          </div>
+          <p class="text-xs text-[#5A5A40]/80 font-medium mb-3">"${c.summary}"</p>
+          <button onclick="selectPrimaryCondition('${c.id}')" id="btnCond_${c.id}" class="w-full text-xs py-2.5 rounded-2xl font-jua border border-white bg-[#FEF08A] text-[#854D0E] hover:bg-[#FDE047] transition-all">
+            이거 완전 나야 (대표 증상 선택)
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // Select Primary Condition
+    function selectPrimaryCondition(condId) {
+      selectedPrimaryCond = appData.conditions.find(c => c.id === condId);
+      document.querySelectorAll('[id^="btnCond_"]').forEach(b => {
+        b.className = 'w-full text-xs py-2.5 rounded-2xl font-jua border border-white bg-[#FEF08A] text-[#854D0E]';
+        b.textContent = '이거 완전 나야 (대표 증상 선택)';
+      });
+      const activeBtn = document.getElementById('btnCond_' + condId);
+      if (activeBtn) {
+        activeBtn.className = 'w-full text-xs py-2.5 rounded-2xl font-jua border border-white bg-[#D97706] text-white shadow-sm';
+        activeBtn.textContent = '✓ 대표 증상 선택됨';
+      }
+      document.getElementById('btnIssuePrescription').disabled = false;
+    }
+
+    // Issue Prescription
+    function issuePrescription() {
+      if (!selectedPrimaryCond || !currentStudent) return;
+
+      const visit = {
+        visitId: 'V' + Date.now(),
+        studentId: currentStudent.id,
+        categoryId: selectedCategory,
+        primaryConditionId: selectedPrimaryCond.id,
+        primaryConditionName: selectedPrimaryCond.name,
+        status: 'issued',
+        createdAt: new Date().toISOString(),
+        missions: [
+          { missionId: 'M1', type: 'notice', title: '마음 신호 알아차리기', description: `"${selectedPrimaryCond.name}" 신호가 켜졌을 때 내 몸(심장, 어깨, 표정)의 변화를 가만히 관찰하기` },
+          { missionId: 'M2', type: 'action', title: '5분 미니 행동 실천', description: '부담 없이 딱 5분만 타이머를 켜고 지금 당장 할 수 있는 작은 행동 1가지 해보기' },
+          { missionId: 'M3', type: 'environment', title: '자기 조절 & 심호흡', description: '코로 4초 들이마시고 6초 천천히 내쉬며 나에게 "괜찮아, 천천히 가자" 말해주기' }
+        ]
+      };
+
+      appData.visits.push(visit);
+      activeVisit = visit;
+      localStorage.setItem('hp_visits', JSON.stringify(appData.visits));
+
+      // Call Google Apps Script backend if live
+      if (window.google && google.script && google.script.run) {
+        google.script.run.handleVisitSubmit(visit);
+      }
+
+      document.getElementById('diagStepRecommend').classList.add('hidden');
+      document.getElementById('diagStepIssued').classList.remove('hidden');
+      document.getElementById('prescribedCodeText').textContent = `${visit.primaryConditionId} 처방전`;
+      document.getElementById('prescribedNameText').textContent = visit.primaryConditionName;
+
+      const missionsList = document.getElementById('prescribedMissionsList');
+      missionsList.innerHTML = visit.missions.map((m, i) => `
+        <div class="p-3.5 bg-[#FDFCF0] border-2 border-white rounded-2xl shadow-2xs">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-6 h-6 rounded-full bg-[#FFEDD5] text-[#D97706] font-jua text-xs flex items-center justify-center border border-white">${i+1}</span>
+            <span class="font-jua text-sm text-[#5A5A40]">${m.title}</span>
+          </div>
+          <p class="text-xs text-[#5A5A40]/80 font-medium pl-8">${m.description}</p>
+        </div>
+      `).join('');
+    }
+
+    // Setup Done Form
+    function setupDoneForm() {
+      const container = document.getElementById('doneRatingMissions');
+      if (!activeVisit) {
+        container.innerHTML = '<p class="text-xs text-[#5A5A40]/70 py-4 text-center font-bold">현재 진행 중인 처방전이 없습니다. 먼저 마음 진료를 받아보세요!</p>';
+        return;
+      }
+
+      container.innerHTML = activeVisit.missions.map((m, i) => `
+        <div class="p-3 bg-[#FDFCF0] rounded-2xl border-2 border-white flex items-center justify-between">
+          <span class="font-bold text-[#5A5A40]">${i+1}. ${m.title}</span>
+          <select id="mRating_${i+1}" class="bg-white border border-slate-200 rounded-xl px-2 py-1 font-bold text-amber-600">
+            <option value="5">★★★★★ (5점)</option>
+            <option value="4">★★★★☆ (4점)</option>
+            <option value="3">★★★☆☆ (3점)</option>
+            <option value="2">★★☆☆☆ (2점)</option>
+            <option value="1">★☆☆☆☆ (1점)</option>
+          </select>
+        </div>
+      `).join('');
+    }
+
+    // Handle Done Form Submit
+    function handleDoneFormSubmit(e) {
+      e.preventDefault();
+      if (!activeVisit || !currentStudent) return;
+
+      activeVisit.status = 'submitted';
+      currentStudent.cookieBalance += 2;
+      localStorage.setItem('hp_students', JSON.stringify(appData.students));
+      localStorage.setItem('hp_visits', JSON.stringify(appData.visits));
+
+      // Call GAS Backend if live
+      if (window.google && google.script && google.script.run) {
+        google.script.run.handleMissionResultSubmit({
+          visitId: activeVisit.visitId,
+          studentId: currentStudent.id,
+          bestMissionIndex: Number(document.getElementById('doneBestMission').value),
+          m1Rating: 5, m2Rating: 5, m3Rating: 5,
+          reflectionWhy: document.getElementById('doneReflectionWhy').value,
+          futurePlan: document.getElementById('doneFuturePlan').value
+        });
+      }
+
+      document.getElementById('studentBadgeCookies').textContent = currentStudent.cookieBalance;
+      activeVisit = null;
+      alert('🎉 처방 소감이 성공적으로 기록되었습니다!\n칭찬쿠키 +2개가 적립되었습니다. 교실 힐링약국에서 처방약을 수령하세요!');
+      showView('home');
+    }
+
+    // Render My Page
+    function renderMyPage() {
+      if (!currentStudent) return;
+      document.getElementById('myPageStudentName').textContent = `${currentStudent.name} 학생의 마음기록`;
+      document.getElementById('myPageCookieCount').textContent = currentStudent.cookieBalance;
+
+      const myVisits = appData.visits.filter(v => v.studentId === currentStudent.id);
+      const list = document.getElementById('myPageVisitsList');
+      if (myVisits.length === 0) {
+        list.innerHTML = '<p class="text-xs text-[#5A5A40]/60 text-center py-4">아직 기록된 처방전이 없습니다.</p>';
+      } else {
+        list.innerHTML = myVisits.map(v => `
+          <div class="p-3.5 bg-[#FDFCF0] border-2 border-white rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-mono font-bold text-[#854D0E] bg-[#FEF08A] px-2 py-0.5 rounded-md">${v.primaryConditionId}</span>
+              <h5 class="font-jua text-sm text-[#5A5A40] mt-1">${v.primaryConditionName}</h5>
+            </div>
+            <span class="text-[11px] font-bold px-2.5 py-1 rounded-full ${v.status === 'submitted' ? 'bg-[#CCFBF1] text-[#0D9488]' : 'bg-[#FEF08A] text-[#854D0E]'}">
+              ${v.status === 'submitted' ? '실천 완료 ✓' : '진행 중'}
+            </span>
+          </div>
+        `).join('');
+      }
+
+      // Gacha inventory
+      const gachaList = document.getElementById('myPageGachaList');
+      gachaList.innerHTML = `
+        <div class="p-3 bg-[#FDFCF0] border-2 border-white rounded-2xl flex items-center gap-3">
+          <span class="text-2xl">✨</span>
+          <div>
+            <p class="font-jua text-xs text-[#1E40AF]">힐리 무지개 칭찬 스티커팩</p>
+            <p class="text-[10px] text-[#5A5A40]/70">희귀도: SSR</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Update Gacha Display
+    function updateGachaDisplay() {
+      if (currentStudent) {
+        document.getElementById('gachaCookieBalance').textContent = currentStudent.cookieBalance;
+      }
+    }
+
+    // Pull Gacha
+    function pullGachaMachine() {
+      if (!currentStudent || currentStudent.cookieBalance < 3) {
+        alert('칭찬쿠키가 부족합니다! (최소 3개 필요)\n처방전 미션을 실천하고 쿠키를 모아보세요.');
+        return;
+      }
+
+      currentStudent.cookieBalance -= 3;
+      document.getElementById('studentBadgeCookies').textContent = currentStudent.cookieBalance;
+      document.getElementById('gachaCookieBalance').textContent = currentStudent.cookieBalance;
+      localStorage.setItem('hp_students', JSON.stringify(appData.students));
+
+      const display = document.getElementById('gachaMachineDisplay');
+      display.textContent = '🎲';
+      display.classList.add('animate-bounce');
+
+      setTimeout(() => {
+        display.classList.remove('animate-bounce');
+        const prizes = [
+          { icon: '✨', name: '힐리 무지개 스티커팩 (SSR)' },
+          { icon: '🌟', name: '마음 튼튼 스페셜 배지 (SR)' },
+          { icon: '🍪', name: '특별 달콤 간식 교환권 (SR)' },
+          { icon: '🎨', name: '힐링약국 캐릭터 포토카드 (R)' }
+        ];
+        const win = prizes[Math.floor(Math.random() * prizes.length)];
+        display.textContent = win.icon;
+        alert(`🎉 축하합니다!\n[${win.name}] 당첨!\n교실 힐링약국 서랍에서 수령하세요.`);
+      }, 1000);
+    }
+
+    // Modals
+    function openFortuneModal() {
+      const modal = document.getElementById('modalFortune');
+      const item = appData.fortunes[Math.floor(Math.random() * appData.fortunes.length)];
+      document.getElementById('fortuneTextDisplay').textContent = `"${item.text}"`;
+      modal.classList.remove('hidden');
+    }
+    function openWorryModal() {
+      const modal = document.getElementById('modalWorry');
+      const item = appData.worryHints[Math.floor(Math.random() * appData.worryHints.length)];
+      document.getElementById('worryTextDisplay').textContent = `"${item.text}"`;
+      modal.classList.remove('hidden');
+    }
+    function openNewMedModal() {
+      document.getElementById('modalNewMed').classList.remove('hidden');
+    }
+    function openWorkbookPrintModal() {
+      document.getElementById('modalPrint').classList.remove('hidden');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function handleNewMedSubmit(e) {
+      e.preventDefault();
+      alert('🔬 새로운 가상 증상이 신약개발소에 접수되었습니다!\n선생님 검토 후 정식 증상으로 등재됩니다 (+1쿠키 지급).');
+      if (currentStudent) {
+        currentStudent.cookieBalance += 1;
+        document.getElementById('studentBadgeCookies').textContent = currentStudent.cookieBalance;
+      }
+      closeModal('modalNewMed');
+    }
+
+    // Teacher Mode Toggle
+    function toggleTeacherMode() {
+      if (!isTeacherMode) {
+        const pass = prompt('선생님 비밀번호를 입력해주세요 (기본: 1234)');
+        if (pass !== '1234') {
+          alert('비밀번호가 올바르지 않습니다.');
+          return;
+        }
+        isTeacherMode = true;
+        document.getElementById('teacherBtnText').textContent = '학생화면';
+        document.getElementById('bottomNav').classList.add('hidden');
+        showView('teacher');
+      } else {
+        isTeacherMode = false;
+        document.getElementById('teacherBtnText').textContent = '선생님';
+        if (currentStudent) {
+          document.getElementById('bottomNav').classList.remove('hidden');
+          showView('home');
+        } else {
+          showView('login');
+        }
+      }
+    }
+
+    // Render Teacher Dashboard
+    function renderTeacherDashboard() {
+      document.getElementById('tStatTotal').textContent = appData.visits.length + '건';
+      const completed = appData.visits.filter(v => v.status === 'submitted');
+      document.getElementById('tStatSubmitted').textContent = completed.length + '건';
+
+      // Verification Table
+      const table = document.getElementById('tVerificationTable');
+      if (appData.visits.length === 0) {
+        table.innerHTML = '<p class="text-xs text-[#5A5A40]/60 py-3 text-center">아직 접수된 진료가 없습니다.</p>';
+      } else {
+        table.innerHTML = appData.visits.map(v => {
+          const st = appData.students.find(s => s.id === v.studentId);
+          return `
+            <div class="p-3 bg-[#FDFCF0] rounded-2xl border-2 border-white flex items-center justify-between">
+              <div>
+                <span class="font-bold text-[#5A5A40]">${st ? st.name : v.studentId}</span>
+                <span class="text-[10px] text-[#5A5A40]/70 ml-1">(${v.primaryConditionName})</span>
+              </div>
+              <button onclick="verifyVisitByTeacher('${v.visitId}')" class="px-3 py-1.5 rounded-xl font-jua text-xs ${v.status === 'rewarded' ? 'bg-[#CCFBF1] text-[#0D9488]' : 'bg-[#FEF08A] text-[#854D0E] hover:bg-[#FDE047]'}">
+                ${v.status === 'rewarded' ? '확인 완료 ✓' : '실물 확인 (+1쿠키)'}
+              </button>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Student Record Dropdown
+      const stSelect = document.getElementById('tStudentRecordStudent');
+      stSelect.innerHTML = appData.students.map(s => `
+        <option value="${s.id}">${s.grade}학년 ${s.classNum}반 ${s.number}번 ${s.name}</option>
+      `).join('');
+      generateAiStudentRecordSentence();
+    }
+
+    function verifyVisitByTeacher(visitId) {
+      const v = appData.visits.find(x => x.visitId === visitId);
+      if (v) {
+        v.status = 'rewarded';
+        const st = appData.students.find(s => s.id === v.studentId);
+        if (st) st.cookieBalance += 1;
+        localStorage.setItem('hp_visits', JSON.stringify(appData.visits));
+        localStorage.setItem('hp_students', JSON.stringify(appData.students));
+        alert('실물 워크북 확인 완료 및 보너스 칭찬쿠키 +1개가 지급되었습니다.');
+        renderTeacherDashboard();
+      }
+    }
+
+    function generateAiStudentRecordSentence() {
+      const stId = document.getElementById('tStudentRecordStudent').value;
+      const st = appData.students.find(s => s.id === stId);
+      if (!st) return;
+      document.getElementById('tAiSentenceResult').innerHTML = `
+        <strong>[행동특성 및 종합의견 추천 문장]</strong><br>
+        "${st.name} 학생은 힐링약국 사회정서 실천 프로그램에 성실히 참여하여 자신의 마음 상태를 스스로 알아차리고, 3단계 행동 처방을 일상 속에서 주도적으로 실천하며 회복탄력성과 자기조절 능력을 신장시킴."
+      `;
+    }
+  </script>
+</body>
+</html>

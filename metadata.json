@@ -1,0 +1,6 @@
+{
+  "name": "힐링약국",
+  "description": "중학생을 위한 사회정서교육 웹앱: 가상 증상 알아차림, 행동 처방 실천, 워크북 및 교사 대시보드",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
