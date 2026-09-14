@@ -32,8 +32,8 @@ const CUSTOM_CONDITION_MISSIONS: Record<string, PrescriptionCandidate[]> = {
     {
       id: 'A-01-TM5',
       type: 'action',
-      title: '5분 뽀모도로 스타트',
-      description: '부담 없이 딱 5분만 타이머 맞추고 공부 시작하기 (5분 지나면 쉬어도 OK)'
+      title: '5분 미니 행동 스타트',
+      description: '부담 없이 딱 5분만 타이머를 켜고 지금 당장 할 수 있는 가장 쉬운 작은 행동 1가지만 실행해보기 (예: 교재 첫 페이지만 펼치기, 연필 깎기, 가장 만만한 문제 1개만 풀기, 책상 위 컵 하나 치우기)'
     },
     {
       id: 'A-01-TM6',
@@ -46,6 +46,90 @@ const CUSTOM_CONDITION_MISSIONS: Record<string, PrescriptionCandidate[]> = {
       type: 'notice',
       title: '시작이 반 셀프 토닥임',
       description: '책을 펼친 순간 "피하지 않고 시작한 나 자신 멋지다" 한마디 건네기'
+    }
+  ],
+
+  // A-02: 계획만거창해증
+  'A-02': [
+    {
+      id: 'A-02-TM1',
+      type: 'action',
+      title: '5분 미니 행동 스타트',
+      description: '부담 없이 딱 5분만 타이머를 켜고 지금 당장 할 수 있는 가장 쉬운 작은 행동 1가지만 실행해보기 (예: 전체 계획 대신 가장 쉬운 숙제 1개만 책상에 꺼내기, 문제 1번만 눈으로 훑기, 지우개 가루 털기)'
+    },
+    {
+      id: 'A-02-TM2',
+      type: 'action',
+      title: '한 놈만 골라 패기 (딱 1개 선택)',
+      description: '산더미 같은 할 일 목록 중 지금 10분 만에 끝낼 수 있는 가장 만만한 것 딱 1개에 별표 치기'
+    },
+    {
+      id: 'A-02-TM3',
+      type: 'environment',
+      title: '시야 정리: 책 1권만 남기기',
+      description: '여러 과목 책을 쌓아두지 말고, 지금 할 책 딱 1권만 펼치고 나머지는 가방에 넣기'
+    },
+    {
+      id: 'A-02-TM4',
+      type: 'notice',
+      title: '완벽주의 스위치 끄기',
+      description: '"100점이 아니어도 괜찮아, 30%만 채워도 대단한 시작이야" 속으로 소리 내어 말하기'
+    },
+    {
+      id: 'A-02-TM5',
+      type: 'action',
+      title: '시원한 물 마시고 어깨 펴기',
+      description: '압도감으로 굳어버린 목과 어깨를 크게 3번 돌리고 시원한 물 한 모금 마시기'
+    }
+  ],
+
+  // A-04: 숙제미루기마감요정신드롬
+  'A-04': [
+    {
+      id: 'A-04-TM1',
+      type: 'action',
+      title: '5분 미니 행동 스타트',
+      description: '부담 없이 딱 5분만 타이머를 켜고 지금 당장 할 수 있는 가장 쉬운 작은 행동 1가지만 실행해보기 (예: 교재 첫 페이지만 펼치기, 필통에서 펜 하나 꺼내기, 물 한 잔 마시며 기지개 켜기)'
+    },
+    {
+      id: 'A-04-TM2',
+      type: 'notice',
+      title: '마감 요정 달래기',
+      description: '"벼락치기 안 해도 돼, 지금 5분 한 게 내일의 나를 살린다"며 내 머리 쓰다듬기'
+    },
+    {
+      id: 'A-04-TM3',
+      type: 'environment',
+      title: '스마트폰 20분 격리 서랍행',
+      description: '시작을 방해하는 폰을 가방이나 서랍 속에 넣어두고 알림 소리 끄기'
+    },
+    {
+      id: 'A-04-TM4',
+      type: 'action',
+      title: '가장 쉬운 1문제만 풀고 동그라미',
+      description: '제일 만만한 단어 1개 쓰거나 기초 예제 1개 풀고 스스로에게 빨간 펜 동그라미 선물하기'
+    }
+  ],
+
+  // A-05: 공부전책상정리만2시간증후군
+  'A-05': [
+    {
+      id: 'A-05-TM1',
+      type: 'action',
+      title: '5분 미니 행동 스타트',
+      description: '부담 없이 딱 5분만 타이머를 켜고 지금 당장 할 수 있는 가장 쉬운 작은 행동 1가지만 실행해보기 (예: 책상 대청소 대신 빈 컵 1개만 치우고 책 펴기, 연필 1자루만 쥐기, 1페이지만 읽기)'
+    },
+    {
+      id: 'A-05-TM2',
+      type: 'environment',
+      title: '책상 정리 스톱! 책 한 권 자리만 확보',
+      description: '책상 전체를 치우려 하지 말고, 교재를 놓을 A4 1장 크기 공간만 확보하고 바로 착석하기'
+    },
+    {
+      id: 'A-05-TM3',
+      type: 'notice',
+      title: '정리 욕구 알아차리기',
+      description: '"아, 내가 공부하기 무서워서 청소로 도망치고 있구나" 싱긋 웃으며 알아차려 주기'
     }
   ],
 
@@ -189,8 +273,8 @@ export function generateTailoredMissionsForCondition(item: RawConditionItem): Pr
         {
           id: `${condId}-TM1`,
           type: 'action',
-          title: `만만한 3분 스타트 (${medicine})`,
-          description: `"${name}"이 올라올 때, 딱 3분만 타이머 켜고 교재나 문제집 1페이지만 펼쳐보기`
+          title: `5분 미니 행동 스타트 (${medicine})`,
+          description: `부담 없이 딱 5분만 타이머를 켜고 지금 당장 할 수 있는 가장 쉬운 작은 행동 1가지만 실행해보기 (예: 교재 첫 페이지만 펼치기, 연필 깎기, 문제 1개만 소리 내어 읽기, 책상 위 컵 하나 치우기)`
         },
         {
           id: `${condId}-TM2`,
@@ -563,8 +647,8 @@ export function generateTailoredMissionsForCondition(item: RawConditionItem): Pr
         {
           id: `${condId}-TM2`,
           type: 'action',
-          title: '5분 미니 힐링 행동',
-          description: `지금 당장 할 수 있는 가장 쉬운 행동 1가지를 부담 없이 해보기`
+          title: '5분 미니 행동 실천',
+          description: `부담 없이 딱 5분만 타이머를 켜고 지금 당장 할 수 있는 가장 쉬운 작은 행동 1가지만 실행해보기 (예: 시원한 물 한 잔 마시며 기지개 켜기, 책상 위 쓰레기 1개 치우기, 머릿속 복잡한 생각 1줄 끄적이기)`
         },
         {
           id: `${condId}-TM3`,

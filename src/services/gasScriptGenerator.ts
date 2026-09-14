@@ -155,7 +155,7 @@ function seedMasterData() {
         const id = cond[0];
         const name = cond[2];
         missionsData.push([id + '-M1', id, 'notice', '마음 신호 알아차리기', '"' + name + '" 신호 켜질 때 내 몸의 신호 관찰하기']);
-        missionsData.push([id + '-M2', id, 'action', '5분 미니 행동 실천', '부담 없이 딱 5분만 타이머 켜고 쉬운 행동 1가지 해보기']);
+        missionsData.push([id + '-M2', id, 'action', '5분 미니 행동 실천', '부담 없이 딱 5분만 타이머 켜고 쉬운 행동 1가지 해보기 (예: 교재 첫 페이지 펴기, 책상 위 컵 치우기, 물 마시고 기지개 켜기)']);
         missionsData.push([id + '-M3', id, 'environment', '자기 조절 & 심호흡', '코로 4초 들이마시고 6초 천천히 내쉬며 나에게 "괜찮아" 말하기']);
       });
       missionSheet.getRange(2, 1, missionsData.length, 5).setValues(missionsData);

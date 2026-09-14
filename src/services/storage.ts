@@ -13,10 +13,12 @@ import {
   AssessmentResult,
   DailyMissionCheckIn,
   MissionItemCheck,
-  Fortune
+  Fortune,
+  EmotionLog
 } from '../types';
 import { INITIAL_CLASSES, INITIAL_STUDENTS, INITIAL_VISITS, DEFAULT_SETTINGS, GACHA_PRIZES } from '../data/initialData';
 import { VIRTUAL_CONDITIONS } from '../data/conditions';
+import { FirestoreSync } from './firestoreSync';
 
 const STORAGE_KEYS = {
   CLASSES: 'healing_pharmacy_classes',
@@ -29,6 +31,7 @@ const STORAGE_KEYS = {
   WORRY_CHALLENGES: 'healing_pharmacy_worry_challenges',
   NEW_CONDITION_REQUESTS: 'healing_pharmacy_new_conditions',
   SETTINGS: 'healing_pharmacy_settings',
+  EMOTION_LOGS: 'healing_pharmacy_emotion_logs',
   CURRENT_STUDENT_ID: 'healing_pharmacy_current_student_id'
 };
 
@@ -73,6 +76,7 @@ function setStoredItem<T>(key: string, value: T): void {
 
 export class StorageService {
   static init() {
+    // 1. Local fallback initial check
     if (!localStorage.getItem(STORAGE_KEYS.CLASSES)) {
       setStoredItem(STORAGE_KEYS.CLASSES, INITIAL_CLASSES);
     }
@@ -88,6 +92,44 @@ export class StorageService {
     if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
       setStoredItem(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
     }
+
+    // 2. Initialize Firestore Cloud Real-time Synchronization
+    FirestoreSync.init(
+      (cloudStudents) => {
+        setStoredItem(STORAGE_KEYS.STUDENTS, cloudStudents);
+      },
+      (cloudClasses) => {
+        setStoredItem(STORAGE_KEYS.CLASSES, cloudClasses);
+      },
+      (cloudVisits) => {
+        setStoredItem(STORAGE_KEYS.VISITS, cloudVisits);
+      },
+      (cloudCookieLogs) => {
+        setStoredItem(STORAGE_KEYS.COOKIE_LOGS, cloudCookieLogs);
+      },
+      (cloudGachaLogs) => {
+        setStoredItem(STORAGE_KEYS.GACHA_LOGS, cloudGachaLogs);
+      },
+      (cloudSettings) => {
+        setStoredItem(STORAGE_KEYS.SETTINGS, cloudSettings);
+      },
+      (cloudNewConditions) => {
+        setStoredItem(STORAGE_KEYS.NEW_CONDITION_REQUESTS, cloudNewConditions);
+      }
+    );
+  }
+
+  // Subscribe to real-time cloud data updates
+  static subscribe(listener: () => void): () => void {
+    return FirestoreSync.subscribe(listener);
+  }
+
+  static isCloudConnected(): boolean {
+    return FirestoreSync.isConnected;
+  }
+
+  static getLastSyncTime(): string | null {
+    return FirestoreSync.lastSyncTime;
   }
 
   // Classes
@@ -97,6 +139,7 @@ export class StorageService {
 
   static saveClasses(classes: SchoolClass[]) {
     setStoredItem(STORAGE_KEYS.CLASSES, classes);
+    FirestoreSync.saveClasses(classes);
   }
 
   // Students
@@ -106,6 +149,7 @@ export class StorageService {
 
   static saveStudents(students: Student[]) {
     setStoredItem(STORAGE_KEYS.STUDENTS, students);
+    FirestoreSync.saveStudentsBatch(students);
   }
 
   static getStudentById(id: string): Student | undefined {
@@ -118,7 +162,8 @@ export class StorageService {
     const idx = students.findIndex((s) => s.id === studentId);
     if (idx === -1) return null;
     students[idx] = { ...students[idx], ...updates };
-    this.saveStudents(students);
+    setStoredItem(STORAGE_KEYS.STUDENTS, students);
+    FirestoreSync.saveStudent(students[idx]);
     return students[idx];
   }
 
@@ -141,7 +186,8 @@ export class StorageService {
       return a.number - b.number;
     });
 
-    this.saveStudents(updatedList);
+    setStoredItem(STORAGE_KEYS.STUDENTS, updatedList);
+    FirestoreSync.saveStudentsBatch(newStudents);
     return updatedList;
   }
 
@@ -149,13 +195,17 @@ export class StorageService {
     const currentStudents = this.getStudents();
     const idSet = new Set(studentIds);
     const updated = currentStudents.filter(s => !idSet.has(s.id));
-    this.saveStudents(updated);
+    setStoredItem(STORAGE_KEYS.STUDENTS, updated);
+    FirestoreSync.deleteStudentsBatch(studentIds);
 
     // Also remove visits and cookie logs for deleted students
     try {
       const currentVisits = this.getVisits();
+      const toDeleteVisits = currentVisits.filter(v => idSet.has(v.studentId));
+      toDeleteVisits.forEach(v => FirestoreSync.deleteVisit(v.visitId));
+
       const updatedVisits = currentVisits.filter(v => !idSet.has(v.studentId));
-      this.saveVisits(updatedVisits);
+      setStoredItem(STORAGE_KEYS.VISITS, updatedVisits);
 
       const currentLogs = this.getCookieLogs();
       const updatedLogs = currentLogs.filter(l => !idSet.has(l.studentId));
@@ -169,25 +219,10 @@ export class StorageService {
 
   static deleteStudentsByClass(grade: number, classNum: number): Student[] {
     const currentStudents = this.getStudents();
-    const toDeleteIds = new Set(
-      currentStudents.filter(s => s.grade === grade && s.classNum === classNum).map(s => s.id)
-    );
-    const updated = currentStudents.filter(s => !(s.grade === grade && s.classNum === classNum));
-    this.saveStudents(updated);
-
-    try {
-      const currentVisits = this.getVisits();
-      const updatedVisits = currentVisits.filter(v => !toDeleteIds.has(v.studentId));
-      this.saveVisits(updatedVisits);
-
-      const currentLogs = this.getCookieLogs();
-      const updatedLogs = currentLogs.filter(l => !toDeleteIds.has(l.studentId));
-      setStoredItem(STORAGE_KEYS.COOKIE_LOGS, updatedLogs);
-    } catch (err) {
-      console.warn('Error cascading class deletion:', err);
-    }
-
-    return updated;
+    const toDeleteIds = currentStudents
+      .filter(s => s.grade === grade && s.classNum === classNum)
+      .map(s => s.id);
+    return this.deleteStudentsBatch(toDeleteIds);
   }
 
   // Privacy Consent & Assessment
@@ -385,6 +420,7 @@ export class StorageService {
 
   static saveVisits(visits: Visit[]) {
     setStoredItem(STORAGE_KEYS.VISITS, visits);
+    visits.forEach((v) => FirestoreSync.saveVisit(v));
   }
 
   static getActiveVisitForStudent(studentId: string): Visit | undefined {
@@ -400,7 +436,8 @@ export class StorageService {
   static createVisit(newVisit: Visit) {
     const visits = this.getVisits();
     visits.unshift(newVisit);
-    this.saveVisits(visits);
+    setStoredItem(STORAGE_KEYS.VISITS, visits);
+    FirestoreSync.saveVisit(newVisit);
     return newVisit;
   }
 
@@ -416,7 +453,8 @@ export class StorageService {
       studentId: visits[idx].studentId,
       createdAt: visits[idx].createdAt
     };
-    this.saveVisits(visits);
+    setStoredItem(STORAGE_KEYS.VISITS, visits);
+    FirestoreSync.saveVisit(visits[idx]);
     return visits[idx];
   }
 
@@ -474,6 +512,7 @@ export class StorageService {
     // Keep max 200 logs to prevent localStorage quota exhaustion
     const updatedLogs = [newLog, ...logs].slice(0, 200);
     setStoredItem(STORAGE_KEYS.COOKIE_LOGS, updatedLogs);
+    FirestoreSync.addCookieLog(newLog);
 
     return this.getStudentById(studentId) || null;
   }
@@ -507,7 +546,7 @@ export class StorageService {
 
     // Log cookie deduction
     const cookieLogs = this.getCookieLogs();
-    cookieLogs.unshift({
+    const cookieDeductLog: CookieLog = {
       id: `CK-SPIN-${Date.now()}`,
       studentId,
       studentName: student.name,
@@ -515,8 +554,10 @@ export class StorageService {
       reason: `칭찬가챠 1회 이용 (${prize.name})`,
       balanceAfter: newCookieBalance,
       createdAt: new Date().toISOString()
-    });
+    };
+    cookieLogs.unshift(cookieDeductLog);
     setStoredItem(STORAGE_KEYS.COOKIE_LOGS, cookieLogs);
+    FirestoreSync.addCookieLog(cookieDeductLog);
 
     // Log gacha result
     const gachaLogs = this.getGachaLogs();
@@ -533,6 +574,7 @@ export class StorageService {
     };
     gachaLogs.unshift(newGachaLog);
     setStoredItem(STORAGE_KEYS.GACHA_LOGS, gachaLogs);
+    FirestoreSync.addGachaLog(newGachaLog);
 
     return { student: updatedStudent, log: newGachaLog };
   }
@@ -544,6 +586,7 @@ export class StorageService {
       logs[idx].claimed = true;
       logs[idx].claimedAt = new Date().toISOString();
       setStoredItem(STORAGE_KEYS.GACHA_LOGS, logs);
+      FirestoreSync.updateGachaLog(logId, { claimed: true, claimedAt: logs[idx].claimedAt });
     }
   }
 
@@ -635,6 +678,7 @@ export class StorageService {
     const all = this.getNewConditionRequests();
     all.unshift(req);
     setStoredItem(STORAGE_KEYS.NEW_CONDITION_REQUESTS, all);
+    FirestoreSync.addNewConditionRequest(req);
   }
 
   static updateNewConditionRequest(requestId: string, updates: Partial<NewConditionRequest>) {
@@ -643,6 +687,7 @@ export class StorageService {
     if (idx !== -1) {
       all[idx] = { ...all[idx], ...updates };
       setStoredItem(STORAGE_KEYS.NEW_CONDITION_REQUESTS, all);
+      FirestoreSync.updateNewConditionRequest(requestId, updates);
     }
   }
 
@@ -653,6 +698,41 @@ export class StorageService {
 
   static saveSettings(settings: AppSettings) {
     setStoredItem(STORAGE_KEYS.SETTINGS, settings);
+    FirestoreSync.saveSettings(settings);
+  }
+
+  // Today's Emotion Calendar Logs
+  static getEmotionLogs(studentId?: string): EmotionLog[] {
+    const all = getStoredItem<EmotionLog[]>(STORAGE_KEYS.EMOTION_LOGS, []);
+    if (!studentId) return all;
+    return all.filter((l) => l.studentId === studentId);
+  }
+
+  static saveEmotionLog(log: EmotionLog): { success: boolean; isFirstToday: boolean } {
+    const all = this.getEmotionLogs();
+    // Check if there is already an entry for this student and date
+    const existingIdx = all.findIndex((l) => l.studentId === log.studentId && l.date === log.date);
+    const isFirstToday = existingIdx === -1;
+
+    if (existingIdx !== -1) {
+      all[existingIdx] = { ...all[existingIdx], ...log };
+    } else {
+      all.push(log);
+    }
+
+    setStoredItem(STORAGE_KEYS.EMOTION_LOGS, all);
+    FirestoreSync.saveEmotionLog(log);
+
+    // If first record of the day, award +1 Praise Cookie!
+    if (isFirstToday) {
+      this.addCookieLog(log.studentId, 1, `📅 오늘의 감정 달력 기록 (${log.date})`);
+    }
+
+    return { success: true, isFirstToday };
+  }
+
+  static syncEmotionLogs(logs: EmotionLog[]) {
+    setStoredItem(STORAGE_KEYS.EMOTION_LOGS, logs);
   }
 
   // Reset to initial

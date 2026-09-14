@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // School Mind Pharmacy app collections
+    match /students/{studentId} {
+      allow read, write: if true;
+    }
+    match /classes/{classId} {
+      allow read, write: if true;
+    }
+    match /visits/{visitId} {
+      allow read, write: if true;
+    }
+    match /cookie_logs/{logId} {
+      allow read, write: if true;
+    }
+    match /gacha_logs/{logId} {
+      allow read, write: if true;
+    }
+    match /app_settings/{settingId} {
+      allow read, write: if true;
+    }
+    match /new_conditions/{requestId} {
+      allow read, write: if true;
+    }
+    match /emotion_logs/{logId} {
+      allow read, write: if true;
+    }
+  }
+}

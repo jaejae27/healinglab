@@ -5,7 +5,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-01',
     categoryId: 'worries',
-    name: '생각과다증',
+    name: '미래막막불안신드롬',
     summary: '머릿속에 브라우저 탭이 100개 열려 있는 것처럼 생각이 꽉 찬 상태',
     medicine: '생각정리제',
     advice: '머릿속 생각을 종이에 꺼내 적으면 뇌의 램(RAM)이 비워집니다.',
@@ -14,7 +14,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-02',
     categoryId: 'worries',
-    name: '망하면어쩌지증',
+    name: '최악의시나리오감독증후군',
     summary: '아직 시작도 안 했는데 최악의 시나리오부터 시뮬레이션하는 상태',
     medicine: '용기충전제',
     advice: '일어날 확률 1%의 재앙보다 지금 할 수 있는 1가지를 보세요.',
@@ -23,7 +23,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-03',
     categoryId: 'worries',
-    name: '아직안일어났는데걱정증',
+    name: '작은일침소봉대과열증',
     summary: '다음 주, 다음 달에 있을 먼 미래의 일을 미리 대출해서 걱정하는 상태',
     medicine: '미래걱정반품약',
     advice: '내일의 문제는 내일의 내가 훌륭하게 해결할 것입니다.',
@@ -32,7 +32,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-04',
     categoryId: 'worries',
-    name: '결정못하겠어증',
+    name: '걱정스위치고장증후군',
     summary: '사소한 메뉴 선택부터 진로까지 하나를 고르기가 너무 힘겨운 상태',
     medicine: '동전던지기환',
     advice: '어떤 선택이든 내가 좋은 선택으로 만들어가면 됩니다.',
@@ -41,7 +41,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-05',
     categoryId: 'worries',
-    name: '자꾸신경쓰여증',
+    name: '밤마다이불킥불면신드롬',
     summary: '친구가 스치듯 한 말이나 표정이 하루 종일 잔상처럼 맴도는 상태',
     medicine: '지우개비타민',
     advice: '그 친구는 이미 잊었을 가능성이 90%입니다.',
@@ -50,7 +50,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-06',
     categoryId: 'worries',
-    name: '생각꼬리에꼬리증',
+    name: '실패공포얼음증후군',
     summary: 'A 걱정에서 시작해 Z 종말 시나리오까지 생각이 폭주 기관차인 상태',
     medicine: '생각정거장브레이크',
     advice: '꼬리에 꼬리를 무는 생각에 "그만!" 하고 외쳐보세요.',
@@ -59,7 +59,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-07',
     categoryId: 'worries',
-    name: '그말왜했지증',
+    name: '통제불가답답증',
     summary: '낮에 친구나 선생님에게 건넨 말이 부끄러워 밤에 이불을 차는 상태',
     medicine: '이불토닥연고',
     advice: '그 순간의 당신은 그저 최선을 다해 대화에 참여했을 뿐입니다.',
@@ -68,7 +68,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-08',
     categoryId: 'worries',
-    name: '혹시혹시혹시증',
+    name: '건강염려돋보기증후군',
     summary: '"혹시 이것도 잘못되면?", "혹시 저것도?" 끊임없이 의심하는 상태',
     medicine: '팩트체크정',
     advice: '상상(Fiction)과 사실(Fact)을 종이에 선을 긋고 구분해보세요.',
@@ -77,7 +77,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-09',
     categoryId: 'worries',
-    name: '혼자결론내려버려증',
+    name: '돈걱정조기성인신드롬',
     summary: '물어보지도 않고 "쟨 날 싫어할 거야" 혼자 단정 짓고 슬퍼하는 상태',
     medicine: '직접확인환',
     advice: '마음 읽기 초능력은 존재하지 않아요. 모르면 물어봐도 괜찮습니다.',
@@ -86,7 +86,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-10',
     categoryId: 'worries',
-    name: '머릿속재방송증',
+    name: '가족갈등새우등터짐증후군',
     summary: '속상했던 장면이나 창피했던 순간이 머릿속에서 무한 루프로 재생되는 상태',
     medicine: '채널돌리기환',
     advice: '과거의 비디오테이프를 끄고 지금 눈앞의 장면에 집중해보세요.',
@@ -95,7 +95,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-11',
     categoryId: 'worries',
-    name: '답정너인데계속고민증',
+    name: '변화적응멀미알러지',
     summary: '속으로는 이미 답을 알면서도 불안해서 결정을 못 내리고 망설이는 상태',
     medicine: '직관신뢰수',
     advice: '당신의 첫 번째 직관이 가장 정확한 길일 때가 많습니다.',
@@ -104,7 +104,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-12',
     categoryId: 'worries',
-    name: '결정하고도후회증',
+    name: '예측불허공황신드롬',
     summary: 'A를 골라놓고 "B를 골랐어야 했나?" 끝없이 기웃거리며 아쉬워하는 상태',
     medicine: '선택만족스프레이',
     advice: '내가 선택한 길이 정답이 되도록 지금 걸어가면 됩니다.',
@@ -113,7 +113,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-13',
     categoryId: 'worries',
-    name: '작은일크게생각해증',
+    name: '걱정꼬리물기증후군',
     summary: '사소한 에피소드 하나를 인생의 중대 사건처럼 무겁게 느끼는 상태',
     medicine: '줌아웃렌즈제',
     advice: '1년 뒤의 내가 이 일을 돌아본다면 과연 얼마나 기억할까요?',
@@ -122,7 +122,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-14',
     categoryId: 'worries',
-    name: '잠들기전생각폭주증',
+    name: '안전지대집착신드롬',
     summary: '불 끄고 누우면 우주의 기원부터 흑역사까지 뇌가 풀가동되는 상태',
     medicine: '꿀잠수면양말차',
     advice: '베개에 머리를 대면 오늘 하루를 잘 버텨낸 나를 칭찬해주세요.',
@@ -133,7 +133,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-01',
     categoryId: 'emotions',
-    name: '급발진주의증',
+    name: '이유없는짜증폭발증',
     summary: '별일 아닌 것에 순간적으로 욱해서 말이 거칠게 튀어나가는 상태',
     medicine: '분노쿨다운스프레이',
     advice: '말을 뱉기 전 3초만 숨을 깊게 들이쉬고 내쉬어보세요.',
@@ -142,7 +142,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-02',
     categoryId: 'emotions',
-    name: '괜히짜증나증',
+    name: '감정롤러코스터신드롬',
     summary: '누가 건드리지도 않았는데 세상 모든 게 거슬리고 뾰족해진 상태',
     medicine: '가시진정연고',
     advice: '몸이 피곤하거나 배가 고플 때 뇌는 짜증으로 신호를 보냅니다.',
@@ -151,7 +151,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-03',
     categoryId: 'emotions',
-    name: '마음롤러코스터증',
+    name: '눈물수도꼭지고장증후군',
     summary: '오전엔 신났다가 오후엔 바닥으로 곤두박질치는 감정 널뛰기 상태',
     medicine: '완행열차티켓',
     advice: '사춘기의 호르몬 파도는 자연스러운 현상입니다. 자책하지 마세요.',
@@ -160,7 +160,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-04',
     categoryId: 'emotions',
-    name: '서운함안사라져증',
+    name: '마음공허허무증후군',
     summary: '친구나 가족에게 섭섭했던 응어리가 마음속에 굳은살처럼 남은 상태',
     medicine: '마음해동제',
     advice: '서운한 감정을 혼자 삭히면 곪아요. 솔직하고 부드럽게 표현해봐요.',
@@ -169,7 +169,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-05',
     categoryId: 'emotions',
-    name: '내감정나도모르겠어증',
+    name: '속마음꽁꽁자물쇠증',
     summary: '슬픈 건지 화난 건지 그냥 답답한 건지 내 마음의 정체가 모호한 상태',
     medicine: '감정이름표환',
     advice: '감정 단어 카드를 펼치고 지금 내 기분에 알맞은 이름을 붙여보세요.',
@@ -178,7 +178,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-06',
     categoryId: 'emotions',
-    name: '별거아닌데화나증',
+    name: '분노급발진신드롬',
     summary: '장난이나 가벼운 말에도 가슴속에서 불길이 확 치솟는 상태',
     medicine: '미니소화기환',
     advice: '사실 그 말 때문이 아니라 다른 일로 이미 지쳐 있었던 것일 수 있어요.',
@@ -187,7 +187,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-07',
     categoryId: 'emotions',
-    name: '표정관리안돼증',
+    name: '질투의화신불꽃신드롬',
     summary: '기분 안 좋은 티를 내고 싶지 않은데 얼굴에 그대로 썩소가 드러나는 상태',
     medicine: '포커페이스마스크',
     advice: '기분이 태도가 되지 않도록 잠시 화장실에서 찬물 세수를 해보세요.',
@@ -196,7 +196,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-08',
     categoryId: 'emotions',
-    name: '기분나쁘면말하기싫어증',
+    name: '우울먹구름장마증후군',
     summary: '삐치거나 화가 나면 입을 꾹 닫고 동굴 속으로 들어가 버리는 상태',
     medicine: '신호등메시지환',
     advice: '"나 지금 잠깐 생각할 시간이 필요해"라고 신호만 건네보세요.',
@@ -205,7 +205,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-09',
     categoryId: 'emotions',
-    name: '화나면말세져증',
+    name: '감정무감각사막화증후군',
     summary: '화가 머리끝까지 나면 상처 주는 날카로운 칼 같은 말을 쏟아내는 상태',
     medicine: '솜사탕말투정',
     advice: '분노로 던진 돌은 결국 나 자신에게 상처로 되돌아옵니다.',
@@ -214,7 +214,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-10',
     categoryId: 'emotions',
-    name: '감정숨기다폭발증',
+    name: '외로움사무침신드롬',
     summary: '꾹꾹 참으며 "난 괜찮아" 하다가 마지막 사소한 자극에 화산 폭발하는 상태',
     medicine: '압력밥솥김빼기환',
     advice: '김이 가득 차기 전에 작은 감정부터 조금씩 흘려보내세요.',
@@ -223,7 +223,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-11',
     categoryId: 'emotions',
-    name: '갑자기우울모드증',
+    name: '불안초조다리떨기증',
     summary: '특별한 사건도 없는데 먹구름이 낀 것처럼 축 처지고 가라앉는 상태',
     medicine: '햇살한조각단',
     advice: '비 오는 날이 있듯 마음에도 흐린 날이 있습니다. 잠시 쉬어가요.',
@@ -232,7 +232,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-12',
     categoryId: 'emotions',
-    name: '기분좋았다갑자기다운증',
+    name: '죄책감무거운배낭증후군',
     summary: '친구들과 신나게 웃고 떠들다가 집에 오는 길에 급격히 공허해지는 상태',
     medicine: '온기보온병',
     advice: '즐거움 뒤에 찾아오는 잔잔한 고요를 편안하게 안아주세요.',
@@ -241,7 +241,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-13',
     categoryId: 'emotions',
-    name: '속상한데괜찮다해버려증',
+    name: '행복불안역설신드롬',
     summary: '마음은 찢어지는데 남들에게 걱정 끼치기 싫어 "나 진짜 괜찮아!" 하는 상태',
     medicine: '눈물허용티슈',
     advice: '안 괜찮을 땐 "나 지금 조금 속상해"라고 말해도 괜찮습니다.',
@@ -250,7 +250,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'E-14',
     categoryId: 'emotions',
-    name: '감정설명못하겠어증',
+    name: '억울함화병열',
     summary: '가슴속에 무언가 얹힌 것 같은데 언어로 표현이 안 되어 답답한 상태',
     medicine: '마음번역기환',
     advice: '글이 어려우면 낙서나 이모티콘으로 표현해도 충분해요.',
@@ -261,7 +261,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-01',
     categoryId: 'vitality',
-    name: '에너지0퍼센트증',
+    name: '만성피로무기력증후군',
     summary: '배터리가 빨간색 1%로 깜빡거리며 손가락 하나 까딱하기 힘든 상태',
     medicine: '급속충전케이블정',
     advice: '휴식도 실력입니다. 오늘은 아무것도 생산하지 않고 푹 쉬세요.',
@@ -270,7 +270,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-02',
     categoryId: 'vitality',
-    name: '아무것도하기싫어증',
+    name: '이불밖위험해증후군',
     summary: '재미있는 게임도 유튜브도 다 귀찮고 무중력 상태로 멍하니 있는 상태',
     medicine: '멍때리기공인인증서',
     advice: '뇌가 과열되어 스스로 셧다운을 요청한 상태입니다. 멍때려도 돼요.',
@@ -279,7 +279,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-03',
     categoryId: 'vitality',
-    name: '폰손에서안떨어져증',
+    name: '숏폼도파민무한스크롤신드롬',
     summary: '볼 것도 없으면서 잠금 해제와 락을 반복하며 폰과 한 몸이 된 상태',
     medicine: '디지털디톡스환',
     advice: '스마트폰을 다른 방에 두고 30분만 나만의 시공간을 찾아보세요.',
@@ -288,7 +288,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-04',
     categoryId: 'vitality',
-    name: '밤되면안자고싶어증',
+    name: '올빼미수면패턴역전신드롬',
     summary: '낮의 자유시간이 억울해서 졸린 눈을 비비며 새벽까지 버티는 상태',
     medicine: '보복성취침해방차',
     advice: '일찍 자야 내일의 나에게 진짜 여유와 자유시간이 선물됩니다.',
@@ -297,7 +297,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-05',
     categoryId: 'vitality',
-    name: '머리몸따로놀아증',
+    name: '운동귀차니즘알러지',
     summary: '머리로는 일어나야지 하는데 몸이 시멘트에 굳은 것처럼 안 움직이는 상태',
     medicine: '스트레칭시동수',
     advice: '발가락을 꼼지락거리는 아주 작은 움직임부터 시작해보세요.',
@@ -306,7 +306,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-06',
     categoryId: 'vitality',
-    name: '집에가면방전증',
+    name: '단것폭풍흡입당충전증',
     summary: '학교 현관문 들어서자마자 가방 던지고 바닥에 쓰러지는 상태',
     medicine: '현관충전매트',
     advice: '학교에서 사회생활 하느라 애썼어요. 편한 옷으로 갈아입고 쉬어요.',
@@ -315,7 +315,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-07',
     categoryId: 'vitality',
-    name: '침대랑한몸증',
+    name: '아침기상전쟁좀비증후군',
     summary: '중력이 침대에만 10배로 작용해 이불 밖으로 나갈 수 없는 상태',
     medicine: '중력탈출로켓환',
     advice: '이불을 휙 개어서 저 멀리 던져놓는 것이 탈출의 비결입니다.',
@@ -324,7 +324,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-08',
     categoryId: 'vitality',
-    name: '5분만폰본다했는데증',
+    name: '주말침대붙박이신드롬',
     summary: '"딱 영상 하나만" 했는데 시계 보니 어느덧 2시간이 사라진 상태',
     medicine: '시간도둑체포령',
     advice: '알고리즘은 천재 개발자들이 만든 덫이에요. 내가 의지박약인 게 아닙니다.',
@@ -333,7 +333,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-09',
     categoryId: 'vitality',
-    name: '주말순삭증',
+    name: '의욕제로방전증후군',
     summary: '토요일 아침에 눈 깜빡였더니 일요일 밤 10시가 되어 경악하는 상태',
     medicine: '알찬주말설계정',
     advice: '주말에 딱 하나의 의미 있는 작은 외출이나 활동을 심어보세요.',
@@ -342,7 +342,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-10',
     categoryId: 'vitality',
-    name: '자도자도피곤해증',
+    name: '시간순삭어디갔지신드롬',
     summary: '10시간을 잤는데도 개운하지 않고 만성 피로 곰 한 마리가 어깨에 앉은 상태',
     medicine: '수면의질개선환',
     advice: '자기 전 폰을 멀리 두고 암막 커튼과 따뜻한 물 샤워를 해보세요.',
@@ -351,7 +351,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-11',
     categoryId: 'vitality',
-    name: '쉬어도쉰것같지않아증',
+    name: '규칙적인생활어려워알러지',
     summary: '누워서 쉬면서도 머릿속으로는 숙제와 일정 생각에 긴장 상태인 상태',
     medicine: '진짜쉼인증서',
     advice: '마음의 걱정을 내려놓지 않는 휴식은 가짜 휴식입니다.',
@@ -360,7 +360,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-12',
     categoryId: 'vitality',
-    name: '해야할일있는데누워있어증',
+    name: '카페인수액의존증후군',
     summary: '시험공부 해야 하는데 누워서 천장 무늬만 세고 있는 모순 상태',
     medicine: '앉기성공단',
     advice: '침대에서 벗어나 의자에 엉덩이를 붙이는 것까지만 해보세요.',
@@ -369,7 +369,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-13',
     categoryId: 'vitality',
-    name: '생활패턴엉망진창증',
+    name: '식욕롤러코스터증',
     summary: '낮과 밤이 뒤바뀌고 식사 시간도 들쑥날쑥해 생체 리듬이 꼬인 상태',
     medicine: '생체시계태엽정',
     advice: '아침 햇살을 10분간 쬐는 것이 생체 시계를 리셋하는 지름길입니다.',
@@ -378,7 +378,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'L-14',
     categoryId: 'vitality',
-    name: '밤에갑자기정신맑아져증',
+    name: '외출준비천년만년신드롬',
     summary: '낮에는 좀비처럼 다니다가 밤 11시만 넘으면 뇌가 각성하는 올빼미 상태',
     medicine: '올빼미날개접기차',
     advice: '밤의 에너지를 스마트폰 대신 일기나 차분한 독서로 달래보세요.',
@@ -389,7 +389,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-01',
     categoryId: 'future',
-    name: '내가왜그랬지증',
+    name: '꿈실종진로미아증후군',
     summary: '과거의 선택이나 실패를 끝없이 되감기하며 자책하는 상태',
     medicine: '타임머신작별단',
     advice: '그때의 나는 그때 알고 있던 최선의 결정을 내렸을 뿐입니다.',
@@ -398,7 +398,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-02',
     categoryId: 'future',
-    name: '실패후유증',
+    name: '남들은다정했는데나만없어신드롬',
     summary: '한 번 미끄러졌던 기억 때문에 새로운 시도를 하기가 무서운 상태',
     medicine: '오뚝이회복환',
     advice: '자전거에서 넘어진 것은 실패가 아니라 균형을 배우는 중입니다.',
@@ -407,7 +407,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-03',
     categoryId: 'future',
-    name: '다시하기무서워증',
+    name: '진로선택결정장애증후군',
     summary: '용기 내어 도전했다가 상처받아서 다시 문을 두드리기 두려운 상태',
     medicine: '작은발걸음시럽',
     advice: '아주 작은 실험이라고 생각하고 가볍게 발가락만 담가보세요.',
@@ -416,7 +416,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-04',
     categoryId: 'future',
-    name: '포기버튼누르고싶어증',
+    name: '현실과이상괴리신드롬',
     summary: '노력해도 안 될 것 같아서 그냥 지금 포기하고 치워버리고 싶은 상태',
     medicine: '마지막1회권',
     advice: '가장 어두운 밤이 지나면 곧 새벽 동이 터옵니다.',
@@ -425,7 +425,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-05',
     categoryId: 'future',
-    name: '미래모르겠어증',
+    name: '부모님기대압박증후군',
     summary: '고등학교, 어른의 모습, 미래가 안갯속처럼 캄캄하게 느껴지는 상태',
     medicine: '손전등비타민',
     advice: '10년 뒤를 볼 필요 없어요. 내일 하루만 비추는 손전등이면 충분합니다.',
@@ -434,7 +434,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-06',
     categoryId: 'future',
-    name: '잘하고싶어서못하겠어증',
+    name: '재능탐색안개신드롬',
     summary: '기왕 할 거면 멋지게 해내고 싶은 마음에 아예 시작조차 못하는 상태',
     medicine: '엉성한시작정',
     advice: '어설픈 시작이 웅장한 계획보다 100배 가치 있습니다.',
@@ -443,7 +443,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-07',
     categoryId: 'future',
-    name: '시작도전에포기증',
+    name: '미래생각하면숨막힘알러지',
     summary: '남들의 뛰어난 실력을 보고 "어차피 난 안 돼"라며 입구 컷하는 상태',
     medicine: '가능성씨앗수',
     advice: '모든 전문가도 처음에는 서툴고 어설픈 초보자였습니다.',
@@ -452,7 +452,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-08',
     categoryId: 'future',
-    name: '결과먼저걱정증',
+    name: '문과이과선택마비증후군',
     summary: '과정의 즐거움은 느끼지 못하고 점수나 합격 불합격만 조마조마한 상태',
     medicine: '과정몰입캡슐',
     advice: '오늘 한 시간 동안 쏟은 내 땀방울 자체가 가장 빛나는 열매입니다.',
@@ -461,7 +461,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-09',
     categoryId: 'future',
-    name: '진로안개주의보증',
+    name: '학과정보홍수과부하증',
     summary: '선생님이나 부모님이 진로를 물어볼 때마다 숨이 턱 막히는 상태',
     medicine: '모험가지도환',
     advice: '진로는 정해진 목적지가 아니라 직접 걸으며 만들어가는 길입니다.',
@@ -470,7 +470,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-10',
     categoryId: 'future',
-    name: '한번실패하고끝난것같아증',
+    name: '좋아하는것돈안될까봐불안증',
     summary: '한 번의 시험이나 오디션 탈락으로 내 인생이 망했다고 여기는 상태',
     medicine: '인생이어달리기정',
     advice: '이번 게임에서 졌을 뿐, 새 게임을 시작할 코인은 무한합니다.',
@@ -479,7 +479,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-11',
     categoryId: 'future',
-    name: '다시도전귀찮아증',
+    name: '도전포기패배주의신드롬',
     summary: '또 노력하고 고생할 생각을 하니 귀차니즘과 두려움이 앞서는 상태',
     medicine: '작은설렘캡슐',
     advice: '거창한 도전 말고 아주 재미있고 작은 놀이처럼 접근해보세요.',
@@ -488,7 +488,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-12',
     categoryId: 'future',
-    name: '꿈이뭔지모르겠어증',
+    name: '나이먹는게무서워피터팬증후군',
     summary: '주변 친구들은 꿈이 뚜렷해 보이는데 나만 꿈이 없어 조급한 상태',
     medicine: '꿈탐험가여권',
     advice: '꿈이 꼭 직업일 필요는 없어요. 행복하고 다정한 사람이 되는 것도 꿈입니다.',
@@ -497,7 +497,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-13',
     categoryId: 'future',
-    name: '선택했다가후회할까증',
+    name: '취업걱정조기고민신드롬',
     summary: '문과 이과, 동아리 선택 등 내가 고른 길이 잘못될까 봐 겁나는 상태',
     medicine: '경험축적단',
     advice: '잘못된 선택은 없습니다. 새로운 배움을 주는 경험만 있을 뿐이에요.',
@@ -506,7 +506,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-14',
     categoryId: 'future',
-    name: '앞으로뭐하지증',
+    name: '롤모델실종방황증후군',
     summary: '중학교 졸업 후, 고등학교 생활 등 다가올 변화가 두려운 상태',
     medicine: '안전착륙버블',
     advice: '새로운 물결이 오면 멋지게 서핑하듯 타면 됩니다.',
@@ -515,7 +515,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-15',
     categoryId: 'future',
-    name: '남들은꿈있는데나만없어증',
+    name: '꿈자주바뀌어변덕쟁이신드롬',
     summary: '꿈을 향해 달리는 친구들 틈에서 나만 무목적 표류선 같은 상태',
     medicine: '나만의항해일지',
     advice: '지금 방황하는 시간은 나만의 항로를 탐색하는 가장 값진 시간입니다.',
@@ -526,7 +526,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-01',
     categoryId: 'school',
-    name: '학교가기귀찮아증',
+    name: '등교거부월요병부활신드롬',
     summary: '아침 알람 소리만 들리면 이불을 뒤집어쓰고 학교에 가기 싫은 상태',
     medicine: '등교부스터젤리',
     advice: '오늘 학교에서 만날 반가운 친구 얼굴 하나만 떠올려보세요.',
@@ -535,7 +535,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-02',
     categoryId: 'school',
-    name: '월요일거부증',
+    name: '급식메뉴일희일비증',
     summary: '일요일 저녁부터 온몸이 뻐근하고 월요일이 오는 걸 온몸으로 거부하는 상태',
     medicine: '월요병완화차',
     advice: '월요일은 새로운 한 주의 첫 모험일 뿐이에요. 좋아하는 간식을 챙겨요.',
@@ -544,7 +544,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-03',
     categoryId: 'school',
-    name: '쉬는시간순삭증',
+    name: '쉬는시간어색한침묵알러지',
     summary: '10분 쉬는 시간이 10초처럼 지나가고 수업 종소리가 원망스러운 상태',
     medicine: '꿀맛충전모래시계',
     advice: '10분 동안 깊은 심호흡과 물 한 모금으로 알차게 재충전해보세요.',
@@ -553,7 +553,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-04',
     categoryId: 'school',
-    name: '발표순서다가오면심장쿵증',
+    name: '선생님시선회피레이더증후군',
     summary: '내 차례가 다가올수록 심장이 튀어나올 것 같고 목소리가 떨리는 상태',
     medicine: '당당발표캔디',
     advice: '친구들은 당신의 발표 내용보다 자기 차례 걱정하느라 바쁩니다.',
@@ -562,7 +562,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-05',
     categoryId: 'school',
-    name: '모둠활동눈치보여증',
+    name: '자리배치운명론초조신드롬',
     summary: '조별 과제나 모둠활동 할 때 말 꺼내기가 어렵고 어색해 굳어있는 상태',
     medicine: '팀워크윤활유',
     advice: '작은 맞장구 "좋다!", "맞아!" 리액션 하나도 훌륭한 기여입니다.',
@@ -571,7 +571,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-06',
     categoryId: 'school',
-    name: '선생님께질문못하겠어증',
+    name: '체육시간공피하기알러지',
     summary: '모르는 게 생겨도 "이런 것도 모르냐"고 하실까 봐 질문을 삼키는 상태',
     medicine: '용기있는손들기정',
     advice: '좋은 질문이란 없습니다. 당신의 질문이 교실 친구들을 살립니다.',
@@ -580,7 +580,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-07',
     categoryId: 'school',
-    name: '아는답인데손못들어증',
+    name: '교실소음청각과부하증후군',
     summary: '정답을 알면서도 틀리면 부끄러울까 봐 가슴앓이하며 가만히 있는 상태',
     medicine: '정답자신감환',
     advice: '틀려도 괜찮아요. 틀린 답에서 진짜 배움이 일어납니다.',
@@ -589,7 +589,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-08',
     categoryId: 'school',
-    name: '오늘왜이렇게꼬이지증',
+    name: '동아리활동겉돌기신드롬',
     summary: '체육복 두고 오고, 지각하고, 작은 불운들이 연달아 터져 울컥하는 상태',
     medicine: '액땜완료스티커',
     advice: '오늘의 작은 불운들이 당신의 큰 불운을 미리 막아준 액땜입니다.',
@@ -598,7 +598,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-09',
     categoryId: 'school',
-    name: '교실에서혼자된것같아증',
+    name: '청소시간투명인간알러지',
     summary: '시끌벅적한 교실 속에서 나만 섬처럼 뚝 떨어진 것 같은 소외감을 느끼는 상태',
     medicine: '다정한연결고리단',
     advice: '교실 어딘가에 당신처럼 조용히 따뜻한 눈빛을 나누고픈 친구가 있어요.',
@@ -607,7 +607,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-10',
     categoryId: 'school',
-    name: '학교에있는데집가고싶어증',
+    name: '학급임원부담감백배증후군',
     summary: '1교시 시작하자마자 "집에 가고 싶다"가 머릿속 자동재생되는 상태',
     medicine: '스위트홈순간이동환',
     advice: '오늘 학교 끝나고 집에 가서 먹을 맛있는 간식을 상상해보세요.',
@@ -616,7 +616,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-11',
     categoryId: 'school',
-    name: '할말있는데선생님께못가증',
+    name: '교복답답불편신드롬',
     summary: '상담이나 하고 싶은 말이 있는데 교무실 문턱이 백두산처럼 높은 상태',
     medicine: '교무실노크캔디',
     advice: '선생님은 학생의 진솔한 이야기를 들을 준비가 언제나 되어 있습니다.',
@@ -625,7 +625,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'D-12',
     categoryId: 'school',
-    name: '하루종일눈치본것같아증',
+    name: '방학손꼽아달력카운트증',
     summary: '아침부터 방과 후까지 주변 친구들과 선생님 기분 살피느라 기진맥진한 상태',
     medicine: '눈치오프휴식차',
     advice: '교문을 나서는 순간, 눈치 안테나를 끄고 내 마음의 음악을 켜세요.',

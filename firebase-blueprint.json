@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "students": {
+      "title": "Students",
+      "description": "Student roster with cookie balance and grade/class/number information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "grade": { "type": "number" },
+        "classNum": { "type": "number" },
+        "number": { "type": "number" },
+        "name": { "type": "string" },
+        "cookieBalance": { "type": "number" },
+        "lastVisitDate": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "grade", "classNum", "number", "name", "cookieBalance"]
+    },
+    "classes": {
+      "title": "Classes",
+      "description": "School classes managed by teachers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "grade": { "type": "number" },
+        "classNum": { "type": "number" },
+        "teacherName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "grade", "classNum"]
+    },
+    "visits": {
+      "title": "Visits",
+      "description": "Mind clinic consultation records and mission logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "visitDate": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "studentId", "visitDate", "status"]
+    },
+    "cookie_logs": {
+      "title": "CookieLogs",
+      "description": "Praise cookie grant and deduction ledger",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "amount": { "type": "number" },
+        "balanceAfter": { "type": "number" },
+        "reason": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "studentId", "amount", "balanceAfter", "reason", "createdAt"]
+    },
+    "gacha_logs": {
+      "title": "GachaLogs",
+      "description": "Gacha lottery logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "claimed": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "studentId", "claimed", "createdAt"]
+    },
+    "app_settings": {
+      "title": "AppSettings",
+      "description": "Application configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      },
+      "required": ["id"]
+    }
+  },
+  "firestoreRules": "firestore.rules"
+}

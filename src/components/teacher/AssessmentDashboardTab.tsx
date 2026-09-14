@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Student } from '../../types';
 import { StorageService } from '../../services/storage';
-import { ASSESSMENT_DOMAINS } from '../../data/assessmentQuestions';
+import { ASSESSMENT_DOMAINS, KPI_QUESTION } from '../../data/assessmentQuestions';
 import * as XLSX from 'xlsx';
 import {
   BarChart3,
@@ -11,10 +11,12 @@ import {
   Clock,
   TrendingUp,
   Sparkles,
-  ArrowUpRight,
-  ShieldCheck,
   Award,
-  Users
+  Users,
+  Eye,
+  X,
+  HeartHandshake,
+  PenLine
 } from 'lucide-react';
 
 interface AssessmentDashboardTabProps {
@@ -31,6 +33,7 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
   onStudentsUpdated
 }) => {
   const [filterClassOnly, setFilterClassOnly] = useState(true);
+  const [viewingStudentAnswers, setViewingStudentAnswers] = useState<Student | null>(null);
 
   const settings = StorageService.getSettings();
   const isPostTestActive = !!settings.postTestActive;
@@ -47,7 +50,6 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
   const totalCount = targetStudents.length;
   const preDoneCount = targetStudents.filter((s) => s.preTest?.completed).length;
   const postDoneCount = targetStudents.filter((s) => s.postTest?.completed).length;
-  const bothDoneStudents = targetStudents.filter((s) => s.preTest?.completed && s.postTest?.completed);
 
   // Overall score stats
   const stats = useMemo(() => {
@@ -56,20 +58,38 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
     let preCount = 0;
     let postCount = 0;
 
+    // KPI stats
+    let kpiPreTotal = 0;
+    let kpiPreCount = 0;
+    let kpiPostTotal = 0;
+    let kpiPostCount = 0;
+
     targetStudents.forEach((s) => {
       if (s.preTest?.completed) {
         preTotal += s.preTest.averageScore;
         preCount += 1;
+        if (s.preTest.kpiScore) {
+          kpiPreTotal += s.preTest.kpiScore;
+          kpiPreCount += 1;
+        }
       }
       if (s.postTest?.completed) {
         postTotal += s.postTest.averageScore;
         postCount += 1;
+        if (s.postTest.kpiScore) {
+          kpiPostTotal += s.postTest.kpiScore;
+          kpiPostCount += 1;
+        }
       }
     });
 
     const preAvg = preCount > 0 ? Number((preTotal / preCount).toFixed(2)) : 0;
     const postAvg = postCount > 0 ? Number((postTotal / postCount).toFixed(2)) : 0;
     const diff = Number((postAvg - preAvg).toFixed(2));
+
+    const kpiPreAvg = kpiPreCount > 0 ? Number((kpiPreTotal / kpiPreCount).toFixed(2)) : 0;
+    const kpiPostAvg = kpiPostCount > 0 ? Number((kpiPostTotal / kpiPostCount).toFixed(2)) : 0;
+    const kpiDiff = Number((kpiPostAvg - kpiPreAvg).toFixed(2));
 
     // Domain averages
     const domainKeys = Object.keys(ASSESSMENT_DOMAINS) as Array<keyof typeof ASSESSMENT_DOMAINS>;
@@ -98,6 +118,7 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
       return {
         key,
         name: info.name,
+        subName: info.subName,
         icon: info.icon,
         color: info.color,
         pre: dPreAvg,
@@ -106,7 +127,7 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
       };
     });
 
-    return { preAvg, postAvg, diff, domainStats };
+    return { preAvg, postAvg, diff, kpiPreAvg, kpiPostAvg, kpiDiff, domainStats };
   }, [targetStudents]);
 
   // Toggle Post Test Status
@@ -121,7 +142,7 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
     );
   };
 
-  // Export to Excel
+  // Export to Excel with complete 5 domains + KPI + qualitative questions
   const handleExportExcel = () => {
     const rows = [
       [
@@ -131,20 +152,32 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
         '이름',
         '개인정보동의',
         '사전검사완료',
-        '사전평균점수(5점만점)',
+        '사전평균(5점만점)',
+        '사전총점(100점환산)',
+        '사전_마음처방자신감(KPI)',
         '사후검사완료',
-        '사후평균점수(5점만점)',
+        '사후평균(5점만점)',
+        '사후총점(100점환산)',
+        '사후_마음처방자신감(KPI)',
         '성장점수(Δ)',
-        '자기인식(사전)',
-        '자기인식(사후)',
-        '자기관리(사전)',
-        '자기관리(사후)',
-        '사회적인식(사전)',
-        '사회적인식(사후)',
-        '대인관계(사전)',
-        '대인관계(사후)',
-        '의사결정(사전)',
-        '의사결정(사후)'
+        '사후_프로그램효과평균',
+        '감정알아차리기(사전)',
+        '감정알아차리기(사후)',
+        '감정다루기(사전)',
+        '감정다루기(사후)',
+        '나를돌보기(사전)',
+        '나를돌보기(사후)',
+        '도움요청하기(사전)',
+        '도움요청하기(사후)',
+        '타인이해행동(사전)',
+        '타인이해행동(사후)',
+        'Q21_자주느끼는감정(사전)',
+        'Q22_스트레스대처(사전)',
+        'Q21_자주느끼는감정(사후)',
+        'Q22_스트레스대처(사후)',
+        'Q28_마음대하는법변화(성장스토리)',
+        'Q29_계속사용할마음처방',
+        'Q30_친구위한행동변화'
       ]
     ];
 
@@ -157,27 +190,39 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
         s.privacyConsent?.agreed ? '동의' : '미동의',
         s.preTest?.completed ? '완료' : '미완료',
         s.preTest?.averageScore ?? '',
+        s.preTest?.totalScore ?? '',
+        s.preTest?.kpiScore ?? '',
         s.postTest?.completed ? '완료' : '미완료',
         s.postTest?.averageScore ?? '',
+        s.postTest?.totalScore ?? '',
+        s.postTest?.kpiScore ?? '',
         s.preTest?.completed && s.postTest?.completed
           ? Number((s.postTest.averageScore - s.preTest.averageScore).toFixed(2))
           : '',
+        s.postTest?.programEffectAverage ?? '',
         s.preTest?.domainScores?.self_awareness ?? '',
         s.postTest?.domainScores?.self_awareness ?? '',
-        s.preTest?.domainScores?.self_management ?? '',
-        s.postTest?.domainScores?.self_management ?? '',
-        s.preTest?.domainScores?.social_awareness ?? '',
-        s.postTest?.domainScores?.social_awareness ?? '',
-        s.preTest?.domainScores?.relationship_skills ?? '',
-        s.postTest?.domainScores?.relationship_skills ?? '',
-        s.preTest?.domainScores?.responsible_decision ?? '',
-        s.postTest?.domainScores?.responsible_decision ?? ''
+        s.preTest?.domainScores?.self_regulation ?? '',
+        s.postTest?.domainScores?.self_regulation ?? '',
+        s.preTest?.domainScores?.self_care ?? '',
+        s.postTest?.domainScores?.self_care ?? '',
+        s.preTest?.domainScores?.help_seeking ?? '',
+        s.postTest?.domainScores?.help_seeking ?? '',
+        s.preTest?.domainScores?.empathy_action ?? '',
+        s.postTest?.domainScores?.empathy_action ?? '',
+        s.preTest?.descriptiveAnswers?.q21_feelings ?? '',
+        s.preTest?.descriptiveAnswers?.q22_stressCoping ?? '',
+        s.postTest?.descriptiveAnswers?.q21_feelings ?? '',
+        s.postTest?.descriptiveAnswers?.q22_stressCoping ?? '',
+        s.postTest?.descriptiveAnswers?.q28_mindChanged ?? '',
+        s.postTest?.descriptiveAnswers?.q29_favoritePrescription ?? '',
+        s.postTest?.descriptiveAnswers?.q30_friendAction ?? ''
       ]);
     });
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, '사회정서_사전사후평가');
+    XLSX.utils.book_append_sheet(wb, ws, '사회정서_사전사후평가통계');
     const filename = `힐링약국_사회정서_사전사후평가통계_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(wb, filename);
   };
@@ -194,9 +239,12 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
             <h2 className="font-jua text-base text-slate-900">
               사회정서역량(SEL) 사전·사후 검사 및 효과성 통계
             </h2>
+            <span className="text-[11px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+              공모전 보고서용 지표 연동
+            </span>
           </div>
           <p className="text-xs text-slate-500">
-            힐링약국 마음신호 및 행동처방 활동이 학생들의 자기조절과 회복탄력성에 미친 긍정적 변화를 자체 분석합니다.
+            힐링약국 마음신호 및 5일 행동처방 루틴이 학생들의 자기조절과 회복탄력성에 미친 긍정적 변화를 정량·서술형으로 분석합니다.
           </p>
         </div>
 
@@ -224,13 +272,13 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
             className="px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
           >
             <Download className="w-4 h-4 text-emerald-600" />
-            <span>통계 엑셀 다운로드</span>
+            <span>통계 엑셀 다운로드 (서술형 포함)</span>
           </button>
         </div>
       </div>
 
       {/* Scope Filter Pill */}
-      <div className="flex items-center justify-between bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 text-xs gap-2">
         <div className="flex items-center gap-3">
           <span className="font-bold text-slate-700">통계 대상 범위:</span>
           <label className="flex items-center gap-1.5 cursor-pointer">
@@ -266,8 +314,8 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
         )}
       </div>
 
-      {/* 3 Overview Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      {/* 4 Overview Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* Pre-Test Participation */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-500 font-bold mb-1">
@@ -324,6 +372,25 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
             5점 척도 기준 전후 평가 성장 결과
           </p>
         </div>
+
+        {/* KPI Score Growth Delta (마음 처방 자신감) */}
+        <div className="bg-gradient-to-br from-amber-50 to-rose-50 rounded-2xl border border-amber-200 p-4 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-amber-900 font-bold mb-1">
+            <span>마음처방 자신감(KPI) 성장</span>
+            <Award className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-jua text-2xl text-amber-900">
+              {stats.kpiDiff >= 0 ? `+${stats.kpiDiff}` : stats.kpiDiff}점
+            </span>
+            <span className="text-xs font-bold text-amber-700">
+              ({stats.kpiPreAvg}점 ➔ {stats.kpiPostAvg}점)
+            </span>
+          </div>
+          <p className="text-[11px] text-amber-800 mt-1">
+            {KPI_QUESTION.statement}
+          </p>
+        </div>
       </div>
 
       {/* 5 SEL Domains Growth Comparison Bars */}
@@ -334,7 +401,7 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
             <span>사회정서 5대 역량별 전후 변화 비교 (5점 척도)</span>
           </h3>
           <span className="text-xs text-slate-400">
-            사전 (연한색) vs 사후 (진한색)
+            사전 (연한 막대) vs 사후 (진한 막대)
           </span>
         </div>
 
@@ -349,6 +416,7 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
                   <div className="flex items-center gap-1.5 font-bold text-slate-800">
                     <span>{dom.icon}</span>
                     <span>{dom.name}</span>
+                    <span className="text-[10px] text-slate-400 font-normal">({dom.subName})</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <span className="text-slate-400 font-mono">사전: {dom.pre}점</span>
@@ -415,13 +483,15 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
                 <th className="py-2.5 px-3">사전 점수</th>
                 <th className="py-2.5 px-3">사후 점수</th>
                 <th className="py-2.5 px-3">변화폭(Δ)</th>
+                <th className="py-2.5 px-3">마음처방 자신감</th>
+                <th className="py-2.5 px-3">서술형 답변</th>
                 <th className="py-2.5 px-3">맞춤 지도 권고사항</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {targetStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-slate-400">
+                  <td colSpan={9} className="py-6 text-center text-slate-400">
                     등록된 학생이 없습니다.
                   </td>
                 </tr>
@@ -433,6 +503,10 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
                     pre !== undefined && post !== undefined
                       ? Number((post - pre).toFixed(2))
                       : null;
+
+                  const hasDescriptive =
+                    s.preTest?.descriptiveAnswers?.q21_feelings ||
+                    s.postTest?.descriptiveAnswers?.q28_mindChanged;
 
                   // Pedagogical guidance suggestion
                   let guidanceTag = '관찰 진행 중';
@@ -487,6 +561,30 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
                           <span className="text-slate-300">-</span>
                         )}
                       </td>
+                      <td className="py-2.5 px-3 font-mono">
+                        {s.postTest?.kpiScore ? (
+                          <span className="text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                            {s.postTest.kpiScore}점
+                          </span>
+                        ) : s.preTest?.kpiScore ? (
+                          <span className="text-slate-500">{s.preTest.kpiScore}점</span>
+                        ) : (
+                          <span className="text-slate-300">-</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {hasDescriptive ? (
+                          <button
+                            onClick={() => setViewingStudentAnswers(s)}
+                            className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded-md"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>답변 확인</span>
+                          </button>
+                        ) : (
+                          <span className="text-slate-300 text-[11px]">미작성</span>
+                        )}
+                      </td>
                       <td className="py-2.5 px-3">
                         <span
                           className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${guidanceColor}`}
@@ -502,6 +600,81 @@ export const AssessmentDashboardTab: React.FC<AssessmentDashboardTabProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Student Descriptive Answers Modal */}
+      {viewingStudentAnswers && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-jua text-base text-slate-800">
+                  {viewingStudentAnswers.grade}학년 {viewingStudentAnswers.classNum}반 {viewingStudentAnswers.number}번 {viewingStudentAnswers.name} 서술형 성찰 답변
+                </h3>
+                <span className="text-xs text-slate-400">사전 및 사후 자기성찰 기록</span>
+              </div>
+              <button
+                onClick={() => setViewingStudentAnswers(null)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              {/* Pre Test Answers */}
+              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2">
+                <span className="font-jua text-amber-900 block">🧭 사전 검사 서술 답변</span>
+                <div>
+                  <strong className="text-slate-700 block">21. 자주 느끼는 감정:</strong>
+                  <p className="text-slate-600 mt-0.5 bg-white p-2 rounded-lg border border-amber-100">
+                    {viewingStudentAnswers.preTest?.descriptiveAnswers?.q21_feelings || '작성된 내용이 없습니다.'}
+                  </p>
+                </div>
+                <div>
+                  <strong className="text-slate-700 block">22. 스트레스 대처법:</strong>
+                  <p className="text-slate-600 mt-0.5 bg-white p-2 rounded-lg border border-amber-100">
+                    {viewingStudentAnswers.preTest?.descriptiveAnswers?.q22_stressCoping || '작성된 내용이 없습니다.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Post Test Answers */}
+              {viewingStudentAnswers.postTest?.completed && (
+                <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2">
+                  <span className="font-jua text-indigo-900 block">🌟 사후 검사 성장 서술 답변</span>
+                  <div>
+                    <strong className="text-slate-700 block">28. 마음을 대하는 법의 변화:</strong>
+                    <p className="text-slate-600 mt-0.5 bg-white p-2 rounded-lg border border-indigo-100">
+                      {viewingStudentAnswers.postTest?.descriptiveAnswers?.q28_mindChanged || '작성된 내용이 없습니다.'}
+                    </p>
+                  </div>
+                  <div>
+                    <strong className="text-slate-700 block">29. 계속 사용하고 싶은 나만의 마음 처방:</strong>
+                    <p className="text-slate-600 mt-0.5 bg-white p-2 rounded-lg border border-indigo-100">
+                      {viewingStudentAnswers.postTest?.descriptiveAnswers?.q29_favoritePrescription || '작성된 내용이 없습니다.'}
+                    </p>
+                  </div>
+                  <div>
+                    <strong className="text-slate-700 block">30. 친구를 대하는 나의 행동 변화:</strong>
+                    <p className="text-slate-600 mt-0.5 bg-white p-2 rounded-lg border border-indigo-100">
+                      {viewingStudentAnswers.postTest?.descriptiveAnswers?.q30_friendAction || '작성된 내용이 없습니다.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setViewingStudentAnswers(null)}
+                className="w-full py-2 bg-slate-100 hover:bg-slate-200 font-jua text-slate-700 rounded-xl"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -10,8 +10,16 @@ interface StudentLoginProps {
 }
 
 export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToTeacher }) => {
-  const students = useMemo(() => StorageService.getStudents(), []);
-  const classes = useMemo(() => StorageService.getClasses().filter((c) => c.active), []);
+  const [students, setStudents] = useState(() => StorageService.getStudents());
+  const [classes, setClasses] = useState(() => StorageService.getClasses().filter((c) => c.active));
+
+  React.useEffect(() => {
+    const unsub = StorageService.subscribe(() => {
+      setStudents(StorageService.getStudents());
+      setClasses(StorageService.getClasses().filter((c) => c.active));
+    });
+    return () => unsub();
+  }, []);
 
   const [selectedGrade, setSelectedGrade] = useState<number>(1);
   const [selectedClass, setSelectedClass] = useState<number>(1);

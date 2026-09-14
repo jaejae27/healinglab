@@ -21,9 +21,19 @@ import { Sparkles } from 'lucide-react';
 import { checkDoneFormEligibility } from './utils/doneFormEligibility';
 
 export default function App() {
-  // Initialize local database on mount
+  const [, setSyncTick] = useState(0);
+
+  // Initialize database and subscribe to cloud updates
   useEffect(() => {
     StorageService.init();
+    const unsub = StorageService.subscribe(() => {
+      setCurrentStudent((prev) => {
+        if (!prev) return null;
+        return StorageService.getStudentById(prev.id) || prev;
+      });
+      setSyncTick((t) => t + 1);
+    });
+    return () => unsub();
   }, []);
 
   // Mode: 'student' | 'teacher' | 'print_workbook' | 'print_portfolio'

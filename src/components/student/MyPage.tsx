@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Student, DailyMissionCheckIn } from '../../types';
 import { StorageService } from '../../services/storage';
+import { EmotionCalendarTab } from './EmotionCalendarTab';
 import {
   Award,
   Calendar,
@@ -35,7 +36,7 @@ const MOOD_META: Record<string, { label: string; emoji: string; bg: string; text
 };
 
 export const MyPage: React.FC<MyPageProps> = ({ student, onPrintPortfolio, onGoToHome }) => {
-  const [tab, setTab] = useState<'daily' | 'history' | 'cards' | 'rewards'>('daily');
+  const [tab, setTab] = useState<'calendar' | 'daily' | 'history' | 'cards' | 'rewards'>('calendar');
   const [expandedVisitId, setExpandedVisitId] = useState<string | null>(null);
 
   const visits = useMemo(() => StorageService.getVisitsForStudent(student.id), [student.id]);
@@ -193,7 +194,18 @@ export const MyPage: React.FC<MyPageProps> = ({ student, onPrintPortfolio, onGoT
       </div>
 
       {/* Tabs */}
-      <div className="grid grid-cols-4 bg-slate-100 p-1.5 rounded-2xl gap-1">
+      <div className="grid grid-cols-5 bg-slate-100 p-1.5 rounded-2xl gap-1">
+        <button
+          onClick={() => setTab('calendar')}
+          className={`py-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center ${
+            tab === 'calendar'
+              ? 'bg-white text-amber-900 shadow-xs border border-amber-200/50'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <span>📅 감정 달력</span>
+          <span className="text-[9px] font-mono text-amber-700 font-bold">오늘 기록</span>
+        </button>
         <button
           onClick={() => setTab('daily')}
           className={`py-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center ${
@@ -202,7 +214,7 @@ export const MyPage: React.FC<MyPageProps> = ({ student, onPrintPortfolio, onGoT
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <span>🌱 매일 실천</span>
+          <span>🌱 5일 루틴</span>
           <span className="text-[9px] font-mono text-purple-600 font-bold">({totalDaysLogged}일)</span>
         </button>
         <button
@@ -239,6 +251,15 @@ export const MyPage: React.FC<MyPageProps> = ({ student, onPrintPortfolio, onGoT
           <span className="text-[9px] font-mono font-bold text-purple-600">({myProposals.length}건)</span>
         </button>
       </div>
+
+      {/* ========================================================= */}
+      {/* TAB 0: TODAY'S EMOTION CALENDAR (오늘의 감정 달력) */}
+      {/* ========================================================= */}
+      {tab === 'calendar' && (
+        <div className="animate-fade-in">
+          <EmotionCalendarTab student={student} />
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* TAB 1: DAILY ROUTINE PROGRESS (일일 기록 현황 - 뿌듯함 가득) */}

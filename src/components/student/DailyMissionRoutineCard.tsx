@@ -20,6 +20,7 @@ import {
 import { validateMeaningfulText } from '../../utils/koreanName';
 import { checkDoneFormEligibility } from '../../utils/doneFormEligibility';
 import { StorageService } from '../../services/storage';
+import { getActionSuggestionChips, parseMissionExamples } from '../../utils/missionSuggestions';
 
 interface DailyMissionRoutineCardProps {
   visit: Visit;
@@ -544,15 +545,37 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
                               {m.title}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                            {m.description}
-                          </p>
+                          {(() => {
+                            const parsed = parseMissionExamples(m.description, m.title);
+                            return (
+                              <div className="space-y-1">
+                                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                                  {parsed.mainText}
+                                </p>
+                                {parsed.examples.length > 0 && (
+                                  <div className="flex flex-wrap items-center gap-1">
+                                    <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100/90 px-1.5 py-0.2 rounded border border-amber-200 shrink-0">
+                                      예시:
+                                    </span>
+                                    {parsed.examples.map((ex, i) => (
+                                      <span
+                                        key={i}
+                                        className="text-[9.5px] text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200"
+                                      >
+                                        {ex}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </button>
 
                       {/* Action Note field if checked */}
                       {isChecked && (
-                        <div className="mt-2.5 pt-2.5 border-t border-amber-200/80 space-y-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="mt-2.5 pt-2.5 border-t border-amber-200/80 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
                           <label className="block text-[11px] font-bold text-amber-950 flex items-center justify-between">
                             <span>✍️ 무엇을 실천했나요? (내가 한 행동 쓰기)</span>
                             <span className="text-[10px] text-amber-700 font-normal">
@@ -563,9 +586,41 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
                             type="text"
                             value={actionNote}
                             onChange={(e) => updateMissionNote(m.missionId, e.target.value)}
-                            placeholder={`예: ${m.title}을/를 10분간 직접 실천했어요`}
+                            placeholder={`예: ${m.title}을/를 직접 실천했어요`}
                             className="w-full text-xs p-2 bg-white border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-slate-400 text-slate-800"
                           />
+
+                          {/* Quick Action Suggestion Chips */}
+                          {(() => {
+                            const suggestions = getActionSuggestionChips(m.title, m.description);
+                            if (suggestions.length === 0) return null;
+                            return (
+                              <div className="pt-0.5 space-y-1">
+                                <div className="text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                                  <span>💡 추천 예시 행동 (클릭 시 자동 입력):</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {suggestions.map((chip, chipIdx) => {
+                                    const isSelected = actionNote === chip;
+                                    return (
+                                      <button
+                                        key={chipIdx}
+                                        type="button"
+                                        onClick={() => updateMissionNote(m.missionId, chip)}
+                                        className={`text-[10.5px] px-2 py-0.5 rounded-lg border transition-all text-left ${
+                                          isSelected
+                                            ? 'bg-amber-400 border-amber-500 text-amber-950 font-bold shadow-2xs scale-101'
+                                            : 'bg-white hover:bg-amber-100/70 border-amber-200 text-slate-700 hover:text-amber-950'
+                                        }`}
+                                      >
+                                        {chip}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>

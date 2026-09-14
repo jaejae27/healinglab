@@ -52,20 +52,52 @@ export interface CheckItem {
   }[];
 }
 
+export type AssessmentDomainKey =
+  | 'self_awareness'
+  | 'self_regulation'
+  | 'self_care'
+  | 'help_seeking'
+  | 'empathy_action';
+
 export interface AssessmentQuestion {
   id: string;
-  domain: 'self_awareness' | 'self_management' | 'social_awareness' | 'relationship_skills' | 'responsible_decision';
+  num: number;
+  domain: AssessmentDomainKey;
   domainName: string;
   statement: string;
+}
+
+export interface DescriptiveAnswers {
+  q21_feelings?: string; // 요즘 자주 느끼는 감정 (1~3개 말)
+  q22_stressCoping?: string; // 힘들거나 스트레스 받을 때 대처법
+  q28_mindChanged?: string; // 힐링약국 전후 마음 대하는 법 달라진 점
+  q29_favoritePrescription?: string; // 실생활에서 쓰고 싶은 마음 처방
+  q30_friendAction?: string; // 친구가 힘들어할 때 행동 계획
 }
 
 export interface AssessmentResult {
   completed: boolean;
   completedAt: string;
   answers: Record<string, number>; // questionId -> 1~5
-  totalScore: number;
-  averageScore: number;
+  totalScore: number; // 100점 만점 환산 (20문항 * 5점)
+  averageScore: number; // 5점 척도 평균
   domainScores: Record<string, number>; // domain -> score 1~5
+  kpiScore?: number; // 나의 마음 처방 자신감 (1~5)
+  descriptiveAnswers?: DescriptiveAnswers;
+  programEffectScores?: Record<string, number>; // 사후 프로그램 효과 5문항
+  programEffectAverage?: number; // 사후 효과 5문항 평균
+}
+
+export interface EmotionLog {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  date: string; // YYYY-MM-DD
+  mood: 'great' | 'good' | 'neutral' | 'tired' | 'stressed' | 'sad' | 'angry' | 'excited';
+  moodLabel: string;
+  emoji: string;
+  note?: string; // 짧은 메모
+  createdAt: string;
 }
 
 export interface PrivacyConsent {

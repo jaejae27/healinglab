@@ -4,6 +4,7 @@ import { CATEGORIES } from '../../data/categories';
 import { CHECK_ITEMS } from '../../data/checkQuestions';
 import { StorageService } from '../../services/storage';
 import { HealyCharacter } from '../character/HealyCharacter';
+import { parseMissionExamples } from '../../utils/missionSuggestions';
 import {
   ChevronLeft,
   Sparkles,
@@ -526,9 +527,31 @@ export const DiagnosisFlow: React.FC<DiagnosisFlowProps> = ({
                               {m.title}
                             </h5>
                           </div>
-                          <p className="text-[11px] text-slate-600 leading-relaxed break-keep">
-                            {m.description}
-                          </p>
+                          {(() => {
+                            const parsed = parseMissionExamples(m.description, m.title);
+                            return (
+                              <div className="space-y-1.5">
+                                <p className="text-[11px] text-slate-600 leading-relaxed break-keep">
+                                  {parsed.mainText}
+                                </p>
+                                {parsed.examples.length > 0 && (
+                                  <div className="pt-1 border-t border-slate-100 flex flex-wrap items-center gap-1">
+                                    <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">
+                                      💡 추천 예시:
+                                    </span>
+                                    {parsed.examples.map((ex, i) => (
+                                      <span
+                                        key={i}
+                                        className="text-[9.5px] text-slate-700 bg-slate-100/90 px-1.5 py-0.5 rounded border border-slate-200"
+                                      >
+                                        {ex}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>

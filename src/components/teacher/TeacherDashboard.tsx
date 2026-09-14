@@ -4,6 +4,7 @@ import { StorageService } from '../../services/storage';
 import { CATEGORIES } from '../../data/categories';
 import { StudentManagementTab } from './StudentManagementTab';
 import { AssessmentDashboardTab } from './AssessmentDashboardTab';
+import { SchoolRecordBatchHelper } from './SchoolRecordBatchHelper';
 import {
   generateGoogleAppsScript,
   generateGasIndexHtml,
@@ -99,6 +100,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     }, 3800);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  // Subscribe to real-time Firestore database updates
+  useEffect(() => {
+    const unsub = StorageService.subscribe(() => {
+      setStudents(StorageService.getStudents());
+      setClasses(StorageService.getClasses());
+      setVisits(StorageService.getVisits());
+      setRequests(StorageService.getNewConditionRequests());
+      setSettings(StorageService.getSettings());
+    });
+    return () => unsub();
+  }, []);
 
   const playChimeSound = () => {
     try {
@@ -432,13 +445,20 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onSwitchToStudent}
-          className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-jua transition-colors border border-slate-700"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>학생 화면으로 돌아가기</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-1.5 bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-full text-xs font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>파이어베이스 클라우드 동기화 완료</span>
+          </div>
+
+          <button
+            onClick={onSwitchToStudent}
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-jua transition-colors border border-slate-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>학생 화면으로 돌아가기</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Layout with Navigation Tabs */}
@@ -987,73 +1007,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
           {/* TAB 4: School Record Helper (생기부 문장 도우미) */}
           {activeTab === 'records' && (
-            <div className="space-y-4">
-              <div className="border-b border-slate-100 pb-3">
-                <h2 className="font-jua text-lg text-slate-800">생활기록부 문장 도우미</h2>
-                <p className="text-xs text-slate-500">
-                  학생이 실제 작성한 처방 실천 기록과 성찰 단어를 바탕으로 생기부 기재 문장 초안을 생성합니다.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">학생 선택</label>
-                  <select
-                    value={selectedStudentRecordId}
-                    onChange={(e) => setSelectedStudentRecordId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800"
-                  >
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.grade}학년 {s.classNum}반 {s.number}번 {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">기재 영역</label>
-                  <select
-                    value={recordCategory}
-                    onChange={(e) => setRecordCategory(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800"
-                  >
-                    <option value="행동발달">행동특성 및 종합의견</option>
-                    <option value="자율활동">창의적 체험활동 (자율활동)</option>
-                    <option value="진로활동">창의적 체험활동 (진로활동)</option>
-                  </select>
-                </div>
-              </div>
-
-              <button
-                onClick={handleGenerateRecord}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-jua text-xs py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                <span>학생 맞춤형 생기부 문장 생성하기</span>
-              </button>
-
-              {generatedSentence && (
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mt-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-indigo-900">생성된 기재 예시</span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(generatedSentence);
-                        showToast('클립보드에 복사되었습니다!', 'info');
-                      }}
-                      className="text-xs text-slate-600 hover:text-slate-900 font-bold flex items-center gap-1"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>복사</span>
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-800 leading-relaxed font-medium bg-white p-3 rounded-xl border border-slate-200 break-keep">
-                    {generatedSentence}
-                  </p>
-                </div>
-              )}
-            </div>
+            <SchoolRecordBatchHelper
+              students={students}
+              visits={visits}
+              classes={classes}
+              showToast={showToast}
+            />
           )}
 
           {/* TAB 5: New Medicine Lab Review */}

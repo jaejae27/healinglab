@@ -8,11 +8,161 @@ export const INITIAL_CLASSES: SchoolClass[] = [
 
 export const INITIAL_STUDENTS: Student[] = [
   // 1학년 1반
-  { id: 'S-101-01', grade: 1, classNum: 1, number: 1, name: '강다온', cookieBalance: 5, createdAt: '2026-09-01' },
-  { id: 'S-101-02', grade: 1, classNum: 1, number: 2, name: '김민준', cookieBalance: 7, createdAt: '2026-09-01' },
-  { id: 'S-101-03', grade: 1, classNum: 1, number: 3, name: '박서현', cookieBalance: 4, createdAt: '2026-09-01' },
-  { id: 'S-101-04', grade: 1, classNum: 1, number: 4, name: '이지우', cookieBalance: 8, createdAt: '2026-09-01' },
-  { id: 'S-101-05', grade: 1, classNum: 1, number: 5, name: '정하은', cookieBalance: 3, createdAt: '2026-09-01' },
+  {
+    id: 'S-101-01',
+    grade: 1,
+    classNum: 1,
+    number: 1,
+    name: '강다온',
+    cookieBalance: 8,
+    createdAt: '2026-09-01',
+    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' },
+    preTest: {
+      completed: true,
+      completedAt: '2026-09-01T09:10:00Z',
+      answers: { Q1: 3, Q2: 3, Q3: 2, Q4: 3, Q5: 2, Q6: 3, Q7: 2, Q8: 3, Q9: 3, Q10: 2, Q11: 3, Q12: 3, Q13: 3, Q14: 4, Q15: 3, Q16: 3, Q17: 4, Q18: 3, Q19: 3, Q20: 3 },
+      totalScore: 58,
+      averageScore: 2.9,
+      domainScores: {
+        self_awareness: 2.75,
+        self_regulation: 2.5,
+        self_care: 2.75,
+        help_seeking: 3.25,
+        empathy_action: 3.25
+      },
+      kpiScore: 2,
+      descriptiveAnswers: {
+        q21_feelings: '걱정, 조급함, 피곤함',
+        q22_stressCoping: '혼자 방에서 스마트폰을 보면서 생각을 잊으려고 해요.'
+      }
+    },
+    postTest: {
+      completed: true,
+      completedAt: '2026-09-12T14:30:00Z',
+      answers: { Q1: 4, Q2: 4, Q3: 4, Q4: 4, Q5: 4, Q6: 4, Q7: 4, Q8: 4, Q9: 4, Q10: 4, Q11: 4, Q12: 4, Q13: 4, Q14: 5, Q15: 4, Q16: 4, Q17: 5, Q18: 4, Q19: 4, Q20: 4 },
+      totalScore: 82,
+      averageScore: 4.1,
+      domainScores: {
+        self_awareness: 4.0,
+        self_regulation: 4.0,
+        self_care: 4.0,
+        help_seeking: 4.25,
+        empathy_action: 4.25
+      },
+      kpiScore: 5,
+      descriptiveAnswers: {
+        q21_feelings: '뿌듯함, 편안함, 기대감',
+        q22_stressCoping: '마음신호를 알아차리고 5분 타이머로 심호흡을 하거나 산책을 해요.',
+        q28_mindChanged: '예전에는 할 일을 미루면 자책만 했는데, 이제는 "계획만거창해증" 신호를 알아차리고 딱 5분만 먼저 시작하게 되었어요.',
+        q29_favoritePrescription: '계획을 3단계로 쪼개고 첫 단추 5분만 집중하기 처방전',
+        q30_friendAction: '친구가 시험 때문에 스트레스 받을 때 조언보다 이야기를 묵묵히 들어주고 비타민을 건넬 거예요.'
+      },
+      programEffectScores: { PE1: 5, PE2: 5, PE3: 4, PE4: 4, PE5: 5 },
+      programEffectAverage: 4.6
+    }
+  },
+  {
+    id: 'S-101-02',
+    grade: 1,
+    classNum: 1,
+    number: 2,
+    name: '김민준',
+    cookieBalance: 7,
+    createdAt: '2026-09-01',
+    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' },
+    preTest: {
+      completed: true,
+      completedAt: '2026-09-01T09:12:00Z',
+      answers: { Q1: 3, Q2: 4, Q3: 3, Q4: 3, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 3, Q10: 3, Q11: 3, Q12: 3, Q13: 3, Q14: 3, Q15: 3, Q16: 4, Q17: 4, Q18: 3, Q19: 3, Q20: 3 },
+      totalScore: 63,
+      averageScore: 3.15,
+      domainScores: {
+        self_awareness: 3.25,
+        self_regulation: 3.0,
+        self_care: 3.0,
+        help_seeking: 3.25,
+        empathy_action: 3.25
+      },
+      kpiScore: 3,
+      descriptiveAnswers: {
+        q21_feelings: '보통, 지루함, 졸림',
+        q22_stressCoping: '친구랑 게임하거나 간식을 먹어요.'
+      }
+    },
+    postTest: {
+      completed: true,
+      completedAt: '2026-09-12T15:10:00Z',
+      answers: { Q1: 4, Q2: 4, Q3: 4, Q4: 4, Q5: 4, Q6: 4, Q7: 4, Q8: 3, Q9: 4, Q10: 4, Q11: 4, Q12: 4, Q13: 4, Q14: 4, Q15: 4, Q16: 4, Q17: 4, Q18: 4, Q19: 4, Q20: 4 },
+      totalScore: 79,
+      averageScore: 3.95,
+      domainScores: {
+        self_awareness: 4.0,
+        self_regulation: 3.75,
+        self_care: 4.0,
+        help_seeking: 4.0,
+        empathy_action: 4.0
+      },
+      kpiScore: 4,
+      descriptiveAnswers: {
+        q21_feelings: '여유로움, 안정감',
+        q22_stressCoping: '내가 피곤한지 배고픈지 먼저 확인하고 따뜻한 물을 마셔요.',
+        q28_mindChanged: '마음에도 감기처럼 약이 필요하다는 걸 알게 되었고 내 기분을 더 챙기게 되었습니다.',
+        q29_favoritePrescription: '속마음 털어놓기 및 감사노트 1줄 적기',
+        q30_friendAction: '우울해 보이는 친구에게 먼저 말을 걸어줄 생각입니다.'
+      },
+      programEffectScores: { PE1: 4, PE2: 4, PE3: 4, PE4: 4, PE5: 4 },
+      programEffectAverage: 4.0
+    }
+  },
+  {
+    id: 'S-101-03',
+    grade: 1,
+    classNum: 1,
+    number: 3,
+    name: '박서현',
+    cookieBalance: 4,
+    createdAt: '2026-09-01',
+    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' },
+    preTest: {
+      completed: true,
+      completedAt: '2026-09-01T09:15:00Z',
+      answers: { Q1: 3, Q2: 2, Q3: 2, Q4: 2, Q5: 3, Q6: 2, Q7: 2, Q8: 2, Q9: 3, Q10: 2, Q11: 2, Q12: 3, Q13: 4, Q14: 4, Q15: 3, Q16: 3, Q17: 4, Q18: 3, Q19: 3, Q20: 3 },
+      totalScore: 55,
+      averageScore: 2.75,
+      domainScores: {
+        self_awareness: 2.25,
+        self_regulation: 2.25,
+        self_care: 2.5,
+        help_seeking: 3.5,
+        empathy_action: 3.25
+      },
+      kpiScore: 2,
+      descriptiveAnswers: {
+        q21_feelings: '불안, 초조함',
+        q22_stressCoping: '친한 친구에게 전화해서 속상한 일을 이야기해요.'
+      }
+    }
+  },
+  {
+    id: 'S-101-04',
+    grade: 1,
+    classNum: 1,
+    number: 4,
+    name: '이지우',
+    cookieBalance: 8,
+    createdAt: '2026-09-01',
+    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' }
+  },
+  {
+    id: 'S-101-05',
+    grade: 1,
+    classNum: 1,
+    number: 5,
+    name: '정하은',
+    cookieBalance: 3,
+    createdAt: '2026-09-01',
+    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' }
+  },
 
   // 1학년 2반
   { id: 'S-102-01', grade: 1, classNum: 2, number: 1, name: '송예준', cookieBalance: 6, createdAt: '2026-09-01' },
@@ -80,7 +230,7 @@ export const INITIAL_VISITS: Visit[] = [
         missionId: 'A-06-M3',
         type: 'action',
         title: '5분 미니 행동 실천',
-        description: '타이머 5분을 켜고 오늘 제일 중요한 한 가지 바로 시작하기',
+        description: '부담 없이 딱 5분만 타이머를 켜고 지금 당장 할 수 있는 가장 쉬운 작은 행동 1가지만 실행해보기 (예: 교재 첫 페이지만 펼치기, 책상 위 컵 치우기, 가장 쉬운 문제 1개 풀기)',
         completed: true,
         rating: 5
       },
