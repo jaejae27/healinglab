@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Student } from '../../types';
 import { StorageService } from '../../services/storage';
 import { HealyCharacter } from '../character/HealyCharacter';
-import { Heart, Sparkles, UserCheck, ShieldCheck } from 'lucide-react';
+import { Heart, Sparkles, UserCheck, ShieldCheck, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface StudentLoginProps {
   onLogin: (student: Student) => void;
@@ -24,6 +24,9 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
   const [selectedGrade, setSelectedGrade] = useState<number>(1);
   const [selectedClass, setSelectedClass] = useState<number>(1);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [pin, setPin] = useState<string>('');
+  const [showPin, setShowPin] = useState<boolean>(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   // Available class numbers for selected grade
   const availableClasses = useMemo(() => {
@@ -41,10 +44,18 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
     e.preventDefault();
     if (!selectedStudentId) return;
     const student = StorageService.getStudentById(selectedStudentId);
-    if (student) {
-      StorageService.setCurrentStudentId(student.id);
-      onLogin(student);
+    if (!student) return;
+
+    const expectedPin = (student.pin || '0000').trim();
+    const enteredPin = pin.trim();
+
+    if (enteredPin !== expectedPin) {
+      setPinError('비밀번호가 일치하지 않습니다. (초기 비밀번호: 0000 / 분실 시 선생님께 초기화를 요청해주세요)');
+      return;
     }
+
+    StorageService.setCurrentStudentId(student.id);
+    onLogin(student);
   };
 
   return (
@@ -62,10 +73,10 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
       <div className="w-full max-w-sm flex justify-end mb-4 relative z-10">
         <button
           onClick={onSwitchToTeacher}
-          className="text-xs text-[#5A5A40] bg-white/80 hover:bg-white border-2 border-white px-4 py-2 rounded-2xl shadow-sm flex items-center gap-1.5 transition-all font-bold"
+          className="text-xs text-[#5A5A40] bg-white/80 hover:bg-white border-2 border-white px-4 py-2 rounded-2xl shadow-sm flex items-center gap-1.5 transition-all font-bold whitespace-nowrap"
         >
-          <ShieldCheck className="w-4 h-4 text-[#7C3AED]" />
-          <span>선생님 관리자 모드</span>
+          <ShieldCheck className="w-4 h-4 text-[#7C3AED] shrink-0" />
+          <span className="whitespace-nowrap">선생님 관리자 모드</span>
         </button>
       </div>
 
@@ -134,7 +145,11 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
             </label>
             <select
               value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
+              onChange={(e) => {
+                setSelectedStudentId(e.target.value);
+                setPin('');
+                setPinError(null);
+              }}
               required
               className="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-4 py-3 text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm"
             >
@@ -147,10 +162,62 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
             </select>
           </div>
 
+          {/* Student Password Input */}
+          {selectedStudentId && (
+            <div className="space-y-1.5 animate-fade-in text-left">
+              <div className="flex items-center justify-between ml-1">
+                <label className="block text-xs font-bold text-[#5A5A40]">
+                  비밀번호 입력
+                </label>
+                <span className="text-[10px] text-amber-800 bg-amber-100 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                  초기 비번: 0000
+                </span>
+              </div>
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type={showPin ? 'text' : 'password'}
+                  required
+                  value={pin}
+                  onChange={(e) => {
+                    setPin(e.target.value);
+                    if (pinError) setPinError(null);
+                  }}
+                  placeholder="비밀번호 입력 (초기: 0000)"
+                  autoComplete="current-password"
+                  className={`w-full pl-10 pr-11 py-3 bg-[#FDFCF0] border-2 rounded-2xl text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm transition-colors ${
+                    pinError ? 'border-rose-400 bg-rose-50/40' : 'border-white'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPin(!showPin)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  tabIndex={-1}
+                >
+                  {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {pinError ? (
+                <p className="text-[11px] font-bold text-rose-600 ml-1 flex items-center gap-1 animate-fade-in">
+                  <span>⚠️</span>
+                  <span>{pinError}</span>
+                </p>
+              ) : (
+                <p className="text-[10.5px] text-[#5A5A40]/70 ml-1">
+                  * 잊어버렸을 땐 선생님께 비밀번호 초기화를 부탁하세요.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Start Button */}
           <button
             type="submit"
-            disabled={!selectedStudentId}
+            disabled={!selectedStudentId || !pin.trim()}
             className="w-full mt-2 bg-gradient-to-r from-amber-400 via-rose-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-white font-jua text-lg py-3.5 rounded-2xl shadow-xl border-2 border-white flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Sparkles className="w-5 h-5 text-amber-100" />

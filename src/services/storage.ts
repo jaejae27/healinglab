@@ -32,7 +32,8 @@ const STORAGE_KEYS = {
   NEW_CONDITION_REQUESTS: 'healing_pharmacy_new_conditions',
   SETTINGS: 'healing_pharmacy_settings',
   EMOTION_LOGS: 'healing_pharmacy_emotion_logs',
-  CURRENT_STUDENT_ID: 'healing_pharmacy_current_student_id'
+  CURRENT_STUDENT_ID: 'healing_pharmacy_current_student_id',
+  TEACHER_PASSWORD: 'healing_pharmacy_teacher_password'
 };
 
 function getStoredItem<T>(key: string, defaultValue: T): T {
@@ -225,6 +226,39 @@ export class StorageService {
     return this.deleteStudentsBatch(toDeleteIds);
   }
 
+  // Student PIN / Password Management
+  static resetStudentPin(studentId: string, defaultPin: string = '0000'): Student | null {
+    return this.updateStudent(studentId, { pin: defaultPin });
+  }
+
+  static resetStudentsPinBatch(studentIds: string[], defaultPin: string = '0000'): number {
+    let count = 0;
+    studentIds.forEach((id) => {
+      const res = this.resetStudentPin(id, defaultPin);
+      if (res) count++;
+    });
+    return count;
+  }
+
+  static updateStudentPin(studentId: string, newPin: string): Student | null {
+    const trimmed = (newPin || '').trim();
+    if (!trimmed) return null;
+    return this.updateStudent(studentId, { pin: trimmed });
+  }
+
+  // Teacher Password Management
+  static getTeacherPassword(): string {
+    return getStoredItem<string>(STORAGE_KEYS.TEACHER_PASSWORD, '1234');
+  }
+
+  static setTeacherPassword(newPassword: string): boolean {
+    const trimmed = (newPassword || '').trim();
+    if (trimmed.length < 4) return false;
+    setStoredItem(STORAGE_KEYS.TEACHER_PASSWORD, trimmed);
+    FirestoreSync.notify();
+    return true;
+  }
+
   // Privacy Consent & Assessment
   static savePrivacyConsent(studentId: string): Student | null {
     return this.updateStudent(studentId, {
@@ -374,16 +408,76 @@ export class StorageService {
     }
   }
 
+  static getWorryChallengeByDate(studentId: string, date: string): { date: string; hint: string; drawnAt?: string } | null {
+    // Check in history map
+    const histKey = `hp_worry_history_${studentId}`;
+    const data = localStorage.getItem(histKey);
+    if (data) {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed && parsed[date]) {
+          return parsed[date];
+        }
+      } catch {}
+    }
+    // Fallback to today record
+    const today = this.getTodayWorryChallenge(studentId);
+    if (today && today.date === date) {
+      return { date: today.date, hint: today.hint };
+    }
+    return null;
+  }
+
+  static getAllWorryChallengesHistory(studentId: string): { date: string; hint: string; drawnAt: string }[] {
+    const histKey = `hp_worry_history_${studentId}`;
+    const data = localStorage.getItem(histKey);
+    const list: { date: string; hint: string; drawnAt: string }[] = [];
+    if (data) {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed && typeof parsed === 'object') {
+          Object.values(parsed).forEach((item: any) => {
+            if (item && item.hint && item.date) {
+              list.push(item);
+            }
+          });
+        }
+      } catch {}
+    }
+    // Also merge with today if not present
+    const today = this.getTodayWorryChallenge(studentId);
+    if (today && !list.some((i) => i.date === today.date)) {
+      list.push({ date: today.date, hint: today.hint, drawnAt: new Date().toISOString() });
+    }
+    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
   static saveTodayWorryChallenge(studentId: string, hint: string) {
+    const todayStr = this.getTodayString();
     const key = `hp_today_worry_${studentId}`;
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        date: this.getTodayString(),
-        hint,
-        drawnAt: new Date().toISOString()
-      })
-    );
+    const record = {
+      date: todayStr,
+      hint,
+      drawnAt: new Date().toISOString()
+    };
+    localStorage.setItem(key, JSON.stringify(record));
+
+    // Save to history map
+    const histKey = `hp_worry_history_${studentId}`;
+    let history: Record<string, typeof record> = {};
+    const existing = localStorage.getItem(histKey);
+    if (existing) {
+      try {
+        history = JSON.parse(existing) || {};
+      } catch {}
+    }
+    history[todayStr] = record;
+    localStorage.setItem(histKey, JSON.stringify(history));
+
+    // Dispatch global event for instant UI reactive sync
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('hp:worry-gacha-updated', { detail: { studentId, hint, date: todayStr } }));
+    }
   }
 
   // Current logged in student
@@ -455,7 +549,57 @@ export class StorageService {
     };
     setStoredItem(STORAGE_KEYS.VISITS, visits);
     FirestoreSync.saveVisit(visits[idx]);
+    FirestoreSync.notify();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('school_mind_pharmacy_storage_updated', {
+          detail: { key: 'visits', visitId }
+        })
+      );
+    }
     return visits[idx];
+  }
+
+  static confirmPhysicalMedicine(visitId: string, teacherName: string = '담당 선생님'): Visit | null {
+    const visits = this.getVisits();
+    const visit = visits.find((v) => v.visitId === visitId);
+    if (!visit) return null;
+
+    // If cookies weren't given yet, reward cookies
+    if (!visit.rewardGiven) {
+      this.addCookieLog(
+        visit.studentId,
+        3,
+        `실물 마음 약(간식) 수령 확인 완료 (+3 칭찬쿠키)`
+      );
+    }
+
+    return this.updateVisit(visitId, {
+      rewardGiven: true,
+      rewardGivenAt: new Date().toISOString(),
+      rewardTeacherName: teacherName,
+      status: 'rewarded',
+      rewardSnackNote: '선생님 실물 마음 약(간식) 수령 확인 완료'
+    });
+  }
+
+  static cancelPhysicalMedicine(visitId: string): Visit | null {
+    return this.updateVisit(visitId, {
+      rewardGiven: false,
+      rewardGivenAt: undefined,
+      rewardTeacherName: undefined,
+      status: 'submitted',
+      rewardSnackNote: '실물 마음 약 수령 대기 중'
+    });
+  }
+
+  static confirmPhysicalMedicineBatch(visitIds: string[], teacherName: string = '담당 선생님'): Visit[] {
+    const updated: Visit[] = [];
+    for (const vid of visitIds) {
+      const res = this.confirmPhysicalMedicine(vid, teacherName);
+      if (res) updated.push(res);
+    }
+    return updated;
   }
 
   // Visit day simulation for testing and evaluations

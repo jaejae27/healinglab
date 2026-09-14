@@ -8,9 +8,15 @@ interface WorryGachaModalProps {
   student: Student;
   isOpen: boolean;
   onClose: () => void;
+  onGoToMindRecord?: () => void;
 }
 
-export const WorryGachaModal: React.FC<WorryGachaModalProps> = ({ student, isOpen, onClose }) => {
+export const WorryGachaModal: React.FC<WorryGachaModalProps> = ({
+  student,
+  isOpen,
+  onClose,
+  onGoToMindRecord
+}) => {
   const [hintText, setHintText] = useState<string | null>(null);
   const [isPulling, setIsPulling] = useState(false);
   const [hasCommitted, setHasCommitted] = useState(false);
@@ -121,13 +127,27 @@ export const WorryGachaModal: React.FC<WorryGachaModalProps> = ({ student, isOpe
             </div>
 
             <div className="space-y-2">
+              {onGoToMindRecord && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onGoToMindRecord();
+                  }}
+                  className="w-full py-2.5 rounded-xl font-jua text-xs flex items-center justify-center gap-1.5 transition-transform active:scale-95 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white shadow-md"
+                >
+                  <span>📒</span>
+                  <span>나의 마음기록에 이 힌트 적으러 가기</span>
+                </button>
+              )}
+
               <button
                 onClick={handleCommitChallenge}
                 disabled={hasCommitted}
                 className={`w-full py-2.5 rounded-xl font-jua text-xs flex items-center justify-center gap-1.5 transition-colors ${
                   hasCommitted
                     ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                    : 'bg-purple-500 hover:bg-purple-600 text-white shadow-xs'
+                    : 'bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300'
                 }`}
               >
                 {hasCommitted ? (
@@ -137,8 +157,8 @@ export const WorryGachaModal: React.FC<WorryGachaModalProps> = ({ student, isOpe
                   </>
                 ) : (
                   <>
-                    <Heart className="w-3.5 h-3.5 text-pink-200" />
-                    <span>이 힌트를 직접 시험해볼래</span>
+                    <Heart className="w-3.5 h-3.5 text-purple-500" />
+                    <span>이 힌트를 시험 과제로 보관하기</span>
                   </>
                 )}
               </button>

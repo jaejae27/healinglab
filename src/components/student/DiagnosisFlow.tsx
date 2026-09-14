@@ -268,17 +268,17 @@ export const DiagnosisFlow: React.FC<DiagnosisFlowProps> = ({
                   setStep('checklist');
                 }}
                 style={{ borderColor: '#FFFFFF', backgroundColor: cat.bgLight }}
-                className="p-4 rounded-[28px] border-4 text-left hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md flex flex-col justify-between"
+                className="p-3.5 sm:p-4 rounded-[28px] border-4 text-left hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-3xl drop-shadow-xs">{cat.icon}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-[#5A5A40] border border-white">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-[#5A5A40] border border-white whitespace-nowrap">
                     {cat.code} 영역
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-jua text-base text-[#5A5A40]">{cat.name}</h3>
-                  <p className="text-[11px] text-[#5A5A40]/70 font-medium line-clamp-1">{cat.subName}</p>
+                  <h3 className="font-jua text-sm sm:text-base text-[#5A5A40] break-keep">{cat.name}</h3>
+                  <p className="text-[11px] text-[#5A5A40]/70 font-medium break-keep line-clamp-2 leading-snug mt-0.5">{cat.subName}</p>
                 </div>
               </button>
             ))}
@@ -412,20 +412,20 @@ export const DiagnosisFlow: React.FC<DiagnosisFlowProps> = ({
                   <div className="mt-3 pt-2.5 border-t-2 border-[#5A5A40]/10 flex items-center gap-2">
                     <button
                       onClick={() => setPrimaryConditionId(cond.conditionId)}
-                      className={`flex-1 text-xs py-2.5 rounded-2xl font-jua transition-all flex items-center justify-center gap-1 border border-white ${
+                      className={`flex-1 text-xs py-2.5 px-2 rounded-2xl font-jua transition-all flex items-center justify-center gap-1 border border-white whitespace-nowrap ${
                         isPrimary
                           ? 'bg-[#D97706] text-white shadow-sm'
                           : 'bg-[#FEF08A]/70 hover:bg-[#FEF08A] text-[#854D0E]'
                       }`}
                     >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>{isPrimary ? '대표 마음신호 선택됨' : '이거 완전 나야 (대표)'}</span>
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span className="whitespace-nowrap">{isPrimary ? '대표 마음신호 선택됨' : '이거 완전 나야 (대표)'}</span>
                     </button>
 
                     {!isPrimary && (
                       <button
                         onClick={() => toggleSecondary(cond.conditionId)}
-                        className={`text-xs px-3 py-2.5 rounded-2xl font-bold transition-all border border-white ${
+                        className={`text-xs px-3 py-2.5 rounded-2xl font-bold transition-all border border-white whitespace-nowrap shrink-0 ${
                           isSecondary
                             ? 'bg-[#99F6E4] text-[#0D9488]'
                             : 'bg-white/70 hover:bg-white text-[#5A5A40]/70'

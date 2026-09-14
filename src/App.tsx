@@ -19,6 +19,7 @@ import { PortfolioPrintView } from './components/print/PortfolioPrintView';
 import { HealyCharacter } from './components/character/HealyCharacter';
 import { Sparkles } from 'lucide-react';
 import { checkDoneFormEligibility } from './utils/doneFormEligibility';
+import { TeacherAuthModal } from './components/modals/TeacherAuthModal';
 
 export default function App() {
   const [, setSyncTick] = useState(0);
@@ -40,6 +41,10 @@ export default function App() {
   const [appMode, setAppMode] = useState<
     'student' | 'teacher' | 'print_workbook' | 'print_portfolio'
   >('student');
+
+  // Teacher Authentication state (mandatory password gate)
+  const [isTeacherAuthenticated, setIsTeacherAuthenticated] = useState<boolean>(false);
+  const [isTeacherAuthModalOpen, setIsTeacherAuthModalOpen] = useState<boolean>(false);
 
   // Currently logged-in student
   const [currentStudent, setCurrentStudent] = useState<Student | null>(() => {
@@ -144,11 +149,26 @@ export default function App() {
     setCurrentStudent(updated);
   };
 
-  // 1. TEACHER MODE
+  // 1. TEACHER MODE (Mandatory Password Authenticated)
   if (appMode === 'teacher') {
+    if (!isTeacherAuthenticated) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+          <TeacherAuthModal
+            isOpen={true}
+            onClose={() => setAppMode('student')}
+            onSuccess={() => setIsTeacherAuthenticated(true)}
+          />
+        </div>
+      );
+    }
+
     return (
       <TeacherDashboard
-        onSwitchToStudent={() => setAppMode('student')}
+        onSwitchToStudent={() => {
+          setIsTeacherAuthenticated(false);
+          setAppMode('student');
+        }}
         onPrintWorkbook={handleViewWorkbookPrint}
       />
     );
@@ -177,10 +197,20 @@ export default function App() {
   // 4. STUDENT NOT LOGGED IN -> Login screen
   if (!currentStudent) {
     return (
-      <StudentLogin
-        onLogin={handleLogin}
-        onSwitchToTeacher={() => setAppMode('teacher')}
-      />
+      <>
+        <StudentLogin
+          onLogin={handleLogin}
+          onSwitchToTeacher={() => setIsTeacherAuthModalOpen(true)}
+        />
+        <TeacherAuthModal
+          isOpen={isTeacherAuthModalOpen}
+          onClose={() => setIsTeacherAuthModalOpen(false)}
+          onSuccess={() => {
+            setIsTeacherAuthenticated(true);
+            setAppMode('teacher');
+          }}
+        />
+      </>
     );
   }
 
@@ -196,7 +226,7 @@ export default function App() {
       <StudentHeader
         student={currentStudent}
         onLogout={handleLogout}
-        onSwitchToTeacher={() => setAppMode('teacher')}
+        onSwitchToTeacher={() => setIsTeacherAuthModalOpen(true)}
         onOpenNewMedicine={() => setIsNewMedicineOpen(true)}
       />
 
@@ -281,6 +311,13 @@ export default function App() {
             student={currentStudent}
             onPrintPortfolio={handleViewPortfolioPrint}
             onGoToHome={() => setStudentTab('home')}
+            onOpenWorryGacha={() => setIsWorryGachaOpen(true)}
+            onRefreshStudent={() => {
+              if (currentStudent) {
+                const u = StorageService.getStudentById(currentStudent.id);
+                if (u) setCurrentStudent(u);
+              }
+            }}
           />
         )}
       </main>
@@ -296,6 +333,10 @@ export default function App() {
         student={currentStudent}
         isOpen={isWorryGachaOpen}
         onClose={() => setIsWorryGachaOpen(false)}
+        onGoToMindRecord={() => {
+          setIsWorryGachaOpen(false);
+          setStudentTab('mypage');
+        }}
       />
 
       <NewMedicineModal
@@ -333,6 +374,16 @@ export default function App() {
         student={currentStudent}
         onSubmit={handlePostTestComplete}
         onClose={() => setIsPostTestOpen(false)}
+      />
+
+      {/* Teacher Authentication Modal when clicked from student mode */}
+      <TeacherAuthModal
+        isOpen={isTeacherAuthModalOpen}
+        onClose={() => setIsTeacherAuthModalOpen(false)}
+        onSuccess={() => {
+          setIsTeacherAuthenticated(true);
+          setAppMode('teacher');
+        }}
       />
 
       {/* Persistent Student Bottom Navigation */}

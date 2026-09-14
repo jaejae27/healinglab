@@ -5,6 +5,7 @@ import { CATEGORIES } from '../../data/categories';
 import { StudentManagementTab } from './StudentManagementTab';
 import { AssessmentDashboardTab } from './AssessmentDashboardTab';
 import { SchoolRecordBatchHelper } from './SchoolRecordBatchHelper';
+import { MedicineDistributionTab } from './MedicineDistributionTab';
 import {
   generateGoogleAppsScript,
   generateGasIndexHtml,
@@ -43,8 +44,11 @@ import {
   BookOpen,
   Eye,
   X,
-  CheckCircle
+  CheckCircle,
+  Pill,
+  KeyRound
 } from 'lucide-react';
+import { TeacherPasswordChangeModal } from '../modals/TeacherPasswordChangeModal';
 
 interface TeacherDashboardProps {
   onSwitchToStudent: () => void;
@@ -56,7 +60,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onPrintWorkbook
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'stats' | 'assessment' | 'students' | 'verify' | 'records' | 'new_med' | 'print' | 'settings'
+    'stats' | 'medicine' | 'assessment' | 'students' | 'verify' | 'records' | 'new_med' | 'print' | 'settings'
   >('stats');
 
   // State
@@ -79,6 +83,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [copiedGasFile, setCopiedGasFile] = useState<string | null>(null);
   const [gasApiUrl, setGasApiUrl] = useState<string>(() => localStorage.getItem('hp_gas_url') || '');
   const [gasPingStatus, setGasPingStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [isPasswordChangeModalOpen, setIsPasswordChangeModalOpen] = useState<boolean>(false);
 
   // In-App Toast & Audio Feedback System (safe inside iframe)
   const [toast, setToast] = useState<{
@@ -253,7 +258,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     const totalStudents = students.length;
     const totalVisits = visits.length;
     const completedVisits = visits.filter((v) => v.status === 'rewarded' || v.status === 'submitted');
-    const waitingVerification = visits.filter((v) => v.status === 'submitted' && !v.rewardGiven);
+    const waitingVerification = visits.filter(
+      (v) => (v.status === 'submitted' || v.status === 'rewarded') && !v.rewardGiven
+    );
 
     // Symptom frequency
     const freq: Record<string, { name: string; count: number }> = {};
@@ -445,15 +452,25 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden sm:flex items-center gap-1.5 bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-full text-xs font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>파이어베이스 클라우드 동기화 완료</span>
           </div>
 
           <button
+            type="button"
+            onClick={() => setIsPasswordChangeModalOpen(true)}
+            className="flex items-center gap-1.5 bg-indigo-700/80 hover:bg-indigo-600 text-indigo-100 hover:text-white px-3 py-1.5 rounded-xl text-xs font-jua transition-colors border border-indigo-500/50 shadow-xs cursor-pointer"
+            title="교사 관리자 비밀번호 변경"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-indigo-300" />
+            <span>비밀번호 변경</span>
+          </button>
+
+          <button
             onClick={onSwitchToStudent}
-            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-jua transition-colors border border-slate-700"
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-jua transition-colors border border-slate-700 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>학생 화면으로 돌아가기</span>
@@ -467,6 +484,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         <aside className="w-full md:w-56 shrink-0 bg-white rounded-2xl border border-slate-200 p-3 shadow-xs space-y-1">
           {[
             { id: 'stats', label: '통계 & 대시보드', icon: LayoutDashboard },
+            {
+              id: 'medicine',
+              label: '실물 약 수령 관리',
+              icon: Pill,
+              badge: stats.waitingVerificationCount
+            },
             { id: 'assessment', label: '사전·사후 평가 분석', icon: BarChart3 },
             { id: 'students', label: '학생 명단 관리', icon: Users },
             {
@@ -532,10 +555,20 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   <span className="text-xs text-emerald-700 block">실천 완료 (처방약 수령)</span>
                   <span className="font-jua text-2xl text-emerald-900">{stats.completedVisitsCount}건</span>
                 </div>
-                <div className="bg-rose-50 border border-rose-200 p-3.5 rounded-xl">
-                  <span className="text-xs text-rose-700 block">처방약 확인 대기</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('medicine')}
+                  className="bg-rose-50 hover:bg-rose-100 border border-rose-200 p-3.5 rounded-xl text-left transition-all group cursor-pointer"
+                  title="실물 약 수령 관리 탭으로 바로 이동하기"
+                >
+                  <span className="text-xs text-rose-700 block flex items-center justify-between">
+                    <span>실물 약 수령 대기</span>
+                    <span className="text-[10px] underline font-bold group-hover:translate-x-0.5 transition-transform">
+                      확인하기 &rarr;
+                    </span>
+                  </span>
                   <span className="font-jua text-2xl text-rose-900">{stats.waitingVerificationCount}건</span>
-                </div>
+                </button>
               </div>
 
               {/* Top 5 Symptoms & Category Dist */}
@@ -591,6 +624,30 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 💡 <strong>운영 주의사항:</strong> 힐링약국의 모든 마음신호는 중학생의 일상적 상태를 알아차리는 교육용 메타포입니다. 특정 마음신호 발급이 지속되거나 심리적 위기 징후(우울, 자해 등)가 감지될 경우 전문 상담교사 및 Weee 센터 연계를 적극 진행해주세요.
               </div>
             </div>
+          )}
+
+          {/* TAB: Physical Medicine Distribution Management */}
+          {activeTab === 'medicine' && (
+            <MedicineDistributionTab
+              students={students}
+              classes={classes}
+              visits={visits}
+              selectedGrade={selectedGrade}
+              selectedClass={selectedClass}
+              onGradeChange={(g) => {
+                if (typeof g === 'number') setSelectedGrade(g);
+              }}
+              onClassChange={(c) => {
+                if (typeof c === 'number') setSelectedClass(c);
+              }}
+              onVisitsUpdated={() => {
+                setVisits(StorageService.getVisits());
+                setStudents(StorageService.getStudents());
+              }}
+              onPrintWorkbook={onPrintWorkbook}
+              showToast={showToast}
+              playChimeSound={playChimeSound}
+            />
           )}
 
           {/* TAB: Assessment & SEL Evaluation */}
@@ -969,6 +1026,35 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                               <Printer className="w-3.5 h-3.5 text-slate-500" />
                               <span>워크북 인쇄 보기</span>
                             </button>
+
+                            {/* Physical Medicine Confirm Button */}
+                            {v.rewardGiven ? (
+                              <span className="px-2.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>실물약 지급완료</span>
+                              </span>
+                            ) : isCompleted ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = StorageService.confirmPhysicalMedicine(v.visitId, '선생님');
+                                  if (updated) {
+                                    playChimeSound();
+                                    showToast(
+                                      `🎉 [${v.studentName}] 학생의 실물 약 수령을 확인했습니다!`,
+                                      'cookie'
+                                    );
+                                    setVisits(StorageService.getVisits());
+                                    setStudents(StorageService.getStudents());
+                                  }
+                                }}
+                                className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white rounded-xl text-xs font-jua flex items-center gap-1 shadow-xs transition-transform active:scale-95"
+                                title="실물 마음 약을 학생에게 지급하고 수령 확인합니다"
+                              >
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                <span>💊 실물약 수령 확인</span>
+                              </button>
+                            ) : null}
 
                             {/* Extra Praise Cookie gift */}
                             {(() => {
@@ -1405,6 +1491,27 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </div>
               )}
 
+              {/* Teacher Security & Password Settings */}
+              <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-indigo-50/60 border border-indigo-100 p-4 rounded-2xl">
+                <div>
+                  <h4 className="font-jua text-sm text-indigo-950 flex items-center gap-1.5">
+                    <KeyRound className="w-4 h-4 text-indigo-600" />
+                    <span>교사 관리자 비밀번호 관리</span>
+                  </h4>
+                  <p className="text-xs text-indigo-900/70 mt-0.5">
+                    교사 대시보드 로그인 시 요구되는 관리자 비밀번호를 안전하게 변경합니다. (기본 비밀번호: 1234)
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordChangeModalOpen(true)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-jua shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>비밀번호 변경하기</span>
+                </button>
+              </div>
+
               {/* Reset Demo Data */}
               <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
                 <div>
@@ -1828,6 +1935,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Teacher Password Change Modal */}
+      <TeacherPasswordChangeModal
+        isOpen={isPasswordChangeModalOpen}
+        onClose={() => setIsPasswordChangeModalOpen(false)}
+        onSuccess={() => {
+          showToast('🎉 선생님 관리자 비밀번호가 성공적으로 변경되었습니다!', 'success');
+        }}
+      />
     </div>
   );
 };

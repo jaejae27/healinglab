@@ -29,7 +29,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/70 backdrop-blur-md border-t-2 border-white/80 py-2 px-4 shadow-lg">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-md border-t-2 border-white/80 py-2 px-3 sm:px-4 shadow-lg pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="max-w-md mx-auto flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -39,10 +39,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             <button
               key={tab.id}
               onClick={() => onChangeTab(tab.id)}
-              className={`relative flex flex-col items-center py-1 px-3 rounded-2xl transition-all ${
+              className={`relative flex flex-col items-center py-1 px-2.5 sm:px-3 rounded-2xl transition-all ${
                 isActive
                   ? 'text-[#5A5A40] font-bold bg-white/90 border-2 border-white shadow-sm scale-105'
-                  : 'text-[#5A5A40]/45 hover:text-[#5A5A40] hover:bg-white/40'
+                  : 'text-[#5A5A40]/55 hover:text-[#5A5A40] hover:bg-white/40'
               }`}
             >
               <div className="relative">
@@ -54,7 +54,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#D97706] rounded-full" />
                 )}
               </div>
-              <span className="text-[10px] font-jua mt-0.5">{tab.label}</span>
+              <span className="text-[10.5px] font-jua mt-0.5 whitespace-nowrap">{tab.label}</span>
             </button>
           );
         })}

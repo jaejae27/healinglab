@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Student, EmotionLog } from '../../types';
 import { StorageService } from '../../services/storage';
 import {
@@ -11,39 +11,56 @@ import {
   Flame,
   CheckCircle2,
   Edit3,
-  Cookie
+  Cookie,
+  HelpCircle
 } from 'lucide-react';
 
 interface EmotionCalendarTabProps {
   student: Student;
   onRefreshStudent?: () => void;
+  onOpenWorryGacha?: () => void;
 }
 
 export const MOOD_OPTIONS: {
   key: EmotionLog['mood'];
   label: string;
+  topWord: string;
+  bottomWord: string;
   emoji: string;
   bg: string;
   border: string;
   text: string;
 }[] = [
-  { key: 'great', label: '행복·뿌듯', emoji: '🥰', bg: 'bg-rose-50 hover:bg-rose-100', border: 'border-rose-200', text: 'text-rose-700' },
-  { key: 'good', label: '편안·안정', emoji: '😊', bg: 'bg-amber-50 hover:bg-amber-100', border: 'border-amber-200', text: 'text-amber-800' },
-  { key: 'excited', label: '신남·설렘', emoji: '⚡', bg: 'bg-yellow-50 hover:bg-yellow-100', border: 'border-yellow-200', text: 'text-yellow-800' },
-  { key: 'neutral', label: '그저그럼', emoji: '😐', bg: 'bg-emerald-50 hover:bg-emerald-100', border: 'border-emerald-200', text: 'text-emerald-800' },
-  { key: 'tired', label: '피곤·지침', emoji: '🥱', bg: 'bg-blue-50 hover:bg-blue-100', border: 'border-blue-200', text: 'text-blue-800' },
-  { key: 'stressed', label: '복잡·불안', emoji: '🤯', bg: 'bg-purple-50 hover:bg-purple-100', border: 'border-purple-200', text: 'text-purple-800' },
-  { key: 'sad', label: '서운·외로움', emoji: '🥺', bg: 'bg-indigo-50 hover:bg-indigo-100', border: 'border-indigo-200', text: 'text-indigo-800' },
-  { key: 'angry', label: '속상·화남', emoji: '😡', bg: 'bg-red-50 hover:bg-red-100', border: 'border-red-200', text: 'text-red-800' }
+  { key: 'great', label: '행복·뿌듯', topWord: '행복', bottomWord: '뿌듯', emoji: '🥰', bg: 'bg-rose-50 hover:bg-rose-100', border: 'border-rose-200', text: 'text-rose-700' },
+  { key: 'good', label: '편안·안정', topWord: '편안', bottomWord: '안정', emoji: '😊', bg: 'bg-amber-50 hover:bg-amber-100', border: 'border-amber-200', text: 'text-amber-800' },
+  { key: 'excited', label: '신남·설렘', topWord: '신남', bottomWord: '설렘', emoji: '⚡', bg: 'bg-yellow-50 hover:bg-yellow-100', border: 'border-yellow-200', text: 'text-yellow-800' },
+  { key: 'neutral', label: '그저그럼', topWord: '그저', bottomWord: '그럼', emoji: '😐', bg: 'bg-emerald-50 hover:bg-emerald-100', border: 'border-emerald-200', text: 'text-emerald-800' },
+  { key: 'tired', label: '피곤·지침', topWord: '피곤', bottomWord: '지침', emoji: '🥱', bg: 'bg-blue-50 hover:bg-blue-100', border: 'border-blue-200', text: 'text-blue-800' },
+  { key: 'stressed', label: '복잡·불안', topWord: '복잡', bottomWord: '불안', emoji: '🤯', bg: 'bg-purple-50 hover:bg-purple-100', border: 'border-purple-200', text: 'text-purple-800' },
+  { key: 'sad', label: '서운·외로움', topWord: '서운', bottomWord: '외로움', emoji: '🥺', bg: 'bg-indigo-50 hover:bg-indigo-100', border: 'border-indigo-200', text: 'text-indigo-800' },
+  { key: 'angry', label: '속상·화남', topWord: '속상', bottomWord: '화남', emoji: '😡', bg: 'bg-red-50 hover:bg-red-100', border: 'border-red-200', text: 'text-red-800' }
 ];
 
-export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student, onRefreshStudent }) => {
+export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({
+  student,
+  onRefreshStudent,
+  onOpenWorryGacha
+}) => {
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth() + 1); // 1~12
 
   // Refresh trigger
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Real-time listener for worry gacha draws
+  useEffect(() => {
+    const handleWorryUpdate = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
+    window.addEventListener('hp:worry-gacha-updated', handleWorryUpdate);
+    return () => window.removeEventListener('hp:worry-gacha-updated', handleWorryUpdate);
+  }, []);
 
   // Load all emotion logs for this student
   const emotionLogs = useMemo(() => {
@@ -61,6 +78,26 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
   const [noteText, setNoteText] = useState<string>(todayLog?.note || '');
   const [rewardNotice, setRewardNotice] = useState<string | null>(null);
 
+  // Active worry gacha hint for the selected date
+  const activeWorryHint = useMemo(() => {
+    // 1. Check existing log
+    const existingLog = emotionLogs.find((l) => l.date === selectedDate);
+    if (existingLog?.worryGachaHint) {
+      return existingLog.worryGachaHint;
+    }
+    // 2. Check storage by date
+    const fromHist = StorageService.getWorryChallengeByDate(student.id, selectedDate);
+    if (fromHist?.hint) {
+      return fromHist.hint;
+    }
+    // 3. If selected is today, check today's drawn worry challenge
+    if (selectedDate === todayStr) {
+      const todayWorry = StorageService.getTodayWorryChallenge(student.id);
+      if (todayWorry?.hint) return todayWorry.hint;
+    }
+    return null;
+  }, [student.id, selectedDate, todayStr, emotionLogs, refreshKey]);
+
   // When changing selected date, sync form inputs
   const handleSelectDay = (dateStr: string) => {
     setSelectedDate(dateStr);
@@ -75,6 +112,19 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
     setRewardNotice(null);
   };
 
+  // Apply worry hint to the note text field
+  const handleApplyWorryHint = () => {
+    if (!activeWorryHint) return;
+    const quote = `[🔮가챠 힌트: "${activeWorryHint}"]`;
+    if (noteText.includes(activeWorryHint)) return;
+
+    if (!noteText.trim()) {
+      setNoteText(`${quote} `);
+    } else {
+      setNoteText(`${quote} ${noteText}`.slice(0, 120));
+    }
+  };
+
   // Submit emotion log
   const handleSaveEmotion = () => {
     const meta = MOOD_OPTIONS.find((m) => m.key === selectedMood) || MOOD_OPTIONS[1];
@@ -87,6 +137,7 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
       moodLabel: meta.label,
       emoji: meta.emoji,
       note: noteText.trim(),
+      worryGachaHint: activeWorryHint || todayLog?.worryGachaHint,
       createdAt: new Date().toISOString()
     };
 
@@ -95,9 +146,9 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
     if (onRefreshStudent) onRefreshStudent();
 
     if (res.isFirstToday) {
-      setRewardNotice('🎉 오늘의 감정 기록 완료! 칭찬쿠키 1개를 선물로 받았어요! 🍪');
+      setRewardNotice('🎉 오늘의 마음 기록 완료! 칭찬쿠키 1개를 선물로 받았어요! 🍪');
     } else {
-      setRewardNotice('✨ 감정 기록이 성공적으로 저장되었습니다!');
+      setRewardNotice('✨ 마음 기록이 성공적으로 저장되었습니다!');
     }
 
     setTimeout(() => {
@@ -187,28 +238,28 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
   return (
     <div className="space-y-6">
       {/* 1. Header Banner & Today's Quick Log */}
-      <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 rounded-[32px] p-5 md:p-6 border-2 border-amber-200/60 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 rounded-[32px] p-4 sm:p-5 md:p-6 border-2 border-amber-200/60 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📅</span>
-              <h2 className="font-jua text-xl text-slate-800">오늘의 감정 달력</h2>
-              <span className="bg-amber-100 text-amber-800 font-bold text-xs px-2.5 py-0.5 rounded-full border border-amber-300">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-2xl shrink-0">📅</span>
+              <h2 className="font-jua text-lg sm:text-xl text-slate-800 whitespace-nowrap">오늘의 감정 달력</h2>
+              <span className="bg-amber-100 text-amber-800 font-bold text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full border border-amber-300 whitespace-nowrap shrink-0">
                 매일 기록 시 🍪 +1 쿠키
               </span>
             </div>
-            <p className="text-xs text-slate-600 mt-1">
+            <p className="text-xs text-slate-600 mt-1 break-keep">
               오늘 내 마음에 떠오른 감정을 솔직하게 선택하고 한마디 메모를 남겨보세요.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 bg-white/80 backdrop-blur-xs px-4 py-2 rounded-2xl border border-slate-200 self-start md:self-auto">
-            <div className="flex items-center gap-1 text-rose-600 font-jua">
-              <Flame className="w-5 h-5 fill-rose-500 text-rose-500" />
-              <span className="text-base">{streak}일 연속</span>
+          <div className="flex items-center gap-2.5 sm:gap-3 bg-white/90 backdrop-blur-xs px-3.5 py-2 rounded-2xl border border-slate-200 self-start sm:self-auto shrink-0 shadow-2xs whitespace-nowrap">
+            <div className="flex items-center gap-1 text-rose-600 font-jua whitespace-nowrap">
+              <Flame className="w-4 h-4 sm:w-5 sm:h-5 fill-rose-500 text-rose-500 shrink-0" />
+              <span className="text-sm sm:text-base whitespace-nowrap">{streak}일 연속</span>
             </div>
-            <div className="w-px h-4 bg-slate-300" />
-            <div className="text-xs text-slate-600 font-medium">
+            <div className="w-px h-3.5 bg-slate-300" />
+            <div className="text-xs text-slate-600 font-medium whitespace-nowrap">
               이번 달 <strong className="text-slate-800 font-bold">{monthlyLogs.length}일</strong> 기록
             </div>
           </div>
@@ -217,30 +268,30 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
         {/* Reward Notification Banner */}
         {rewardNotice && (
           <div className="p-3 mb-4 rounded-2xl bg-amber-400 text-amber-950 font-bold text-xs flex items-center gap-2 shadow-md animate-bounce">
-            <Sparkles className="w-4 h-4" />
-            <span>{rewardNotice}</span>
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span className="break-keep">{rewardNotice}</span>
           </div>
         )}
 
         {/* Emotion Selector Box */}
-        <div className="bg-white rounded-2xl p-4 md:p-5 border border-slate-200/80 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <Edit3 className="w-3.5 h-3.5 text-amber-600" />
+        <div className="bg-white rounded-2xl p-3.5 sm:p-4 md:p-5 border border-slate-200/80 shadow-xs space-y-3.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-[11.5px] sm:text-xs font-bold text-slate-700 flex items-center gap-1.5 whitespace-nowrap">
+              <Edit3 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
               <span>{selectedDate === todayStr ? '오늘' : selectedDate}의 마음 상태 선택</span>
             </span>
             {selectedDate !== todayStr && (
               <button
                 onClick={() => handleSelectDay(todayStr)}
-                className="text-xs text-amber-700 hover:text-amber-900 font-bold underline"
+                className="text-[11px] sm:text-xs text-amber-700 hover:text-amber-900 font-bold underline whitespace-nowrap"
               >
                 오늘 날짜로 돌아가기
               </button>
             )}
           </div>
 
-          {/* Emotion 8 Buttons */}
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+          {/* Emotion 8 Capsule Buttons (Single row, smaller font size, no horizontal overlap) */}
+          <div className="grid grid-cols-8 gap-1 sm:gap-1.5">
             {MOOD_OPTIONS.map((m) => {
               const isSelected = selectedMood === m.key;
               return (
@@ -248,33 +299,108 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
                   key={m.key}
                   type="button"
                   onClick={() => setSelectedMood(m.key)}
-                  className={`p-2.5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1 ${
+                  title={m.label}
+                  className={`py-2 sm:py-2.5 px-0.5 sm:px-1 rounded-full border-2 transition-all flex flex-col items-center justify-between min-h-[74px] sm:min-h-[82px] min-w-0 ${
                     isSelected
-                      ? 'bg-amber-100 border-amber-400 scale-105 shadow-md ring-2 ring-amber-300'
-                      : `${m.bg} ${m.border} opacity-80 hover:opacity-100`
+                      ? 'bg-amber-100/90 border-amber-400 scale-102 sm:scale-105 shadow-md ring-2 ring-amber-300'
+                      : `${m.bg} ${m.border} opacity-85 hover:opacity-100 hover:scale-101`
                   }`}
                 >
-                  <span className="text-2xl drop-shadow-xs">{m.emoji}</span>
-                  <span className={`text-[11px] font-bold ${isSelected ? 'text-amber-950' : m.text}`}>
-                    {m.label}
-                  </span>
+                  <span className="text-xl sm:text-2xl drop-shadow-xs my-0.5 shrink-0">{m.emoji}</span>
+                  <div className="flex flex-col items-center justify-center leading-[1.1] mt-0.5 w-full">
+                    <span
+                      className={`text-[8.5px] sm:text-[9.5px] font-bold tracking-tighter whitespace-nowrap ${
+                        isSelected ? 'text-amber-950 font-extrabold' : m.text
+                      }`}
+                    >
+                      {m.topWord}
+                    </span>
+                    <span
+                      className={`text-[8px] sm:text-[9px] font-bold tracking-tighter whitespace-nowrap ${
+                        isSelected ? 'text-amber-900 font-extrabold' : m.text
+                      }`}
+                    >
+                      {m.bottomWord}
+                    </span>
+                  </div>
                 </button>
               );
             })}
           </div>
 
+          {/* 🔮 고민가챠 지혜 힌트 연동 영역 */}
+          {activeWorryHint ? (
+            <div className="bg-gradient-to-r from-purple-50/90 via-pink-50/40 to-indigo-50/90 border-2 border-purple-200/90 rounded-2xl p-3 sm:p-3.5 space-y-2 shadow-2xs">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
+                  <span className="text-base shrink-0">🔮</span>
+                  <span>
+                    {selectedDate === todayStr ? '오늘 뽑은 고민가챠 지혜 힌트' : `${selectedDate}에 뽑은 고민가챠`}
+                  </span>
+                  <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">
+                    마음기록에 연동됨
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApplyWorryHint}
+                  className="text-[11px] font-bold px-2.5 py-1 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs flex items-center gap-1 transition-transform active:scale-95 whitespace-nowrap"
+                  title="힌트를 마음 메모에 인용합니다"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>마음 메모에 인용 넣기</span>
+                </button>
+              </div>
+              <div className="bg-white/95 border border-purple-150 rounded-xl p-2.5 text-xs text-purple-950 font-jua leading-relaxed break-keep shadow-2xs">
+                "{activeWorryHint}"
+              </div>
+            </div>
+          ) : (
+            selectedDate === todayStr && (
+              <div className="bg-purple-50/60 border border-dashed border-purple-200 rounded-2xl p-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xl shrink-0">🔮</span>
+                  <p className="text-xs text-purple-900 break-keep">
+                    <strong className="font-bold">오늘의 고민가챠</strong>를 아직 안 뽑으셨나요? 지혜 힌트를 뽑아 마음기록에 함께 담아보세요!
+                  </p>
+                </div>
+                {onOpenWorryGacha && (
+                  <button
+                    type="button"
+                    onClick={onOpenWorryGacha}
+                    className="text-[11px] font-bold px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl shadow-xs shrink-0 transition-transform active:scale-95 whitespace-nowrap flex items-center gap-1"
+                  >
+                    <span>가챠 뽑기</span>
+                    <span>↗</span>
+                  </button>
+                )}
+              </div>
+            )
+          )}
+
           {/* Short Note Text Area */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-              <span>한마디 마음 메모</span>
-              <span className="text-[11px] font-normal text-slate-400">{noteText.length}/80자</span>
+              <span className="whitespace-nowrap flex items-center gap-1.5">
+                <span>한마디 마음 메모</span>
+                {activeWorryHint && (
+                  <span className="text-[10px] text-purple-600 font-medium">
+                    (가챠 힌트에 대한 생각을 남겨보세요)
+                  </span>
+                )}
+              </span>
+              <span className="text-[11px] font-normal text-slate-400 whitespace-nowrap">{noteText.length}/120자</span>
             </label>
             <input
               type="text"
               value={noteText}
-              onChange={(e) => setNoteText(e.target.value.slice(0, 80))}
-              placeholder="예: 5분 산책하고 나니 머리가 맑아졌다 / 친구랑 작은 오해를 풀어서 다행이야"
-              className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50 focus:bg-white"
+              onChange={(e) => setNoteText(e.target.value.slice(0, 120))}
+              placeholder={
+                activeWorryHint
+                  ? "예: 고민가챠 힌트를 읽고 마음이 편안해졌다 / 오늘 친구와 산책하며 나눈 이야기"
+                  : "예: 5분 산책하고 나니 머리가 맑아졌다 / 친구랑 작은 오해를 풀어서 다행이야"
+              }
+              className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50 focus:bg-white break-keep"
             />
           </div>
 
@@ -282,10 +408,10 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
           <div className="flex items-center justify-end">
             <button
               onClick={handleSaveEmotion}
-              className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-jua text-xs rounded-xl shadow-md flex items-center gap-2 transition-transform active:scale-95"
+              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-jua text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-transform active:scale-95 whitespace-nowrap"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{selectedDate === todayStr ? '오늘의 감정 기록하기' : `${selectedDate} 기록 저장`}</span>
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">{selectedDate === todayStr ? '오늘의 마음 기록하기' : `${selectedDate} 기록 저장`}</span>
             </button>
           </div>
         </div>
@@ -382,9 +508,19 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
 
                 {log ? (
                   <div className="w-full">
-                    <span className="text-[10px] font-bold text-slate-700 line-clamp-1 block">
-                      {log.moodLabel}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-bold text-slate-700 line-clamp-1 block">
+                        {log.moodLabel}
+                      </span>
+                      {log.worryGachaHint && (
+                        <span
+                          className="text-[9px] px-1 py-0.2 bg-purple-100 text-purple-700 rounded-md shrink-0 font-bold"
+                          title={`고민가챠: ${log.worryGachaHint}`}
+                        >
+                          🔮
+                        </span>
+                      )}
+                    </div>
                     {log.note && (
                       <span className="text-[9px] text-slate-500 line-clamp-1 hidden md:block">
                         {log.note}
@@ -435,6 +571,12 @@ export const EmotionCalendarTab: React.FC<EmotionCalendarTabProps> = ({ student,
                       <span className="font-bold text-xs text-slate-800">{log.moodLabel}</span>
                       <span className="text-[11px] text-slate-400">{log.date}</span>
                     </div>
+                    {log.worryGachaHint && (
+                      <div className="mb-1.5 px-2.5 py-1 rounded-xl bg-purple-50 border border-purple-200/80 text-[11px] text-purple-900 flex items-start gap-1.5 break-keep">
+                        <span className="shrink-0 text-xs">🔮</span>
+                        <span className="font-jua text-[10.5px]">고민가챠: "{log.worryGachaHint}"</span>
+                      </div>
+                    )}
                     <p className="text-xs text-slate-600 leading-relaxed break-keep">
                       {log.note || <span className="text-slate-400 italic">(남긴 메모 없음)</span>}
                     </p>

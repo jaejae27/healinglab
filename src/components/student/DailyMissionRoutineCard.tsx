@@ -270,7 +270,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
           </span>
         </div>
 
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
           {[1, 2, 3, 4, 5].map((day) => {
             const check = checkIns.find((c) => c.day === day);
             const isDone = !!check?.completed;
@@ -296,27 +296,27 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
               >
                 {/* Milestone gift tags */}
                 {day === 1 && (
-                  <span className="absolute -top-1.5 -right-1 text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded-full border border-amber-300">
+                  <span className="absolute -top-1.5 -right-1 text-[8.5px] sm:text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded-full border border-amber-300 whitespace-nowrap">
                     +1🍪
                   </span>
                 )}
                 {day === 3 && (
-                  <span className="absolute -top-1.5 -right-1 text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded-full border border-amber-300">
+                  <span className="absolute -top-1.5 -right-1 text-[8.5px] sm:text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded-full border border-amber-300 whitespace-nowrap">
                     +1🍪
                   </span>
                 )}
                 {day === 5 && (
-                  <span className="absolute -top-1.5 -right-1 text-[9px] bg-rose-100 text-rose-800 font-bold px-1 rounded-full border border-rose-300">
+                  <span className="absolute -top-1.5 -right-1 text-[8.5px] sm:text-[9px] bg-rose-100 text-rose-800 font-bold px-1 rounded-full border border-rose-300 whitespace-nowrap">
                     +2🍪
                   </span>
                 )}
 
-                <span className="text-[10px] text-slate-400 font-medium">{weekday}</span>
-                <span className="text-xs font-jua mt-0.5">
+                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">{weekday}</span>
+                <span className="text-xs font-jua mt-0.5 whitespace-nowrap">
                   {isDone ? '✅' : `${day}일`}
                 </span>
                 {check?.mood && (
-                  <span className="text-xs mt-0.5">
+                  <span className="text-xs mt-0.5 whitespace-nowrap">
                     {MOODS.find((m) => m.key === check.mood)?.emoji || '😊'}
                   </span>
                 )}
@@ -652,20 +652,20 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
               <label className="block text-[11px] font-bold text-[#5A5A40] mb-1">
                 실천 후 내 기분은 어떤가요?
               </label>
-              <div className="flex gap-1.5">
+              <div className="flex gap-1 sm:gap-1.5">
                 {MOODS.map((m) => (
                   <button
                     key={m.key}
                     type="button"
                     onClick={() => setSelectedMood(m.key)}
-                    className={`flex-1 py-1.5 px-1 rounded-xl border flex flex-col items-center gap-0.5 text-[10px] transition-all ${
+                    className={`flex-1 py-1.5 px-0.5 sm:px-1 rounded-xl border flex flex-col items-center gap-0.5 text-[10px] transition-all min-w-0 ${
                       selectedMood === m.key
                         ? 'bg-white border-amber-400 font-bold text-amber-900 shadow-2xs scale-102'
                         : 'bg-white/60 border-white text-slate-500 hover:bg-white'
                     }`}
                   >
                     <span className="text-base">{m.emoji}</span>
-                    <span>{m.label}</span>
+                    <span className="whitespace-nowrap tracking-tight">{m.label}</span>
                   </button>
                 ))}
               </div>
@@ -673,9 +673,29 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
 
             {/* Optional general note */}
             <div>
-              <label className="block text-[11px] font-bold text-[#5A5A40] mb-1">
-                오늘의 전체 한 줄 소감 (선택 사항)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-bold text-[#5A5A40]">
+                  오늘의 전체 한 줄 소감 (선택 사항)
+                </label>
+                {(() => {
+                  const todayWorry = StorageService.getTodayWorryChallenge(student.id);
+                  if (!todayWorry?.hint) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const quote = `[🔮가챠 힌트: "${todayWorry.hint}"]`;
+                        if (!dailyNote.includes(todayWorry.hint)) {
+                          setDailyNote((prev) => (prev.trim() ? `${quote} ${prev}` : `${quote} `));
+                        }
+                      }}
+                      className="text-[10px] text-purple-700 font-bold bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-lg flex items-center gap-1 transition-colors whitespace-nowrap"
+                    >
+                      <span>🔮 오늘 가챠 힌트 인용</span>
+                    </button>
+                  );
+                })()}
+              </div>
               <input
                 type="text"
                 value={dailyNote}
@@ -684,7 +704,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
                   if (validationError) setValidationError(null);
                 }}
                 placeholder="예: 3가지 행동을 모두 해보니 마음이 훨씬 편안해졌어요!"
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-300 break-keep"
               />
             </div>
 
@@ -694,7 +714,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors"
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors whitespace-nowrap"
                 >
                   수정 취소
                 </button>
@@ -702,7 +722,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
               <button
                 type="button"
                 onClick={handleSaveCheckIn}
-                className={`flex-2 py-3 text-white font-jua text-xs rounded-xl shadow-xs border border-white flex items-center justify-center gap-1.5 transition-all ${
+                className={`flex-2 py-2.5 sm:py-3 px-2 text-white font-jua text-xs rounded-xl shadow-xs border border-white flex items-center justify-center gap-1.5 transition-all text-center break-keep leading-tight ${
                   isAllThreeChecked
                     ? 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 ring-2 ring-amber-300'
                     : 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600'
@@ -710,7 +730,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
               >
                 {isAllThreeChecked ? (
                   <>
-                    <Sparkles className="w-4 h-4 fill-white" />
+                    <Sparkles className="w-4 h-4 fill-white shrink-0" />
                     <span>
                       {isEditing
                         ? `✨ 3개 미션 완벽 실천 내용으로 수정 저장`
@@ -719,7 +739,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
                   </>
                 ) : (
                   <>
-                    <Star className="w-3.5 h-3.5 fill-white" />
+                    <Star className="w-3.5 h-3.5 fill-white shrink-0" />
                     <span>
                       {isEditing
                         ? `${selectedDay}일차 실천 내용 수정 저장`

@@ -38,7 +38,7 @@ class FirestoreSyncManager {
     return () => this.listeners.delete(listener);
   }
 
-  private notify() {
+  public notify() {
     this.lastSyncTime = new Date().toLocaleTimeString();
     this.listeners.forEach((cb) => {
       try {

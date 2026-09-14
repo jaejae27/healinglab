@@ -25,6 +25,8 @@ interface MyPageProps {
   student: Student;
   onPrintPortfolio: () => void;
   onGoToHome?: () => void;
+  onOpenWorryGacha?: () => void;
+  onRefreshStudent?: () => void;
 }
 
 const MOOD_META: Record<string, { label: string; emoji: string; bg: string; text: string }> = {
@@ -35,7 +37,13 @@ const MOOD_META: Record<string, { label: string; emoji: string; bg: string; text
   stressed: { label: '복잡함', emoji: '🤯', bg: 'bg-purple-100', text: 'text-purple-800' }
 };
 
-export const MyPage: React.FC<MyPageProps> = ({ student, onPrintPortfolio, onGoToHome }) => {
+export const MyPage: React.FC<MyPageProps> = ({
+  student,
+  onPrintPortfolio,
+  onGoToHome,
+  onOpenWorryGacha,
+  onRefreshStudent
+}) => {
   const [tab, setTab] = useState<'calendar' | 'daily' | 'history' | 'cards' | 'rewards'>('calendar');
   const [expandedVisitId, setExpandedVisitId] = useState<string | null>(null);
 
@@ -54,6 +62,10 @@ export const MyPage: React.FC<MyPageProps> = ({ student, onPrintPortfolio, onGoT
   );
   const savedFortunes = useMemo(
     () => StorageService.getSavedFortunes(student.id),
+    [student.id]
+  );
+  const worryHistory = useMemo(
+    () => StorageService.getAllWorryChallengesHistory(student.id),
     [student.id]
   );
 
@@ -194,61 +206,61 @@ export const MyPage: React.FC<MyPageProps> = ({ student, onPrintPortfolio, onGoT
       </div>
 
       {/* Tabs */}
-      <div className="grid grid-cols-5 bg-slate-100 p-1.5 rounded-2xl gap-1">
+      <div className="flex overflow-x-auto no-scrollbar sm:grid sm:grid-cols-5 bg-slate-100/90 p-1.5 rounded-2xl gap-1">
         <button
           onClick={() => setTab('calendar')}
-          className={`py-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center ${
+          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
             tab === 'calendar'
-              ? 'bg-white text-amber-900 shadow-xs border border-amber-200/50'
+              ? 'bg-white text-amber-900 shadow-xs border border-amber-200/50 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <span>📅 감정 달력</span>
-          <span className="text-[9px] font-mono text-amber-700 font-bold">오늘 기록</span>
+          <span className="whitespace-nowrap">📅 감정 달력</span>
+          <span className="text-[9px] font-mono text-amber-700 font-bold whitespace-nowrap">오늘 기록</span>
         </button>
         <button
           onClick={() => setTab('daily')}
-          className={`py-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center ${
+          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
             tab === 'daily'
-              ? 'bg-white text-purple-900 shadow-xs border border-purple-200/50'
+              ? 'bg-white text-purple-900 shadow-xs border border-purple-200/50 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <span>🌱 5일 루틴</span>
-          <span className="text-[9px] font-mono text-purple-600 font-bold">({totalDaysLogged}일)</span>
+          <span className="whitespace-nowrap">🌱 5일 루틴</span>
+          <span className="text-[9px] font-mono text-purple-600 font-bold whitespace-nowrap">({totalDaysLogged}일)</span>
         </button>
         <button
           onClick={() => setTab('history')}
-          className={`py-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center ${
+          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
             tab === 'history'
-              ? 'bg-white text-slate-800 shadow-xs border border-slate-200'
+              ? 'bg-white text-slate-800 shadow-xs border border-slate-200 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <span>💊 처방 기록</span>
-          <span className="text-[9px] font-mono font-bold">({visits.length}건)</span>
+          <span className="whitespace-nowrap">💊 처방 기록</span>
+          <span className="text-[9px] font-mono font-bold whitespace-nowrap">({visits.length}건)</span>
         </button>
         <button
           onClick={() => setTab('cards')}
-          className={`py-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center ${
+          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
             tab === 'cards'
-              ? 'bg-white text-indigo-900 shadow-xs border border-indigo-200/50'
+              ? 'bg-white text-indigo-900 shadow-xs border border-indigo-200/50 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <span>🃏 마음카드</span>
-          <span className="text-[9px] font-mono text-indigo-600 font-bold">({savedFortunes.length}장)</span>
+          <span className="whitespace-nowrap">🃏 카드·가챠</span>
+          <span className="text-[9px] font-mono text-indigo-600 font-bold whitespace-nowrap">({savedFortunes.length + worryHistory.length}건)</span>
         </button>
         <button
           onClick={() => setTab('rewards')}
-          className={`py-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center ${
+          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
             tab === 'rewards'
-              ? 'bg-white text-purple-900 shadow-xs border border-purple-200/50'
+              ? 'bg-white text-purple-900 shadow-xs border border-purple-200/50 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <span>🔬 신약·쿠키</span>
-          <span className="text-[9px] font-mono font-bold text-purple-600">({myProposals.length}건)</span>
+          <span className="whitespace-nowrap">🔬 신약·쿠키</span>
+          <span className="text-[9px] font-mono font-bold text-purple-600 whitespace-nowrap">({myProposals.length}건)</span>
         </button>
       </div>
 
@@ -257,7 +269,11 @@ export const MyPage: React.FC<MyPageProps> = ({ student, onPrintPortfolio, onGoT
       {/* ========================================================= */}
       {tab === 'calendar' && (
         <div className="animate-fade-in">
-          <EmotionCalendarTab student={student} />
+          <EmotionCalendarTab
+            student={student}
+            onRefreshStudent={onRefreshStudent}
+            onOpenWorryGacha={onOpenWorryGacha}
+          />
         </div>
       )}
 
@@ -634,6 +650,66 @@ export const MyPage: React.FC<MyPageProps> = ({ student, onPrintPortfolio, onGoT
               </div>
             ))
           )}
+
+          {/* 🔮 고민가챠 지혜 보관함 */}
+          <div className="pt-4 border-t-2 border-purple-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-jua text-base text-purple-900 flex items-center gap-1.5">
+                <span>🔮 뽑았던 고민가챠 지혜 서랍</span>
+                <span className="text-[11px] bg-purple-100 text-purple-800 font-mono font-bold px-2 py-0.5 rounded-full">
+                  {worryHistory.length}건
+                </span>
+              </h4>
+              {onOpenWorryGacha && (
+                <button
+                  onClick={onOpenWorryGacha}
+                  className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1"
+                >
+                  <span>오늘 가챠 뽑기</span>
+                  <span>↗</span>
+                </button>
+              )}
+            </div>
+
+            {worryHistory.length === 0 ? (
+              <div className="bg-purple-50/50 rounded-2xl p-6 text-center text-slate-400 border border-purple-150 space-y-2">
+                <div className="text-3xl">🔮</div>
+                <p className="font-jua text-sm text-purple-800">아직 뽑은 고민가챠가 없어요.</p>
+                <p className="text-xs text-slate-500 break-keep">
+                  홈 화면의 [고민가챠]를 돌려 나만을 위한 지혜 힌트를 얻고, 나의 마음기록 작성할 때 적용해보세요!
+                </p>
+                {onOpenWorryGacha && (
+                  <button
+                    onClick={onOpenWorryGacha}
+                    className="mt-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-jua text-xs rounded-xl shadow-xs"
+                  >
+                    지금 고민가챠 뽑으러 가기
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2.5">
+                {worryHistory.map((item, idx) => (
+                  <div
+                    key={`${item.date}-${idx}`}
+                    className="bg-white rounded-2xl p-3.5 border-2 border-purple-200/80 shadow-xs hover:border-purple-300 transition-all text-left"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200">
+                        📅 {item.date}의 힌트
+                      </span>
+                      <span className="text-[10px] text-purple-600 font-medium">
+                        마음기록 연동됨
+                      </span>
+                    </div>
+                    <p className="font-jua text-sm text-purple-950 leading-relaxed break-keep">
+                      "{item.hint}"
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -19,7 +19,9 @@ import {
   Sparkles,
   Eye,
   Check,
-  Cookie
+  Cookie,
+  KeyRound,
+  Lock
 } from 'lucide-react';
 
 interface StudentManagementTabProps {
@@ -220,7 +222,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
       targets: [target],
       mode: defaultMode,
       amount: 1,
-      reason: defaultMode === 'add' ? '마음처방 미션 성실 실천' : '오지급 쿠키 수량 정정'
+      reason: defaultMode === 'add' ? '마음처방 미션 성실 실천' : '가챠 뽑기'
     });
   };
 
@@ -233,7 +235,42 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
       targets,
       mode: defaultMode,
       amount: 1,
-      reason: defaultMode === 'add' ? '마음처방 미션 성실 실천' : '오지급 쿠키 수량 정정'
+      reason: defaultMode === 'add' ? '마음처방 미션 성실 실천' : '가챠 뽑기'
+    });
+  };
+
+  // Reset Single Student Password (PIN)
+  const handleResetSingleStudentPin = (student: Student) => {
+    setConfirmModal({
+      isOpen: true,
+      title: '학생 비밀번호 초기화',
+      message: `[${student.name}] (${student.grade}학년 ${student.classNum}반 ${student.number}번) 학생의 비밀번호를 기본 비밀번호 '0000'으로 초기화하시겠습니까?`,
+      confirmLabel: '0000으로 초기화',
+      isDestructive: false,
+      onConfirm: () => {
+        StorageService.resetStudentPin(student.id, '0000');
+        onStudentsUpdated();
+        showToast(`🔑 [${student.name}] 학생의 비밀번호가 '0000'으로 초기화되었습니다.`, 'success');
+        setConfirmModal(null);
+      }
+    });
+  };
+
+  // Reset Batch Students Password (PIN)
+  const handleResetBatchPins = () => {
+    if (selectedStudentIds.length === 0) return;
+    setConfirmModal({
+      isOpen: true,
+      title: '선택 학생 비밀번호 일괄 초기화',
+      message: `선택된 ${selectedStudentIds.length}명 학생의 비밀번호를 모두 초기 비밀번호 '0000'으로 초기화하시겠습니까?`,
+      confirmLabel: '일괄 초기화 실행 (0000)',
+      isDestructive: false,
+      onConfirm: () => {
+        const count = StorageService.resetStudentsPinBatch(selectedStudentIds, '0000');
+        onStudentsUpdated();
+        showToast(`🔑 선택된 ${count}명 학생의 비밀번호가 '0000'으로 초기화되었습니다.`, 'success');
+        setConfirmModal(null);
+      }
     });
   };
 
@@ -614,6 +651,15 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
             </button>
             <button
               type="button"
+              onClick={handleResetBatchPins}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center gap-1 transition-all shadow-xs cursor-pointer"
+              title="선택한 학생들의 비밀번호를 모두 기본값 0000으로 일괄 초기화"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>비번 일괄 초기화 (0000)</span>
+            </button>
+            <button
+              type="button"
               onClick={handleDeleteSelected}
               className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold flex items-center gap-1 transition-all shadow-xs"
               title="선택한 학생들을 명단에서 안전하게 일괄 삭제"
@@ -659,7 +705,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                 <th className="py-3 px-3">사후검사</th>
                 <th className="py-3 px-3">처방 미션 실천</th>
                 <th className="py-3 px-3">보유 칭찬쿠키</th>
-                <th className="py-3 px-3 text-right">쿠키 지급·차감 (사유 입력)</th>
+                <th className="py-3 px-3 text-right">관리 (쿠키 / 비번 초기화)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -800,6 +846,15 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                           >
                             <Minus className="w-3 h-3 text-slate-600" />
                             <span>차감</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResetSingleStudentPin(s)}
+                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold transition-all flex items-center gap-1 hover:scale-102 cursor-pointer text-[11px]"
+                            title="학생 비밀번호를 기본값(0000)으로 초기화"
+                          >
+                            <KeyRound className="w-3 h-3 text-indigo-600" />
+                            <span>비번초기화</span>
                           </button>
                           <button
                             type="button"
@@ -1203,6 +1258,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                 ) : (
                   <>
                     {[
+                      '🎰 가챠 뽑기',
                       '🔄 오지급 쿠키 수량 정정',
                       '⚠️ 기본 생활규칙 및 약속 미이행',
                       '기타 수동 조정'
@@ -1210,10 +1266,10 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                       <button
                         key={chip}
                         type="button"
-                        onClick={() => setCookieModal({ ...cookieModal, reason: chip })}
+                        onClick={() => setCookieModal({ ...cookieModal, reason: chip.replace(/^[^\s]+\s/, '') })}
                         className={`text-[11px] px-2 py-1 rounded-lg border transition-all cursor-pointer ${
-                          cookieModal.reason === chip
-                            ? 'bg-slate-200 border-slate-400 text-slate-900 font-bold'
+                          cookieModal.reason === chip || cookieModal.reason === chip.replace(/^[^\s]+\s/, '')
+                            ? 'bg-amber-100 border-amber-400 text-amber-950 font-bold'
                             : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
                       >

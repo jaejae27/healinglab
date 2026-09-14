@@ -97,6 +97,7 @@ export interface EmotionLog {
   moodLabel: string;
   emoji: string;
   note?: string; // 짧은 메모
+  worryGachaHint?: string; // 그날 뽑은 고민가챠 지혜 힌트
   createdAt: string;
 }
 
@@ -119,6 +120,7 @@ export interface Student {
   privacyConsent?: PrivacyConsent;
   preTest?: AssessmentResult;
   postTest?: AssessmentResult;
+  pin?: string; // 학생 로그인 비밀번호 (기본값 '0000')
 }
 
 export interface MissionItemCheck {
@@ -165,6 +167,8 @@ export interface Visit {
   secondaryConditionIds: string[];
   missions: ActiveMission[];
   dailyCheckIns?: DailyMissionCheckIn[]; // 7일 매일 미션 실천 기록
+  prescriptionMedicineName?: string; // 실물 처방약 이름 (예: 일단시작정 - 달콤한 젤리)
+  prescriptionAdvice?: string; // 복약 지도 및 응원 문구
   // Completion data
   submittedAt?: string;
   bestMissionIndex?: number;
@@ -180,6 +184,7 @@ export interface Visit {
   webVerified?: boolean; // 웹 제출 확인
   rewardGiven?: boolean; // 처방약(간식+카드) 지급 완료
   rewardGivenAt?: string;
+  rewardTeacherName?: string; // 지급 확인 교사
   rewardSnackNote?: string;
   isRepeat?: boolean;
   previousEffectiveMission?: string;

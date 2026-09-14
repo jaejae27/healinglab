@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Student, Visit } from '../../types';
 import { StorageService } from '../../services/storage';
 import { HealyCharacter } from '../character/HealyCharacter';
@@ -13,7 +13,9 @@ import {
   Share2,
   FolderHeart,
   Home,
-  Award
+  Award,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { validateMeaningfulText } from '../../utils/koreanName';
 import { checkDoneFormEligibility } from '../../utils/doneFormEligibility';
@@ -57,8 +59,69 @@ export const DoneForm: React.FC<DoneFormProps> = ({
   const participatedDays = checkIns.filter((c) => c.completed).length;
   const participationRate = Math.round((participatedDays / 5) * 100);
 
+  // Live Visit state synchronized with storage and Firestore updates
+  const [liveVisit, setLiveVisit] = useState<Visit>(visit);
+  const prevRewardGiven = useRef<boolean>(!!visit.rewardGiven);
+
+  // Synchronize live visit when prop changes or on real-time update
+  useEffect(() => {
+    const current = StorageService.getVisits().find((v) => v.visitId === visit.visitId);
+    if (current) {
+      setLiveVisit(current);
+      prevRewardGiven.current = !!current.rewardGiven;
+    }
+  }, [visit.visitId]);
+
+  const playCelebrationSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.35);
+      });
+    } catch {
+      // AudioContext unavailable
+    }
+  };
+
+  useEffect(() => {
+    const checkLive = () => {
+      const current = StorageService.getVisits().find((v) => v.visitId === visit.visitId);
+      if (current) {
+        if (!prevRewardGiven.current && current.rewardGiven) {
+          playCelebrationSound();
+        }
+        prevRewardGiven.current = !!current.rewardGiven;
+        setLiveVisit(current);
+      }
+    };
+
+    const unsub = StorageService.subscribe(checkLive);
+    const handleStorageEvent = () => checkLive();
+    window.addEventListener('storage', handleStorageEvent);
+    window.addEventListener('school_mind_pharmacy_storage_updated', handleStorageEvent);
+
+    return () => {
+      unsub();
+      window.removeEventListener('storage', handleStorageEvent);
+      window.removeEventListener('school_mind_pharmacy_storage_updated', handleStorageEvent);
+    };
+  }, [visit.visitId]);
+
   // Determine initial view: if already rewarded/submitted, show receipt
-  const isAlreadySubmitted = visit.status === 'rewarded' && !!visit.submittedAt;
+  const isAlreadySubmitted = (visit.status === 'rewarded' || visit.status === 'submitted') && !!visit.submittedAt;
   const [view, setView] = useState<'form' | 'receipt'>(isAlreadySubmitted ? 'receipt' : 'form');
 
   const [ratings, setRatings] = useState<number[]>([
@@ -183,9 +246,9 @@ export const DoneForm: React.FC<DoneFormProps> = ({
         rating: ratings[idx] || 5
       }));
 
-      // Automatically approve and reward upon submission!
+      // Save visit as submitted with rewardGiven: false (waiting for teacher's physical medicine handover)
       const updated = StorageService.updateVisit(visit.visitId, {
-        status: 'rewarded',
+        status: 'submitted',
         missions: updatedMissions,
         submittedAt: new Date().toISOString(),
         bestMissionIndex: bestIndices[0],
@@ -198,20 +261,21 @@ export const DoneForm: React.FC<DoneFormProps> = ({
         futurePlan: futurePlan.trim(),
         webVerified: true,
         paperVerified: true,
-        rewardGiven: true,
-        rewardGivenAt: new Date().toISOString(),
-        rewardSnackNote: '5일 처방 실천 최종 완료 (보건실 실물 마음 약 수령 대상)'
+        rewardGiven: false,
+        rewardSnackNote: '선생님 실물 마음 약(간식) 수령 대기 중'
       });
 
       if (!updated) {
         throw new Error('처방 정보를 업데이트하지 못했습니다.');
       }
 
-      // Automatically award 3 cookies upon submission
+      setLiveVisit(updated);
+
+      // Automatically award 3 cookies upon 5-day reflection completion
       StorageService.addCookieLog(
         student.id,
         3,
-        `5일 처방 실천 완료 보너스 쿠키 (${visit.primaryConditionName})`
+        `5일 처방 실천 성찰 완료 보너스 쿠키 (${visit.primaryConditionName})`
       );
 
       // Trigger student balance refresh in parent
@@ -234,6 +298,17 @@ export const DoneForm: React.FC<DoneFormProps> = ({
   // VIEW 2: NEXT PAGE - 실물 약 수령증 화면
   // ==========================================
   if (view === 'receipt') {
+    const isRewardReceived = !!liveVisit.rewardGiven;
+    const formattedReceivedDate = liveVisit.rewardGivenAt
+      ? new Date(liveVisit.rewardGivenAt).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : null;
+
     return (
       <div className="max-w-md mx-auto px-4 py-4 pb-24 animate-in fade-in slide-in-from-bottom-3 duration-300">
         {/* Navigation Bar */}
@@ -246,44 +321,141 @@ export const DoneForm: React.FC<DoneFormProps> = ({
             <ArrowLeft className="w-4 h-4" />
             <span>홈으로</span>
           </button>
-          <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
-            🎉 실천 완료 & 수령증 발급
+          <span
+            className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
+              isRewardReceived
+                ? 'text-emerald-800 bg-emerald-100 border-emerald-300'
+                : 'text-amber-800 bg-amber-100 border-amber-300'
+            }`}
+          >
+            {isRewardReceived ? '🎉 실물 약 수령 완료' : '⏳ 실물 약 수령 대기 중'}
           </span>
         </div>
 
+        {/* Real-time Status Notification Banner (약 수령 전 vs 후) */}
+        <div
+          className={`p-3 sm:p-3.5 rounded-2xl shadow-md border-2 border-white flex items-center justify-between mb-3 transition-colors gap-2 ${
+            isRewardReceived
+              ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white'
+              : 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white animate-pulse'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-2xl shrink-0">{isRewardReceived ? '🎉' : '⏳'}</span>
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider opacity-90 whitespace-nowrap">
+                {isRewardReceived ? '지급 완료 확인됨' : '선생님 확인 대기 중'}
+              </div>
+              <div className="font-jua text-sm sm:text-lg break-keep leading-tight">
+                {isRewardReceived
+                  ? '실물 마음 약 수령 완료!'
+                  : '약 수령 전 (선생님께 보여주세요)'}
+              </div>
+            </div>
+          </div>
+          <span
+            className={`text-xs px-2.5 py-1 rounded-xl font-jua shadow-2xs whitespace-nowrap shrink-0 ${
+              isRewardReceived ? 'bg-white text-emerald-800' : 'bg-white/20 text-white'
+            }`}
+          >
+            {isRewardReceived ? '수령 완료 💮' : '확인 대기 🍬'}
+          </span>
+        </div>
+
+        {/* Dynamic Teacher Callout Box (Before vs After) */}
+        {!isRewardReceived ? (
+          <div className="mb-3 p-3.5 bg-amber-50 border-2 border-amber-300/90 rounded-2xl text-xs text-amber-950 space-y-1.5 shadow-xs">
+            <div className="font-bold flex items-center gap-1.5 font-jua text-sm text-amber-900">
+              <span>📢</span>
+              <span>선생님께 지금 이 화면을 보여드리고 실물 약을 받으세요!</span>
+            </div>
+            <p className="text-[11.5px] leading-relaxed text-amber-800">
+              보건실 또는 위클래스 선생님께서 교사 대시보드에서 <strong>[수령 확인]</strong> 버튼을
+              누르시면, 이 화면에 <strong>[실시간 수령 완료 도장]</strong>이 자동으로 찍힙니다!
+            </p>
+          </div>
+        ) : (
+          <div className="mb-3 p-3.5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl text-xs text-emerald-950 space-y-1 shadow-xs animate-in zoom-in-95 duration-200">
+            <div className="font-bold flex items-center gap-1.5 font-jua text-sm text-emerald-900">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>선생님 확인 및 실물 마음 약 수령이 완료되었습니다!</span>
+            </div>
+            <p className="text-[11.5px] leading-relaxed text-emerald-800">
+              달콤한 실물 마음 약(간식)을 맛있게 먹고, 5일간 마음을 지켜낸 스스로를 꼭 칭찬해주세요. 🍬✨
+              {formattedReceivedDate && (
+                <span className="block mt-0.5 text-[11px] font-mono text-emerald-700">
+                  수령 확인: {formattedReceivedDate}
+                </span>
+              )}
+            </p>
+          </div>
+        )}
+
         {/* Character Celebration Dialogue */}
         <HealyCharacter
-          emotion="happy"
+          emotion={isRewardReceived ? 'cheering' : 'happy'}
           size="sm"
-          dialogue="축하해! 5일 동안 마음을 돌본 소중한 여정을 멋지게 완주했어!"
-          subDialogue="보건실(위클래스) 선생님께 이 화면을 보여드리고 달콤한 실물 마음 약을 받아가렴!"
+          dialogue={
+            isRewardReceived
+              ? '축하해! 실물 마음 약도 받고, 5일간 멋지게 마음을 가꿔냈어!'
+              : '축하해! 5일 동안 마음을 돌본 소중한 여정을 멋지게 완주했어!'
+          }
+          subDialogue={
+            isRewardReceived
+              ? '언제든 마음이 무거울 땐 다시 마음약국을 찾아와줘 🌸'
+              : '선생님께 이 화면을 보여드리고 달콤한 실물 마음 약을 받아가렴 💊'
+          }
         />
 
         {/* Cookie Reward Card */}
-        <div className="mt-3 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-400 text-white p-3.5 rounded-2xl shadow-md flex items-center justify-between border-2 border-white">
+        <div className="mt-3 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-400 text-white p-3 rounded-2xl shadow-md flex items-center justify-between border-2 border-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-xl shadow-inner">
+            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-lg shadow-inner">
               🍪
             </div>
             <div>
-              <div className="text-[11px] font-bold text-amber-100 uppercase tracking-wider">
-                완주 축하 보너스 지급 완료!
+              <div className="text-[10.5px] font-bold text-amber-100 uppercase tracking-wider">
+                5일 완주 성찰 축하 보너스
               </div>
-              <div className="font-jua text-lg text-white">칭찬쿠키 +3개 즉시 적립</div>
+              <div className="font-jua text-base text-white">칭찬쿠키 +3개 즉시 적립 완료</div>
             </div>
           </div>
-          <span className="text-xs bg-white text-amber-800 px-2.5 py-1 rounded-xl font-jua shadow-2xs">
-            지급 완료 ✨
+          <span className="text-xs bg-white text-amber-800 px-2 py-0.5 rounded-lg font-jua shadow-2xs">
+            적립됨 ✨
           </span>
         </div>
 
         {/* Official Physical Medicine Certificate (보건실 제출용 수령증) */}
-        <div className="mt-4 bg-white rounded-3xl border-2 border-amber-300 p-5 shadow-lg relative overflow-hidden space-y-4">
+        <div
+          className={`mt-4 bg-white rounded-3xl border-3 p-5 shadow-lg relative overflow-hidden space-y-4 transition-colors ${
+            isRewardReceived ? 'border-emerald-400 bg-emerald-50/10' : 'border-amber-300'
+          }`}
+        >
+          {/* Watermark Official Stamp when Confirmed */}
+          {isRewardReceived && (
+            <div className="absolute top-4 right-4 pointer-events-none transform rotate-[-12deg] z-10 animate-in zoom-in-75 duration-300">
+              <div className="w-24 h-24 sm:w-26 sm:h-26 rounded-full border-4 border-rose-600/80 bg-rose-50/70 backdrop-blur-2xs flex flex-col items-center justify-center text-rose-600 shadow-md text-center p-1">
+                <span className="text-[8.5px] font-bold tracking-widest uppercase">
+                  SCHOOL PHARMACY
+                </span>
+                <span className="font-jua text-sm text-rose-700 font-extrabold leading-none my-0.5">
+                  수령 완료
+                </span>
+                <span className="text-[8px] font-mono text-rose-600">
+                  {formattedReceivedDate ? formattedReceivedDate.split(' ')[0] : '확인됨'}
+                </span>
+                <span className="text-[7.5px] text-rose-500 font-bold mt-0.5">
+                  힐링마음약국 직인
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Top Stamp / Header */}
           <div className="flex items-start justify-between border-b-2 border-dashed border-amber-200 pb-3">
             <div>
               <span className="text-[10px] font-mono text-amber-700 font-bold bg-amber-100 px-2 py-0.5 rounded-md">
-                PRESCRIPTION RECEIPT
+                PRESCRIPTION RECEIPT #{liveVisit.visitId.slice(-6)}
               </span>
               <h3 className="font-jua text-lg text-slate-800 mt-1 flex items-center gap-1.5">
                 <span>🏥 보건실 실물 마음 약 수령증</span>
@@ -292,26 +464,36 @@ export const DoneForm: React.FC<DoneFormProps> = ({
                 선생님 확인용 교환증 (발급일: {new Date().toLocaleDateString('ko-KR')})
               </p>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white flex items-center justify-center text-2xl shadow-md border-2 border-white">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-md border-2 border-white ${
+                isRewardReceived
+                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
+                  : 'bg-gradient-to-br from-amber-400 to-orange-500 text-white'
+              }`}
+            >
               💊
             </div>
           </div>
 
           {/* Student Info Box */}
           <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-1.5">
-            <div className="flex items-center justify-between text-slate-700">
-              <span className="text-slate-500">수령 학생</span>
-              <strong className="font-bold text-slate-900">
+            <div className="flex items-center justify-between text-slate-700 gap-2">
+              <span className="text-slate-500 whitespace-nowrap shrink-0">수령 대상 학생</span>
+              <strong className="font-bold text-slate-900 font-jua text-xs sm:text-sm whitespace-nowrap text-right">
                 {student.grade}학년 {student.classNum}반 {student.number}번 {student.name}
               </strong>
             </div>
-            <div className="flex items-center justify-between text-slate-700">
-              <span className="text-slate-500">처방전 이름</span>
-              <strong className="font-bold text-indigo-700">{visit.primaryConditionName}</strong>
+            <div className="flex items-center justify-between text-slate-700 gap-2">
+              <span className="text-slate-500 whitespace-nowrap shrink-0">마음신호 처방</span>
+              <strong className="font-bold text-indigo-700 whitespace-nowrap text-right truncate">
+                [{liveVisit.primaryConditionId}] {liveVisit.primaryConditionName}
+              </strong>
             </div>
-            <div className="flex items-center justify-between text-slate-700">
-              <span className="text-slate-500">5일 실천 참여율</span>
-              <strong className="font-bold text-emerald-700">{participationRate}% (5일 중 {participatedDays}일 실천)</strong>
+            <div className="flex items-center justify-between text-slate-700 gap-2">
+              <span className="text-slate-500 whitespace-nowrap shrink-0">5일 실천 참여율</span>
+              <strong className="font-bold text-emerald-700 whitespace-nowrap text-right">
+                {participationRate}% ({participatedDays}/5일 실천)
+              </strong>
             </div>
           </div>
 
@@ -324,21 +506,35 @@ export const DoneForm: React.FC<DoneFormProps> = ({
               </span>
             </div>
             <div className="font-jua text-base text-slate-800">
-              🍬 {visit.prescriptionMedicineName || '응원비타민 (달콤한 마음 젤리/캔디)'}
+              🍬 {liveVisit.prescriptionMedicineName || '응원비타민 (달콤한 마음 젤리/캔디)'}
             </div>
             <p className="text-[11px] text-slate-600 leading-snug">
-              {visit.prescriptionAdvice || '스스로의 마음을 관찰하고 성실히 실천한 멋진 노력에 큰 박수를 보냅니다.'}
+              {liveVisit.prescriptionAdvice || '스스로의 마음을 관찰하고 성실히 실천한 멋진 노력에 큰 박수를 보냅니다.'}
             </p>
           </div>
 
           {/* Instructions for Nurse's Office Visit */}
-          <div className="p-3 bg-teal-50 border border-teal-200 rounded-2xl text-xs text-teal-900 space-y-1">
-            <div className="font-bold flex items-center gap-1 text-teal-950 font-jua">
-              <CheckCircle2 className="w-4 h-4 text-teal-600" />
-              <span>보건실(위클래스) 방문 가이드</span>
+          <div
+            className={`p-3 rounded-2xl text-xs space-y-1 border ${
+              isRewardReceived
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                : 'bg-teal-50 border-teal-200 text-teal-900'
+            }`}
+          >
+            <div className="font-bold flex items-center gap-1 font-jua">
+              <CheckCircle2
+                className={`w-4 h-4 ${isRewardReceived ? 'text-emerald-600' : 'text-teal-600'}`}
+              />
+              <span>
+                {isRewardReceived
+                  ? '보건실(위클래스) 수령 완료'
+                  : '보건실(위클래스) 방문 가이드'}
+              </span>
             </div>
-            <p className="text-[11.5px] leading-relaxed text-teal-800">
-              쉬는 시간이나 점심시간에 보건실 또는 위클래스(마음약국 선생님)로 찾아가 <strong>지금 이 화면을 보여드리면</strong>, 선생님께서 확인 도장과 함께 달콤한 실물 마음 약을 전해주십니다!
+            <p className="text-[11.5px] leading-relaxed">
+              {isRewardReceived
+                ? '선생님께서 교사 대시보드에서 수령 확인을 완료하셨습니다. 맛있게 드시고 힘찬 하루 보내세요!'
+                : '쉬는 시간이나 점심시간에 보건실 또는 위클래스(마음약국 선생님)로 찾아가 지금 이 화면을 보여드리면, 선생님께서 확인 도장과 함께 달콤한 실물 마음 약을 전해주십니다!'}
             </p>
           </div>
 
@@ -348,9 +544,17 @@ export const DoneForm: React.FC<DoneFormProps> = ({
               <Award className="w-4 h-4 text-amber-500" />
               마음약국 5일 처방 완료 공인
             </span>
-            <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-              ✅ 실물 약 수령 승인됨
-            </span>
+            {isRewardReceived ? (
+              <span className="font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-300 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>실물 약 수령 완료</span>
+              </span>
+            ) : (
+              <span className="font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1 animate-pulse">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                <span>선생님 확인 대기</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -364,7 +568,7 @@ export const DoneForm: React.FC<DoneFormProps> = ({
           <div className="p-2.5 bg-slate-50 rounded-xl space-y-1">
             <div className="text-[11px] font-bold text-slate-600">🏆 가장 도움이 되었던 처방:</div>
             <div className="text-slate-800 font-medium">
-              {bestIndices.map((i) => visit.missions[i]?.title).filter(Boolean).join(', ')}
+              {bestIndices.map((i) => liveVisit.missions[i]?.title).filter(Boolean).join(', ')}
             </div>
           </div>
 
@@ -815,14 +1019,14 @@ export const DoneForm: React.FC<DoneFormProps> = ({
             <label className="block text-xs font-bold text-slate-700 mb-1">
               다음에도 이 마음 처방 행동들을 다시 사용할 의향이 있나요?
             </label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {['네, 꼭 다시 사용할래요', '상황에 따라 써볼게요', '다른 방법을 찾아볼래요'].map(
                 (opt) => (
                   <button
                     type="button"
                     key={opt}
                     onClick={() => setWillUseAgain(opt)}
-                    className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-medium border transition-colors ${
+                    className={`py-2 px-1 rounded-xl text-[10px] sm:text-[11px] font-medium border transition-colors break-keep text-center leading-tight ${
                       willUseAgain === opt
                         ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold shadow-2xs'
                         : 'bg-slate-50 border-slate-200 text-slate-600'
@@ -894,7 +1098,7 @@ export const DoneForm: React.FC<DoneFormProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-jua text-base py-4 rounded-2xl shadow-lg shadow-emerald-200/50 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-jua text-sm sm:text-base py-3.5 sm:py-4 px-3 rounded-2xl shadow-lg shadow-emerald-200/50 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-center break-keep leading-tight"
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
