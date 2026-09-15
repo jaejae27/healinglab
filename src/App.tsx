@@ -226,7 +226,6 @@ export default function App() {
       <StudentHeader
         student={currentStudent}
         onLogout={handleLogout}
-        onSwitchToTeacher={() => setIsTeacherAuthModalOpen(true)}
         onOpenNewMedicine={() => setIsNewMedicineOpen(true)}
       />
 

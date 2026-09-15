@@ -139,7 +139,7 @@ export const StudentHome: React.FC<StudentHomeProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-md mx-auto px-4 py-3 pb-28 sm:pb-32 space-y-4">
       {/* Teacher Post-Test Active Callout Banner */}
       {isPostTestPending && (
         <div className="bg-gradient-to-r from-amber-400 via-rose-400 to-pink-500 rounded-[28px] p-4 text-white shadow-xl border-4 border-white flex flex-col sm:flex-row items-center justify-between gap-3 animate-pulse">

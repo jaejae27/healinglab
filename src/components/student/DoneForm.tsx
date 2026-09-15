@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { validateMeaningfulText } from '../../utils/koreanName';
 import { checkDoneFormEligibility } from '../../utils/doneFormEligibility';
+import { CONDITIONS_MAP } from '../../data/conditions';
 
 interface DoneFormProps {
   student: Student;
@@ -714,6 +715,36 @@ export const DoneForm: React.FC<DoneFormProps> = ({
           💊
         </div>
       </div>
+
+      {/* Mind Signal Symptom Explanation */}
+      {(() => {
+        const condition = CONDITIONS_MAP[visit.primaryConditionId];
+        if (!condition) return null;
+        return (
+          <div className="mt-2.5 bg-gradient-to-br from-rose-50/60 via-amber-50/50 to-orange-50/60 rounded-2xl p-3.5 border border-rose-200/80 shadow-2xs space-y-1.5 text-xs">
+            <div className="flex items-center gap-1.5 font-bold text-slate-800">
+              <span className="text-base">💡</span>
+              <span className="text-rose-900">어떤 마음신호 증상이었나요?</span>
+            </div>
+            <p className="text-slate-700 font-medium pl-5 leading-snug">
+              {condition.summary}
+            </p>
+            {condition.checkItemsSample && condition.checkItemsSample.length > 0 && (
+              <div className="pl-5 pt-1 space-y-1">
+                <span className="text-[11px] font-bold text-slate-500">주요 마음 증상:</span>
+                <ul className="space-y-0.5">
+                  {condition.checkItemsSample.map((item, idx) => (
+                    <li key={idx} className="text-[11.5px] text-slate-600 flex items-center gap-1.5">
+                      <span className="text-rose-400 text-[8px]">●</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Physical Medicine Notice Banner */}
       <div className="mt-3 p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 shadow-2xs">

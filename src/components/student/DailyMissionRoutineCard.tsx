@@ -21,6 +21,7 @@ import { validateMeaningfulText } from '../../utils/koreanName';
 import { checkDoneFormEligibility } from '../../utils/doneFormEligibility';
 import { StorageService } from '../../services/storage';
 import { getActionSuggestionChips, parseMissionExamples } from '../../utils/missionSuggestions';
+import { CONDITIONS_MAP } from '../../data/conditions';
 
 interface DailyMissionRoutineCardProps {
   visit: Visit;
@@ -74,6 +75,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
 
   const checkIns: DailyMissionCheckIn[] = Array.isArray(visit.dailyCheckIns) ? visit.dailyCheckIns : [];
   const completedDaysCount = checkIns.filter((c) => c.completed).length;
+  const currentCondition = CONDITIONS_MAP[visit.primaryConditionId];
 
   const todayStr = new Date().toISOString().split('T')[0];
   const alreadyCheckedInToday = checkIns.some((c) => c.date === todayStr);
@@ -260,6 +262,50 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
           {visit.primaryConditionName}
         </h3>
       </div>
+
+      {/* Mind Signal Symptom Explanation */}
+      {currentCondition && (
+        <div className="bg-gradient-to-br from-[#FFFBEB] to-[#FEF3C7]/40 rounded-2xl p-3.5 border-2 border-amber-200/80 shadow-2xs space-y-2">
+          <div className="flex items-start gap-2">
+            <span className="text-base shrink-0">💡</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-md">
+                  어떤 증상인가요?
+                </span>
+                <span className="text-xs font-bold text-[#5A5A40]">
+                  {currentCondition.summary}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {currentCondition.checkItemsSample && currentCondition.checkItemsSample.length > 0 && (
+            <div className="pt-1.5 border-t border-amber-200/60 pl-6 space-y-1">
+              <p className="text-[11px] font-bold text-amber-900/80">
+                🔍 이럴 때 찾아오는 마음 증상이에요:
+              </p>
+              <ul className="space-y-1">
+                {currentCondition.checkItemsSample.map((item, idx) => (
+                  <li key={idx} className="text-xs text-slate-700 flex items-start gap-1.5 leading-snug">
+                    <span className="text-amber-500 text-[10px] mt-0.5">●</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {currentCondition.prescriptionAdvice && (
+            <div className="bg-white/90 rounded-xl p-2 px-3 border border-amber-100 flex items-center gap-2 text-xs text-amber-950 font-medium">
+              <span className="shrink-0">💬</span>
+              <span className="italic leading-snug">
+                "{currentCondition.prescriptionAdvice}"
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 5-Day Progress Circles */}
       <div className="p-3.5 bg-[#FDFCF0] rounded-2xl border-2 border-white space-y-2.5">
@@ -491,6 +537,30 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
               </div>
             )}
 
+            {/* Symptom Explanation Box while recording */}
+            {currentCondition && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50/60 rounded-2xl p-3 border-2 border-amber-200/90 space-y-1.5 shadow-2xs">
+                <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
+                  <span className="text-sm">💡</span>
+                  <span>현재 실천 중인 [{visit.primaryConditionName}] 증상 알아차리기</span>
+                </div>
+                <p className="text-xs text-slate-700 font-medium pl-5 leading-snug">
+                  {currentCondition.summary}
+                </p>
+                {currentCondition.checkItemsSample && currentCondition.checkItemsSample.length > 0 && (
+                  <div className="pl-5 pt-0.5 space-y-0.5">
+                    <span className="text-[10px] font-bold text-amber-900/70">주요 증상 체크:</span>
+                    {currentCondition.checkItemsSample.map((symptom, i) => (
+                      <div key={i} className="flex items-start gap-1 text-[11px] text-slate-600">
+                        <span className="text-amber-500 text-[9px] mt-0.5">●</span>
+                        <span className="leading-tight">{symptom}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 3 Missions Checkboxes with Action Notes */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -587,7 +657,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
                             value={actionNote}
                             onChange={(e) => updateMissionNote(m.missionId, e.target.value)}
                             placeholder={`예: ${m.title}을/를 직접 실천했어요`}
-                            className="w-full text-xs p-2 bg-white border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-slate-400 text-slate-800"
+                            className="w-full text-sm sm:text-xs p-2.5 sm:p-2 bg-white border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-slate-400 text-slate-800 touch-manipulation"
                           />
 
                           {/* Quick Action Suggestion Chips */}
@@ -704,7 +774,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
                   if (validationError) setValidationError(null);
                 }}
                 placeholder="예: 3가지 행동을 모두 해보니 마음이 훨씬 편안해졌어요!"
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-300 break-keep"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 sm:py-2 text-sm sm:text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-300 break-keep touch-manipulation"
               />
             </div>
 
@@ -714,7 +784,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors whitespace-nowrap"
+                  className="flex-1 min-h-[44px] py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors whitespace-nowrap touch-manipulation active:scale-95"
                 >
                   수정 취소
                 </button>
@@ -722,7 +792,7 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
               <button
                 type="button"
                 onClick={handleSaveCheckIn}
-                className={`flex-2 py-2.5 sm:py-3 px-2 text-white font-jua text-xs rounded-xl shadow-xs border border-white flex items-center justify-center gap-1.5 transition-all text-center break-keep leading-tight ${
+                className={`flex-2 min-h-[44px] py-2.5 sm:py-3 px-3 text-white font-jua text-xs sm:text-sm rounded-xl shadow-xs border border-white flex items-center justify-center gap-1.5 transition-all text-center break-keep leading-tight touch-manipulation active:scale-98 ${
                   isAllThreeChecked
                     ? 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 ring-2 ring-amber-300'
                     : 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600'

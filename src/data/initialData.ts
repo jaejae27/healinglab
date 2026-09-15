@@ -1,4 +1,4 @@
-import { Student, SchoolClass, GachaPrize, AppSettings, Visit } from '../types';
+import { Student, SchoolClass, GachaPrize, AppSettings, Visit, CookieLog } from '../types';
 
 export const INITIAL_CLASSES: SchoolClass[] = [
   { grade: 1, classNum: 1, active: true },
@@ -424,3 +424,142 @@ export const INITIAL_VISITS: Visit[] = [
     ]
   }
 ];
+
+export const INITIAL_COOKIE_LOGS: CookieLog[] = [
+  {
+    id: 'CK-INIT-01',
+    studentId: 'S-101-01',
+    studentName: '강다온',
+    amount: 2,
+    reason: '사회정서 사전검사 참여 완료 보너스',
+    balanceAfter: 2,
+    createdAt: '2026-09-01T09:10:00.000Z'
+  },
+  {
+    id: 'CK-INIT-02',
+    studentId: 'S-101-01',
+    studentName: '강다온',
+    amount: 1,
+    reason: '1일차 행동처방 미션 실천 (+1쿠키)',
+    balanceAfter: 3,
+    createdAt: '2026-09-02T10:15:00.000Z'
+  },
+  {
+    id: 'CK-INIT-03',
+    studentId: 'S-101-01',
+    studentName: '강다온',
+    amount: 1,
+    reason: '🌱 1회차 실천 달성 보너스 (+1쿠키)',
+    balanceAfter: 4,
+    createdAt: '2026-09-02T10:15:00.000Z'
+  },
+  {
+    id: 'CK-INIT-04',
+    studentId: 'S-101-01',
+    studentName: '강다온',
+    amount: 1,
+    reason: '🔥 3회차 꾸준 실천 보너스 (+1쿠키)',
+    balanceAfter: 5,
+    createdAt: '2026-09-04T11:20:00.000Z'
+  },
+  {
+    id: 'CK-INIT-05',
+    studentId: 'S-101-01',
+    studentName: '강다온',
+    amount: 2,
+    reason: '👑 5일 주간 루틴 완주 축하 보너스 (+2쿠키)',
+    balanceAfter: 7,
+    createdAt: '2026-09-06T15:00:00.000Z'
+  },
+  {
+    id: 'CK-INIT-06',
+    studentId: 'S-101-01',
+    studentName: '강다온',
+    amount: 3,
+    reason: '처방 미션 실천 및 워크북 확인 완료 (계획만거창해증)',
+    balanceAfter: 10,
+    createdAt: '2026-09-07T09:30:00.000Z'
+  },
+  {
+    id: 'CK-INIT-07',
+    studentId: 'S-101-01',
+    studentName: '강다온',
+    amount: -3,
+    reason: '고민 가챠 뽑기 참여 (위로 스티커)',
+    balanceAfter: 7,
+    createdAt: '2026-09-08T12:40:00.000Z'
+  },
+  {
+    id: 'CK-INIT-08',
+    studentId: 'S-101-01',
+    studentName: '강다온',
+    amount: 1,
+    reason: '📅 오늘의 감정 달력 기록 (2026-09-10)',
+    balanceAfter: 8,
+    createdAt: '2026-09-10T14:10:00.000Z'
+  },
+  {
+    id: 'CK-INIT-09',
+    studentId: 'S-101-02',
+    studentName: '김민준',
+    amount: 2,
+    reason: '사회정서 사전검사 참여 완료 보너스',
+    balanceAfter: 2,
+    createdAt: '2026-09-01T09:12:00.000Z'
+  },
+  {
+    id: 'CK-INIT-10',
+    studentId: 'S-101-02',
+    studentName: '김민준',
+    amount: 1,
+    reason: '1일차 행동처방 미션 실천 (+1쿠키)',
+    balanceAfter: 3,
+    createdAt: '2026-09-03T11:00:00.000Z'
+  },
+  {
+    id: 'CK-INIT-11',
+    studentId: 'S-101-02',
+    studentName: '김민준',
+    amount: 1,
+    reason: '2일차 행동처방 미션 실천 (+1쿠키)',
+    balanceAfter: 4,
+    createdAt: '2026-09-04T10:45:00.000Z'
+  },
+  {
+    id: 'CK-INIT-12',
+    studentId: 'S-101-02',
+    studentName: '김민준',
+    amount: 3,
+    reason: '처방 미션 실천 및 워크북 확인 완료 (발표울렁증후군)',
+    balanceAfter: 7,
+    createdAt: '2026-09-08T13:20:00.000Z'
+  },
+  {
+    id: 'CK-INIT-13',
+    studentId: 'S-101-03',
+    studentName: '박서현',
+    amount: 2,
+    reason: '사회정서 사전검사 참여 완료 보너스',
+    balanceAfter: 2,
+    createdAt: '2026-09-01T09:15:00.000Z'
+  },
+  {
+    id: 'CK-INIT-14',
+    studentId: 'S-101-03',
+    studentName: '박서현',
+    amount: 1,
+    reason: '1일차 행동처방 미션 실천 (+1쿠키)',
+    balanceAfter: 3,
+    createdAt: '2026-09-04T08:50:00.000Z'
+  },
+  {
+    id: 'CK-INIT-15',
+    studentId: 'S-101-03',
+    studentName: '박서현',
+    amount: 1,
+    reason: '🎯 1일차 3개 미션 완벽 실천 올클리어 보너스 (+1쿠키)',
+    balanceAfter: 4,
+    createdAt: '2026-09-04T08:50:00.000Z'
+  }
+];
+

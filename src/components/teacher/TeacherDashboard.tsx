@@ -6,6 +6,7 @@ import { StudentManagementTab } from './StudentManagementTab';
 import { AssessmentDashboardTab } from './AssessmentDashboardTab';
 import { SchoolRecordBatchHelper } from './SchoolRecordBatchHelper';
 import { MedicineDistributionTab } from './MedicineDistributionTab';
+import { CookieManagementTab } from './CookieManagementTab';
 import {
   generateGoogleAppsScript,
   generateGasIndexHtml,
@@ -46,7 +47,8 @@ import {
   X,
   CheckCircle,
   Pill,
-  KeyRound
+  KeyRound,
+  Cookie
 } from 'lucide-react';
 import { TeacherPasswordChangeModal } from '../modals/TeacherPasswordChangeModal';
 
@@ -60,7 +62,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onPrintWorkbook
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'stats' | 'medicine' | 'assessment' | 'students' | 'verify' | 'records' | 'new_med' | 'print' | 'settings'
+    'stats' | 'medicine' | 'assessment' | 'students' | 'cookies' | 'verify' | 'records' | 'new_med' | 'print' | 'settings'
   >('stats');
 
   // State
@@ -492,6 +494,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             },
             { id: 'assessment', label: '사전·사후 평가 분석', icon: BarChart3 },
             { id: 'students', label: '학생 명단 관리', icon: Users },
+            { id: 'cookies', label: '학생 쿠키 현황·관리', icon: Cookie },
             {
               id: 'verify',
               label: '학생 미션 실천 확인',
@@ -542,7 +545,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
 
               {/* Stat Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
                   <span className="text-xs text-slate-500 block">등록 학생수</span>
                   <span className="font-jua text-2xl text-slate-900">{stats.totalStudents}명</span>
@@ -564,10 +567,27 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   <span className="text-xs text-rose-700 block flex items-center justify-between">
                     <span>실물 약 수령 대기</span>
                     <span className="text-[10px] underline font-bold group-hover:translate-x-0.5 transition-transform">
-                      확인하기 &rarr;
+                      확인 &rarr;
                     </span>
                   </span>
                   <span className="font-jua text-2xl text-rose-900">{stats.waitingVerificationCount}건</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('cookies')}
+                  className="bg-amber-50 hover:bg-amber-100 border border-amber-200 p-3.5 rounded-xl text-left transition-all group cursor-pointer"
+                  title="칭찬쿠키 현황 및 관리 탭으로 바로 이동하기"
+                >
+                  <span className="text-xs text-amber-800 block flex items-center justify-between">
+                    <span>학생 칭찬쿠키</span>
+                    <span className="text-[10px] underline font-bold group-hover:translate-x-0.5 transition-transform">
+                      관리 &rarr;
+                    </span>
+                  </span>
+                  <span className="font-jua text-2xl text-amber-950 flex items-baseline gap-1">
+                    <span>{students.reduce((acc, s) => acc + (s.cookieBalance || 0), 0)}</span>
+                    <span className="text-xs text-amber-800 font-medium">🍪</span>
+                  </span>
                 </button>
               </div>
 
@@ -674,6 +694,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               onStudentsUpdated={() => {
                 setStudents(StorageService.getStudents());
               }}
+            />
+          )}
+
+          {/* TAB: Student Cookie Management */}
+          {activeTab === 'cookies' && (
+            <CookieManagementTab
+              students={students}
+              classes={classes}
+              selectedGrade={selectedGrade}
+              selectedClass={selectedClass}
+              onStudentsUpdated={() => {
+                setStudents(StorageService.getStudents());
+              }}
+              showToast={showToast}
+              playChimeSound={playChimeSound}
             />
           )}
 

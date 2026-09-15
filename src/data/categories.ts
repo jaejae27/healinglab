@@ -43,7 +43,7 @@ export const CATEGORIES: Category[] = [
     color: '#A78BFA',
     bgLight: '#F5F3FF',
     borderColor: '#DDD6FE',
-    desc: '꼬리를 무는 생각, 아직 안 일어난 일에 대한 염려, 선택 장애'
+    desc: '꼬리를 무는 생각, 아직 안 일어난 일에 대한 염려, 선택 망설임'
   },
   {
     id: 'emotions',

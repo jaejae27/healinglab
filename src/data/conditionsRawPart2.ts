@@ -407,7 +407,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'G-03',
     categoryId: 'future',
-    name: '진로선택결정장애증후군',
+    name: '진로선택결정망설임신드롬',
     summary: '용기 내어 도전했다가 상처받아서 다시 문을 두드리기 두려운 상태',
     medicine: '작은발걸음시럽',
     advice: '아주 작은 실험이라고 생각하고 가볍게 발가락만 담가보세요.',

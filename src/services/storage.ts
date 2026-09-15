@@ -16,7 +16,7 @@ import {
   Fortune,
   EmotionLog
 } from '../types';
-import { INITIAL_CLASSES, INITIAL_STUDENTS, INITIAL_VISITS, DEFAULT_SETTINGS, GACHA_PRIZES } from '../data/initialData';
+import { INITIAL_CLASSES, INITIAL_STUDENTS, INITIAL_VISITS, DEFAULT_SETTINGS, GACHA_PRIZES, INITIAL_COOKIE_LOGS } from '../data/initialData';
 import { VIRTUAL_CONDITIONS } from '../data/conditions';
 import { FirestoreSync } from './firestoreSync';
 
@@ -92,6 +92,9 @@ export class StorageService {
     }
     if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
       setStoredItem(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.COOKIE_LOGS)) {
+      setStoredItem(STORAGE_KEYS.COOKIE_LOGS, INITIAL_COOKIE_LOGS);
     }
 
     // 2. Initialize Firestore Cloud Real-time Synchronization
@@ -632,7 +635,25 @@ export class StorageService {
 
   // Cookie Logs
   static getCookieLogs(): CookieLog[] {
-    return getStoredItem(STORAGE_KEYS.COOKIE_LOGS, []);
+    return getStoredItem(STORAGE_KEYS.COOKIE_LOGS, INITIAL_COOKIE_LOGS);
+  }
+
+  static getCookieLogsForStudent(studentId: string): CookieLog[] {
+    return this.getCookieLogs().filter((l) => l.studentId === studentId);
+  }
+
+  static batchAddCookieLogs(
+    studentIds: string[],
+    amount: number,
+    reason: string
+  ): { updatedCount: number; logs: CookieLog[] } {
+    let count = 0;
+    const createdLogs: CookieLog[] = [];
+    studentIds.forEach((id) => {
+      const res = this.addCookieLog(id, amount, reason);
+      if (res) count++;
+    });
+    return { updatedCount: count, logs: createdLogs };
   }
 
   static addCookieLog(studentId: string, amount: number, reason: string): Student | null {
