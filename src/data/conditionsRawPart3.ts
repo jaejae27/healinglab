@@ -4,8 +4,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'S-16',
     categoryId: 'self',
-    name: '프사조마조마신드롬',
-    summary: '프사나 상태메시지를 바꾼 뒤 누가 반응해줄까 10분마다 폰 확인하며 스스로 초라해지는 상태',
+    name: '프사반응초조증',
+    summary: '프로필 사진을 바꾼 뒤 반응이 올까 봐 계속 휴대폰을 확인하는 상태',
     medicine: '내면의빛미러정',
     advice: '나의 가치는 남들의 하트나 댓글 숫자로 매겨지는 것이 아니에요.',
     sampleItems: [
@@ -17,8 +17,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'S-17',
     categoryId: 'self',
-    name: '칭찬뚝딱이고장로봇증후군',
-    summary: '선생님이나 친구가 칭찬해주면 어색하고 부끄러워서 손사래 치며 깎아내리는 상태',
+    name: '칭찬부정뚝딱증',
+    summary: '칭찬을 들으면 어색하고 쑥스러워 손사래 치며 부정하는 상태',
     medicine: '스펀지흡수환',
     advice: '누군가의 칭찬은 나를 향한 다정한 선물이에요. "고마워!" 한마디면 충분해요.',
     sampleItems: [
@@ -30,8 +30,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'R-16',
     categoryId: 'friends',
-    name: '카톡답장1분대기조신드롬',
-    summary: '친구들이 카톡을 읽고 1분 안에 답장이 안 오면 내가 실수했나 전전긍긍하는 상태',
+    name: '메시지답장초조증',
+    summary: '메시지를 보낸 뒤 답장이 늦으면 내가 실수했나 전전긍긍하는 상태',
     medicine: '쿨타임마음안심차',
     advice: '친구에게도 숙제, 밥 먹기, 멍때리기 등 각자의 시간이 흐르고 있답니다.',
     sampleItems: [
@@ -43,8 +43,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'R-17',
     categoryId: 'friends',
-    name: '가면미소속앓이알러지',
-    summary: '친구가 던진 가벼운 장난인데 속으로는 상처받고도 분위기 깰까 봐 억지로 웃는 상태',
+    name: '상처받고억지웃음증',
+    summary: '친구 장난에 속상하면서도 분위기를 깰까 봐 억지로 웃는 상태',
     medicine: '마음방패쿠션단',
     advice: '불편한 장난에는 살며시 "그런 장난은 조금 속상해"라고 신호를 주어도 괜찮아요.',
     sampleItems: [
@@ -56,8 +56,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'A-16',
     categoryId: 'study',
-    name: '인강배속틀어놓고멍때림신드롬',
-    summary: '의욕 넘치게 새 문제집을 샀지만 1단원만 열심히 풀고 그대로 책장에 꽂아둔 상태',
+    name: '문제집1단원작심증',
+    summary: '의욕 넘치게 산 문제집을 1단원만 풀고 책장에 방치해둔 상태',
     medicine: '가벼운한장스프린트환',
     advice: '처음부터 끝까지 다 풀지 않아도 돼요. 매일 딱 1장씩만 가볍게 달려보세요.',
     sampleItems: [
@@ -69,8 +69,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'A-17',
     categoryId: 'study',
-    name: '플래너스티커꾸미기몰입증',
-    summary: '인터넷 강의는 켜놓았지만 화면 한구석에 쇼츠나 웹툰을 띄워놓고 멍때리는 상태',
+    name: '인강켜놓고딴짓증',
+    summary: '인터넷 강의를 켜놓고 숏폼이나 웹툰을 보며 멍때리는 상태',
     medicine: '시선고정동공밴드',
     advice: '30분을 억지로 버티지 말고, 딱 10분만 모니터 전체화면으로 몰입해보세요.',
     sampleItems: [
@@ -82,8 +82,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'W-15',
     categoryId: 'worries',
-    name: '마음의짐나홀로짊어짐증',
-    summary: '낮에 친구나 선생님께 건넨 사소한 한마디가 밤에 잠들기 전 이불킥으로 떠오르는 상태',
+    name: '사소한말이불킥증',
+    summary: '낮에 무심코 건넨 사소한 말이 밤에 이불킥으로 떠오르는 상태',
     medicine: '이불킥지우개단',
     advice: '상대방은 생각보다 그 말을 기억하지 않아요. 오늘 하루를 편안하게 안아주세요.',
     sampleItems: [
@@ -95,8 +95,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'W-16',
     categoryId: 'worries',
-    name: '폰알림울릴때마다심장쿵쾅증후군',
-    summary: '"만약에 망치면 어쩌지?", "만약에 사고 나면 어쩌지?" 부정적 가정이 꼬리를 무는 상태',
+    name: '최악상상꼬리물기증',
+    summary: '"만약 망치면 어쩌지?" 하며 부정적인 걱정이 꼬리를 무는 상태',
     medicine: '안전사고상상오프환',
     advice: '상상은 상상일 뿐 현실이 아니에요. 지금 내 발바닥이 닿아 있는 현실에 집중해봐요.',
     sampleItems: [
@@ -108,8 +108,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'E-15',
     categoryId: 'emotions',
-    name: '감정표현어휘실종알러지',
-    summary: '선생님이나 부모님의 사소한 조언에도 마음이 와르르 부서지고 눈물 나는 상태',
+    name: '조언한마디와르르증',
+    summary: '선생님이나 부모님의 사소한 조언에도 마음이 와르르 무너지는 상태',
     medicine: '티타늄코팅멘탈수',
     advice: '그 지적은 당신의 인격을 향한 것이 아니라, 그저 행동 하나에 대한 도움말이에요.',
     sampleItems: [
@@ -121,8 +121,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'E-16',
     categoryId: 'emotions',
-    name: '갑자기몰려오는현타신드롬',
-    summary: '친구들 앞에서는 광대처럼 유쾌하게 웃지만 혼자 남으면 왈칵 눈물이 차오르는 상태',
+    name: '혼자남으면눈물핑증',
+    summary: '친구들 앞에선 유쾌하게 웃다가 혼자 남으면 눈물이 차오르는 상태',
     medicine: '마음안아주기허그환',
     advice: '항상 밝은 아이일 필요는 없어요. 울고 싶을 땐 마음껏 슬퍼해도 괜찮아요.',
     sampleItems: [
@@ -134,8 +134,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'L-15',
     categoryId: 'vitality',
-    name: '번아웃탈진증후군',
-    summary: '주말 내내 침대에서 14시간 넘게 누워 자고도 머리가 깨질 듯 멍하고 피곤한 상태',
+    name: '주말종일누워멍함증',
+    summary: '주말 내내 침대에 길게 누워 자고도 피로가 안 풀리고 멍한 상태',
     medicine: '햇살기지개스프레이',
     advice: '침대에만 있으면 에너지가 충전되지 않아요. 창문을 열고 5분만 햇살을 쬐어보세요.',
     sampleItems: [
@@ -147,8 +147,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'L-16',
     categoryId: 'vitality',
-    name: '배고픈데뭐먹을지고민하다1시간증',
-    summary: '자려고 불을 다 껐는데도 이불 속에서 폰 화면을 올려다보느라 새벽 2시를 넘기는 상태',
+    name: '이불속심야폰질증',
+    summary: '자려고 누워놓고 이불 속에서 폰을 보느라 새벽까지 못 자는 상태',
     medicine: '암막수면안대정',
     advice: '잠들기 15분 전, 폰을 충전기에 꽂고 침대와 1미터 거리를 두어보세요.',
     sampleItems: [
@@ -160,8 +160,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'G-16',
     categoryId: 'future',
-    name: '어른되기겁나증후군',
-    summary: '장래희망 조사서를 받을 때마다 친구들 적는 걸 힐끔거리며 혼자 작아지는 상태',
+    name: '장래희망막막초조증',
+    summary: '장래희망 조사서를 받을 때마다 친구들과 비교하며 막막해지는 상태',
     medicine: '가능성씨앗탐험환',
     advice: '꿈은 지금 당장 정하는 명사가 아니에요. 내가 좋아하는 순간들을 모아가는 여정이에요.',
     sampleItems: [
@@ -173,8 +173,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'G-17',
     categoryId: 'future',
-    name: '하고싶은건많은데실행력0증후군',
-    summary: '시험이나 운동, 과제에서 한 번만 삐끗해도 "에이 이번엔 망했다" 다 놓아버리는 상태',
+    name: '한번삐끗자포자기증',
+    summary: '과제나 시험에서 한 번만 삐끗해도 "망했다"며 다 놓아버리는 상태',
     medicine: '다시일어서기오뚝이단',
     advice: '길을 걷다 한 번 넘어졌다고 목적지 가기를 포기하지 않듯이, 다시 한 걸음 떼면 돼요.',
     sampleItems: [
@@ -186,8 +186,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'D-13',
     categoryId: 'school',
-    name: '2인1조짝짓기공포증후군',
-    summary: '모둠 과제할 때 아무도 안 해서 결국 나 혼자 다 떠맡고 운전하느라 속 터지는 상태',
+    name: '모둠과제독박운전증',
+    summary: '모둠 과제할 때 아무도 안 해서 결국 나 혼자 다 떠맡아 속 터지는 상태',
     medicine: '역할나눔호각단',
     advice: '모든 짐을 혼자 짊어지지 마세요. 작은 분량이라도 친구들에게 역할을 똑 떼어주세요.',
     sampleItems: [
@@ -199,8 +199,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   {
     id: 'D-14',
     categoryId: 'school',
-    name: '사물함쓰레기장블랙홀증후군',
-    summary: '체육 시간이나 급식 줄 설 때 누구 옆에 서야 할지, 짝꿍 없을까 봐 긴장하는 상태',
+    name: '줄설때혼자남을까겁증',
+    summary: '체육 시간이나 급식 줄을 설 때 혼자 짝꿍이 없을까 봐 긴장하는 상태',
     medicine: '당당한발걸음패치',
     advice: '어디에 서 있든 당신의 당당함은 변하지 않아요. 가볍게 미소 지으며 자리를 잡아보세요.',
     sampleItems: [

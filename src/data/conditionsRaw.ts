@@ -16,8 +16,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-01',
     categoryId: 'self',
-    name: '나만못하는것같아증후군',
-    summary: '다른 친구들은 다 잘하는데 나만 부족하게 느껴지는 상태',
+    name: '나만부족해증후군',
+    summary: '친구들은 다 잘하는데 나만 뒤처지고 부족한 것 같은 상태',
     medicine: '자기강점발견정',
     advice: '모든 사람은 각자 피어나는 계절이 다릅니다.',
     sampleItems: ['친구들의 장점만 유독 크게 보인다', '칭찬을 들어도 운이라고 생각한다', '내 잘하는 점을 떠올리기 어렵다']
@@ -25,8 +25,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-02',
     categoryId: 'self',
-    name: '비교자폭신드롬',
-    summary: 'SNS나 학교에서 자꾸 남의 모습과 나를 비교하며 작아지는 상태',
+    name: '비교시무룩증',
+    summary: 'SNS나 학교에서 잘나가는 친구와 비교하며 스스로 작아지는 상태',
     medicine: '내속도인정제',
     advice: '남의 하이라이트와 나의 비하인드 컷을 비교하지 마세요.',
     sampleItems: ['친구 SNS를 보면 우울해진다', '남과 비교하느라 기운이 빠진다', '내 삶의 좋은 점을 놓치고 있다']
@@ -34,8 +34,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-03',
     categoryId: 'self',
-    name: '완벽주의압박증후군',
-    summary: '조금이라도 부족하면 마음에 안 들어 끝까지 불안한 상태',
+    name: '100점완벽주의증',
+    summary: '작은 실수도 용납 못 하고 100점이 아니면 불안해하는 상태',
     medicine: '충분히괜찮아정',
     advice: '완벽함보다 완료함이 더 큰 용기입니다.',
     sampleItems: ['작은 실수 하나에도 크게 자책한다', '100점이 아니면 다 실패한 것 같다', '결과물이 마음에 안 들어 스트레스받는다']
@@ -43,8 +43,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-04',
     categoryId: 'self',
-    name: '내장점실종증후군',
-    summary: '단점만 돋보기로 보고 내 좋은 점은 스쳐 지나가는 상태',
+    name: '내장점실종증',
+    summary: '내 단점만 크게 보이고 좋은 점은 하나도 안 떠오르는 상태',
     medicine: '장점돋보기제',
     advice: '내가 당연하게 여기는 배려와 성실도 멋진 재능입니다.',
     sampleItems: ['누가 장점을 물어보면 머뭇거리게 된다', '내 단점 목록은 금방 떠오른다', '나를 인정해주는 말이 어색하다']
@@ -52,8 +52,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-05',
     categoryId: 'self',
-    name: '남눈치자동재생신드롬',
-    summary: '주변 사람들의 시선과 표정에 온 신경 레이더가 켜진 상태',
+    name: '초민감눈치레이더증',
+    summary: '주변 사람들의 표정과 반응에 온 신경이 쏠려 긴장하는 상태',
     medicine: '시선자유캡슐',
     advice: '다른 사람들도 사실 자기 생각하느라 바쁩니다.',
     sampleItems: ['남들이 날 어떻게 볼지 항상 신경 쓰인다', '내 의견을 말할 때 분위기를 너무 살핀다', '작은 시선에도 긴장된다']
@@ -61,8 +61,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-06',
     categoryId: 'self',
-    name: '칭찬거부알러지',
-    summary: '칭찬을 들어도 그냥 예의상 하는 말이겠지 의심하는 상태',
+    name: '칭찬의심어색증',
+    summary: '칭찬을 들어도 빈말이라 생각하며 어색해 손사래 치는 상태',
     medicine: '칭찬꿀꺽환',
     advice: '상대방의 진심 어린 선물을 두 손으로 받아보세요.',
     sampleItems: ['칭찬을 들으면 부끄럽거나 어색하다', '진짜 나를 몰라서 저런다고 생각한다', '칭찬 뒤에 숨은 의도가 있을까 의심된다']
@@ -70,8 +70,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-07',
     categoryId: 'self',
-    name: '나만뒤처짐초조신드롬',
-    summary: '남들은 앞서 달려가는데 나만 제자리에 멈춰선 느낌인 상태',
+    name: '나만제자리초조증',
+    summary: '친구들은 앞서가는데 나만 멈춰 있는 것 같아 조급한 상태',
     medicine: '나만의보폭제',
     advice: '인생은 100m 단거리가 아니라 나만의 산책로입니다.',
     sampleItems: ['친구들의 진도나 계획에 조급해진다', '나만 멍하니 시간을 보낸 것 같다', '빨리 뭔가 해야 할 것 같은 불안이 든다']
@@ -79,8 +79,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-08',
     categoryId: 'self',
-    name: '외계인착각증후군',
-    summary: '내 생각이나 취향이 남들과 달라서 이상한 사람 같은 상태',
+    name: '나만유별나착각증',
+    summary: '내 생각과 취향이 친구들과 달라 혼자 겉도는 것 같은 상태',
     medicine: '개성보호제',
     advice: '다름은 틀림이 아니라 나만의 고유한 색깔입니다.',
     sampleItems: ['남들과 다른 걸 좋아하면 숨기게 된다', '내 감정이 유별난 건지 걱정된다', '다수의 의견에 억지로 맞추려 한다']
@@ -88,8 +88,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-09',
     categoryId: 'self',
-    name: '인정중독신드롬',
-    summary: '결과가 좋거나 쓸모가 있어야만 인정받을 수 있다고 믿는 상태',
+    name: '칭찬인정목마름증',
+    summary: '남에게 인정받고 쓸모를 증명해야만 안심이 되는 상태',
     medicine: '존재자체비타민',
     advice: '당신은 무언가를 잘해내지 않아도 소중한 사람입니다.',
     sampleItems: ['칭찬받는 성과가 없으면 불안하다', '남을 실망시키는 게 너무 두렵다', '조건 없는 애정이 낯설게 느껴진다']
@@ -97,8 +97,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-10',
     categoryId: 'self',
-    name: '실수과대망상증후군',
-    summary: '작은 실수나 잘못 하나로 모든 게 망가진 것 같은 상태',
+    name: '작은실수와르르증',
+    summary: '작은 실수 하나 때문에 모든 것이 다 끝난 것처럼 절망하는 상태',
     medicine: '지우개와연필정',
     advice: '실수는 끝이 아니라 다음 버전으로 업데이트하는 과정입니다.',
     sampleItems: ['한 번 삐끗하면 다 포기하고 싶어진다', '실수한 기억이 며칠 동안 떠오른다', '완벽하지 못했던 순간이 괴롭다']
@@ -106,8 +106,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-11',
     categoryId: 'self',
-    name: '취향미아증후군',
-    summary: '내가 진짜 원하는 게 무엇인지 마음의 소리가 흐릿한 상태',
+    name: '좋아하는게뭘까증',
+    summary: '내가 무엇을 좋아하고 원하는지 스스로 마음을 모르는 상태',
     medicine: '마음나침반수',
     advice: '작은 호기심부터 하나씩 맛보는 것으로 충분합니다.',
     sampleItems: ['취미나 좋아하는 걸 물으면 막막하다', '남들이 좋다는 걸 따라 하게 된다', '내 취향을 발견할 여유가 없었다']
@@ -115,8 +115,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-12',
     categoryId: 'self',
-    name: '자책버튼자동클릭증',
-    summary: '자책 버튼이 눌려 스스로에게 가시 돋친 말을 퍼붓는 상태',
+    name: '전부내탓이야자책증',
+    summary: '안 좋은 일만 생기면 무조건 내 탓이라며 자책하는 상태',
     medicine: '자기친절연고',
     advice: '가장 아끼는 친구에게 건넬 다정한 말을 나에게도 들려주세요.',
     sampleItems: ['스스로에게 모진 말을 자주 한다', '잘못된 일의 원인을 전부 내 탓으로 돌린다', '내 모습에 한숨이 나온다']
@@ -124,8 +124,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-13',
     categoryId: 'self',
-    name: '단점현미경신드롬',
-    summary: '거울을 보거나 나를 생각할 때 아쉬운 점만 확대되는 상태',
+    name: '단점돋보기증',
+    summary: '거울을 보거나 나를 떠올릴 때 아쉬운 단점만 크게 확대해 보는 상태',
     medicine: '초점조절안경환',
     advice: '빛이 강할수록 그림자도 짙어집니다. 당신에겐 빛이 많아요.',
     sampleItems: ['칭찬 10개보다 지적 1개가 더 선명하다', '내 외모나 성격의 결점만 신경 쓰인다', '스스로 칭찬하기가 매우 어렵다']
@@ -133,8 +133,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-14',
     categoryId: 'self',
-    name: '줏대실종팔랑귀증후군',
-    summary: '내 생각보다 남의 한마디에 더 크게 흔들리는 상태',
+    name: '남말에팔랑귀증',
+    summary: '내 생각보다 남의 말 한마디에 갈팡질팡 흔들리는 상태',
     medicine: '내중심뿌리단',
     advice: '내 삶의 주인공은 다른 사람이 아닌 바로 나입니다.',
     sampleItems: ['누가 한마디 하면 내 생각이 틀렸나 싶다', '내 결정을 쉽게 번복한다', '다른 사람의 조언에 지나치게 의존한다']
@@ -142,8 +142,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'S-15',
     categoryId: 'self',
-    name: '카멜레온가면증후군',
-    summary: '남들이 원하는 기대에 맞추느라 진짜 내 모습을 숨기는 상태',
+    name: '맞춤형가면신드롬',
+    summary: '남들에게 미움받지 않으려고 진짜 내 모습을 꽁꽁 숨기는 상태',
     medicine: '본래모습해방제',
     advice: '진짜 나를 드러내도 괜찮은 안전한 공간이 꼭 있습니다.',
     sampleItems: ['학교에서의 나와 혼자 있을 때 내가 너무 다르다', '솔직한 내 모습을 보여주면 싫어할까 봐 두렵다', '연기하듯 사람을 대할 때가 있다']
@@ -153,8 +153,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-01',
     categoryId: 'friends',
-    name: '관계피로번아웃증후군',
-    summary: '사람들과 어울리는 것 자체가 피곤하고 혼자 있고 싶은 상태',
+    name: '관계배터리방전증',
+    summary: '친구들과 어울리는 에너지가 바닥나 혼자 푹 쉬고 싶은 상태',
     medicine: '동굴휴식보장제',
     advice: '잠시 관계의 충전 코드를 뽑고 나만의 시간을 가져도 괜찮아요.',
     sampleItems: ['친구들과 대화하는 게 에너지가 많이 든다', '아무도 말 안 걸었으면 좋겠다', '혼자 쉬고 싶은 갈증이 크다']
@@ -162,8 +162,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-02',
     categoryId: 'friends',
-    name: '마음서운함급냉각증',
-    summary: '친구의 사소한 행동이나 말투 하나에 마음이 쿵 내려앉는 상태',
+    name: '말투하나에서운증',
+    summary: '친구의 차가운 말투나 사소한 행동에 가슴이 쿵 내려앉는 상태',
     medicine: '마음방패시럽',
     advice: '친구의 오늘 컨디션 문제일 수도 있어요. 내 탓이 아닐 확률이 높습니다.',
     sampleItems: ['친구 말투가 평소와 다르면 서운하다', '나를 소홀히 대하는 것 같아 섭섭하다', '혼자 속으로 끙끙 앓는다']
@@ -171,8 +171,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-03',
     categoryId: 'friends',
-    name: '친구레이더과열증후군',
-    summary: '무리 안에서 겉돌까 봐 친구들 눈치를 과하게 살피는 상태',
+    name: '친구무리눈치증',
+    summary: '친구 무리에서 소외될까 봐 친구들 눈치와 기분을 살피는 상태',
     medicine: '편안한호흡단',
     advice: '진짜 좋은 친구는 억지 눈치를 보지 않아도 머물러줍니다.',
     sampleItems: ['친구들의 표정 변화에 민감하게 반응한다', '내 기분보다 친구 기분을 먼저 맞춘다', '무리에서 배제될까 불안하다']
@@ -180,8 +180,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-04',
     categoryId: 'friends',
-    name: '얼음땡말문막힘알러지',
-    summary: '인사나 대화를 먼저 건네고 싶은데 입술이 얼어붙는 상태',
+    name: '먼저말걸기얼음증',
+    summary: '친구에게 먼저 말이나 인사를 건네고 싶은데 입이 안 떨어지는 상태',
     medicine: '스마일인사탕',
     advice: '가벼운 "안녕!" 한마디는 누구나 기분 좋게 만듭니다.',
     sampleItems: ['다가가고 싶은데 무슨 말을 할지 모르겠다', '거절당하거나 씹힐까 봐 두렵다', '친구가 먼저 다가와 주길 기다린다']
@@ -189,8 +189,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-05',
     categoryId: 'friends',
-    name: '친구마음과부하증후군',
-    summary: '친구와의 갈등이나 서먹한 기류 때문에 머리가 지끈거리는 상태',
+    name: '친구갈등머리지끈증',
+    summary: '친구와의 다툼이나 서먹한 분위기 때문에 하루 종일 머리 아픈 상태',
     medicine: '관계거리조절정',
     advice: '모든 관계에는 계절이 있고 적당한 거리두기가 약이 됩니다.',
     sampleItems: ['친구와 있었던 일이 하루 종일 머릿속을 맴돈다', '해결하고 싶은데 타이밍을 모르겠다', '관계 때문에 다른 일에 집중이 안 된다']
@@ -198,8 +198,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-06',
     categoryId: 'friends',
-    name: '단톡방1안사라짐초조증',
-    summary: '메시지를 보내놓고 1이 언제 사라지는지 폰을 계속 쳐다보는 상태',
+    name: '안읽씹답장초조증',
+    summary: '메시지를 보내놓고 숫자 1이 언제 없어지나 폰만 보며 초조한 상태',
     medicine: '화면끄고산책정',
     advice: '친구도 지금 밥을 먹거나 숙제를 하느라 바쁠 수 있어요.',
     sampleItems: ['메시지 답장이 늦으면 불안해진다', '내가 보낸 내용을 몇 번이고 다시 읽어본다', '숫자 1이 지워졌는지 자꾸 확인한다']
@@ -207,8 +207,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-07',
     categoryId: 'friends',
-    name: '이불속말대꾸반추증후군',
-    summary: '그 자리에서는 어버버하고 집에 누워서야 명대사가 떠오르는 상태',
+    name: '뒤늦은말대꾸후회증',
+    summary: '그 자리에선 아무 말 못 하다가 집에 와서야 좋은 반박이 떠오르는 상태',
     medicine: '다음턴준비환',
     advice: '그 순간엔 당황했을 뿐이에요. 다음엔 차분히 내 생각을 말해봐요.',
     sampleItems: ['부당한 말을 듣고도 그땐 가만히 있었다', '집에 와서 베개 치며 후회한 적이 있다', '다음에 뭐라고 받아칠지 상상한다']
@@ -216,8 +216,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-08',
     categoryId: 'friends',
-    name: '배터리방전고슴도치신드롬',
-    summary: '소외되는 건 싫지만 말 섞으며 애쓰기는 기운 빠지는 상태',
+    name: '무리주변겉돌기증',
+    summary: '혼자 있기는 외롭지만 먼저 끼어들기는 어색해 겉도는 상태',
     medicine: '은은한동행차',
     advice: '말없이 곁에만 있어도 편안한 그런 존재가 되어도 좋아요.',
     sampleItems: ['무리 곁에 겉돌며 서 있는 적이 많다', '혼밥이나 혼자 다니는 건 눈치 보인다', '대화를 주도할 기운은 없다']
@@ -225,8 +225,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-09',
     categoryId: 'friends',
-    name: '과도한사과자책증',
-    summary: '친구의 차가운 태도를 보면 다 내 잘못인 것만 같은 상태',
+    name: '친구냉담내탓증',
+    summary: '친구 기분이 안 좋아 보이면 혹시 내 잘못인가 지레 겁먹는 상태',
     medicine: '추측멈춤스프레이',
     advice: '물어보지 않은 친구의 마음을 혼자 지레짐작으로 결론짓지 마세요.',
     sampleItems: ['친구 기분이 안 좋으면 내 탓인가 싶다', '내가 실수한 게 있나 대화를 곱씹는다', '괜한 죄책감으로 사과부터 하고 싶어진다']
@@ -234,8 +234,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-10',
     categoryId: 'friends',
-    name: '착한아이예스맨피로신드롬',
-    summary: '착한 친구 역할을 하느라 내 욕구는 꾹 참고 배려만 하다 방전된 상태',
+    name: '거절못하는예스맨증',
+    summary: '싫다는 말을 못 해 무리한 부탁도 억지로 들어주다 지친 상태',
     medicine: '거절의용기환',
     advice: '내 마음을 지키는 "아니오"는 건강한 관계의 기초입니다.',
     sampleItems: ['싫은 소리를 못 해서 다 들어준다', '친구 부탁을 거절하면 큰일 날 것 같다', '속으로는 힘든데 겉으로는 웃어준다']
@@ -243,8 +243,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-11',
     categoryId: 'friends',
-    name: '가까울수록가시돋침증후군',
-    summary: '분명 친한 친구인데 같이 있으면 어딘가 불편하고 긴장되는 상태',
+    name: '친한데불편해증',
+    summary: '분명 친한 친구인데 단둘이 있으면 어색하고 피곤한 상태',
     medicine: '마음온도계',
     advice: '친함의 깊이와 함께 있을 때의 에너지 소모는 다를 수 있어요.',
     sampleItems: ['단둘이 있으면 어색한 침묵이 흐른다', '친한 척해야 한다는 의무감이 든다', '친구와 헤어지고 나면 급격히 피곤하다']
@@ -252,8 +252,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-12',
     categoryId: 'friends',
-    name: '말실수무한리플레이신드롬',
-    summary: '친구와 수다 떨고 집에 오면 "그 말 괜히 했나?" 자책하는 상태',
+    name: '낮에한말무한반추증',
+    summary: '친구와 대화하고 온 날 밤, 내 말실수를 곱씹으며 후회하는 상태',
     medicine: '이불킥방지제',
     advice: '친구는 당신이 생각하는 것보다 당신의 실수를 훨씬 덜 기억합니다.',
     sampleItems: ['낮에 한 대화를 밤에 복기하며 괴로워한다', '상대방이 오해했을까 봐 조마조마하다', '차라리 말을 하지 말 걸 후회한다']
@@ -261,8 +261,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-13',
     categoryId: 'friends',
-    name: '소외감투명인간증후군',
-    summary: '친구들이 나 없이 더 재미있게 지내는 것 같아 소외감 드는 상태',
+    name: '나만빼고재밌어증',
+    summary: '친구들이 나만 빼고 즐겁게 지내는 것 같아 외로움을 느끼는 상태',
     medicine: '우정확인비타민',
     advice: '모든 자리에 함께하지 않아도 우리의 우정은 연결되어 있습니다.',
     sampleItems: ['단톡방이나 쉬는 시간에 묘한 소외감을 느낀다', '친구들의 비밀 이야기를 나만 모르는 것 같다', '나만 관계에 진심인가 회의감이 든다']
@@ -270,8 +270,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-14',
     categoryId: 'friends',
-    name: '무인도표류신드롬',
-    summary: '세상에 온전히 내 마음을 알아주고 편들어줄 사람이 없는 것 같은 상태',
+    name: '내편없어외톨이증',
+    summary: '세상에 온전히 내 편이 되어줄 친구가 없는 것 같아 쓸쓸한 상태',
     medicine: '따뜻한우산단',
     advice: '내가 먼저 나 자신의 가장 든든한 1호 팬이 되어주세요.',
     sampleItems: ['힘든 일이 생겨도 털어놓을 곳이 마땅찮다', '주변에 사람은 많은데 고독하다', '누군가 무조건 내 편이 되어줬으면 좋겠다']
@@ -279,8 +279,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'R-15',
     categoryId: 'friends',
-    name: '자존심철벽방어증후군',
-    summary: '화해하고 싶지만 자존심 때문에 먼저 미안하다 말 꺼내기 힘든 상태',
+    name: '먼저사과자존심증',
+    summary: '화해하고 싶지만 쑥스럽고 자존심 상해 먼저 말을 못 거는 상태',
     medicine: '자존심사탕',
     advice: '먼저 손을 내미는 사람이 가장 용기 있는 사람입니다.',
     sampleItems: ['내가 잘못한 걸 알면서도 먼저 말 걸기 쑥스럽다', '친구가 먼저 사과해주길 오기 부리며 기다린다', '어색하게 시간이 흐르는 게 답답하다']
@@ -290,8 +290,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-01',
     categoryId: 'study',
-    name: '시험D-1타조증후군',
-    summary: '해야 하는 걸 잘 알면서도 스마트폰을 보며 자꾸 뒤로 미루는 상태',
+    name: '할일미루기딴짓증',
+    summary: '할 일이 많은 걸 알면서도 폰을 만지며 자꾸 미루는 상태',
     medicine: '일단시작정',
     advice: '시작이 반입니다. 딱 3분만 책상 앞에 앉아보세요.',
     sampleItems: ['마감 직전까지 할 일을 미룬다', '해야 한다는 스트레스만 받고 몸은 안 움직인다', '딴짓을 하면서도 마음이 편치 않다']
@@ -299,8 +299,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-02',
     categoryId: 'study',
-    name: '계획만거창해증',
-    summary: '할 일 목록이 너무 빼곡해서 어디서부터 손대야 할지 멍해진 상태',
+    name: '숙제산더미멘붕증',
+    summary: '해야 할 숙제와 분량이 너무 많아 어디부터 시작할지 막막한 상태',
     medicine: '한놈만패기단',
     advice: '가장 쉬운 것 딱 하나만 집어서 해치워보세요.',
     sampleItems: ['숙제와 시험 범위가 산더미처럼 느껴진다', '생각만 하다가 정작 아무것도 못 한다', '압도당해서 그냥 회피하고 싶다']
@@ -308,8 +308,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-03',
     categoryId: 'study',
-    name: '문제집첫페이지만알러지',
-    summary: '책상에 앉아는 있는데 글자만 둥둥 떠다니고 머리에 안 들어오는 상태',
+    name: '글자둥둥멍때림증',
+    summary: '책상 앞엔 앉아 있지만 글자만 둥둥 떠다니고 집중이 안 되는 상태',
     medicine: '환기모래시계',
     advice: '뇌가 쉴 때라는 신호예요. 가볍게 기지개를 켜고 물 한 컵 마셔요.',
     sampleItems: ['같은 페이지를 10분째 읽고 있다', '딴생각이 자꾸 끼어든다', '집중력이 바닥난 느낌이다']
@@ -317,8 +317,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-04',
     categoryId: 'study',
-    name: '숙제미루기마감요정신드롬',
-    summary: '시험이나 평가 날짜가 다가오는 것만 상상해도 가슴이 답답한 상태',
+    name: '시험불안답답증',
+    summary: '시험 날짜가 다가오는 것만 생각해도 가슴이 답답하고 긴장되는 상태',
     medicine: '차분한마음수',
     advice: '시험은 당신의 점수를 잴 뿐, 당신의 가치를 측정하지 못합니다.',
     sampleItems: ['달력의 시험 날짜를 보면 가슴이 답답하다', '망칠까 봐 미리부터 스트레스받는다', '공부하려 하면 두통이나 복통이 느껴진다']
@@ -326,8 +326,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-05',
     categoryId: 'study',
-    name: '공부전책상정리만2시간증후군',
-    summary: '일단 시작하면 하는데 첫 번째 단추를 꿰는 행동이 너무 무거운 상태',
+    name: '첫걸음무거움증',
+    summary: '막상 시작하면 잘하는데 책상에 앉기까지 첫 행동이 너무 무거운 상태',
     medicine: '스위치온환',
     advice: '책을 펴는 행동 하나만으로 오늘의 승리입니다.',
     sampleItems: ['책상에 앉기까지 한참 걸린다', '시작하기 전 의식이 너무 길다', '막상 시작하면 생각보다 할 만하다']
@@ -335,8 +335,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-06',
     categoryId: 'study',
-    name: '발표전심장비트박스신드롬',
-    summary: '계획표는 분 단위로 완벽하게 짜놓고 정작 실천은 하나도 안 되는 상태',
+    name: '완벽계획실천0증',
+    summary: '계획표는 완벽하고 빼곡하게 짜놓고 정작 실천은 하나도 못 하는 상태',
     medicine: '심플실천제',
     advice: '화려한 계획표보다 투박한 실천 한 걸음이 위대합니다.',
     sampleItems: ['계획표를 예술작품처럼 꾸미다 지친다', '하루 계획이 틀어지면 전부 포기해버린다', '내 실행력을 과대평가해서 무리하게 짠다']
@@ -344,8 +344,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-07',
     categoryId: 'study',
-    name: '형광펜무지개장비빨증',
-    summary: '머리로는 "해야 해"라고 수천 번 외치는데 손가락이 안 움직이는 상태',
+    name: '누워서생각만뱅뱅증',
+    summary: '머리로는 해야 한다고 외치지만 몸이 침대에서 꼼짝도 안 하는 상태',
     medicine: '5초카운트다운캡슐',
     advice: '5-4-3-2-1 세고 로켓처럼 몸부터 먼저 일으켜 세워요.',
     sampleItems: ['침대에 누워서 해야 할 생각만 계속한다', '누가 강제로 시켜줬으면 좋겠다는 생각을 한다', '의지박약인가 자책한다']
@@ -353,8 +353,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-08',
     categoryId: 'study',
-    name: '모둠과제버스기사독박알러지',
-    summary: '오늘의 내가 미래의 나를 너무 과신하며 미루는 낙천적 미루기 상태',
+    name: '내일부터할래과신증',
+    summary: '"내일부터 하면 되지"라며 미래의 나를 믿고 오늘을 미루는 상태',
     medicine: '지금이순간정',
     advice: '내일의 나도 오늘의 나와 똑같은 사람입니다.',
     sampleItems: ['"내일부터 갓생 산다"를 반복한다', '정각이 되면 시작해야지 하다가 1시간이 지난다', '밤이 되면 후회하면서도 또 내일로 미룬다']
@@ -362,8 +362,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-09',
     categoryId: 'study',
-    name: '공부의욕방전증후군',
-    summary: '마감 1시간 전 발등에 불이 떨어져야만 아드레날린으로 해치우는 상태',
+    name: '발등불벼락치기증',
+    summary: '마감 직전 발등에 불이 떨어져야만 집중해서 몰아치는 상태',
     medicine: '발등소화기',
     advice: '벼락치기는 수명을 갉아먹어요. 가짜 마감일을 이틀 앞으로 당겨봐요.',
     sampleItems: ['위기감이 없으면 집중이 전혀 안 된다', '결국 벼락치기로 해내서 버릇이 안 고쳐진다', '벼락치기 후 극심한 피로가 찾아온다']
@@ -371,8 +371,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-10',
     categoryId: 'study',
-    name: '잡생각공상과열신드롬',
-    summary: '공부하려고 문제집을 펴자마자 과거의 일, 주말 계획이 떠오르는 상태',
+    name: '공부시작딴생각증',
+    summary: '책을 펴자마자 과거 일이나 엉뚱한 잡생각이 꼬리를 무는 상태',
     medicine: '딴생각보관함환',
     advice: '떠오르는 딴생각을 메모지에 적어 접어두고 다시 돌아오세요.',
     sampleItems: ['공부 시작하자마자 서랍 정리나 청소가 하고 싶다', '방금 읽은 문장이 머리에 전혀 기억 안 난다', '멍때리다가 시간이 훌쩍 간다']
@@ -380,8 +380,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-11',
     categoryId: 'study',
-    name: '오답노트외면알러지',
-    summary: '모르는 단어 하나 찾으려다 숏폼 알고리즘에 홀려 1시간이 증발한 상태',
+    name: '숏폼알고리즘늪증',
+    summary: '공부 중 단어 하나 찾으려다 숏폼에 빠져 시간이 훌쩍 증발한 상태',
     medicine: '스마트폰금고제',
     advice: '스마트폰을 시야에서 치우는 것만으로 집중력이 2배가 됩니다.',
     sampleItems: ['카톡 하나 확인하려다 SNS 릴스를 보고 있다', '시간 가는 줄 모르고 스크롤을 내린다', '정신 차리고 나면 심한 자괴감이 든다']
@@ -389,8 +389,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-12',
     categoryId: 'study',
-    name: '성적비교열패감신드롬',
-    summary: '형광펜 고르고 다이어리 스티커 붙이다가 공부할 체력이 다 소진된 상태',
+    name: '필기구장비빨탈진증',
+    summary: '펜 고르고 노트 꾸미느라 정작 공부할 에너지가 다 빠져버린 상태',
     medicine: '모나미볼펜환',
     advice: '공부의 본질은 도구가 아니라 내 머릿속에 남는 배움입니다.',
     sampleItems: ['필기구와 플래너 준비에 정성을 다 쏟는다', '예쁘게 안 쓰이면 찢고 다시 시작한다', '정작 공부 내용은 눈에 안 들어온다']
@@ -398,8 +398,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-13',
     categoryId: 'study',
-    name: '이해한척끄덕끄덕증후군',
-    summary: '아직 시작도 안 했는데 숙제 목록만 떠올려도 피로가 몰려오는 상태',
+    name: '숙제생각에피로증',
+    summary: '시작도 안 했는데 해야 할 숙제 목록만 떠올려도 한숨과 피로가 밀려오는 상태',
     medicine: '피로착각해소제',
     advice: '생각의 무게가 실제 행동의 무게보다 10배 무겁습니다.',
     sampleItems: ['할 일 생각에 온몸에 힘이 빠진다', '시작 전부터 지쳐서 한숨이 나온다', '막상 해보면 별거 아닌데 그전이 힘들다']
@@ -407,8 +407,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-14',
     categoryId: 'study',
-    name: '벼락치기도파민중독증',
-    summary: '하루 계획이나 분량이 밀리면 "에라 모르겠다" 다 던져버리는 상태',
+    name: '밀리면전부포기증',
+    summary: '계획이 조금만 어긋나도 "에라 모르겠다" 하고 전부 손을 놓아버리는 상태',
     medicine: '회복탄력밴드',
     advice: '넘어졌다면 털고 일어나는 것이지 경기를 기권할 필요는 없어요.',
     sampleItems: ['계획에서 하나 어긋나면 전체를 포기한다', '밀린 숙제를 보면 아예 손을 놔버린다', '완벽하지 못할 바엔 안 하는 게 낫다고 생각한다']
@@ -416,8 +416,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-15',
     categoryId: 'study',
-    name: '공부슬럼프안개증후군',
-    summary: '좋은 결과를 내야 한다는 중압감 때문에 오히려 첫 숟가락을 못 뜨는 상태',
+    name: '완벽부담시작주저증',
+    summary: '잘해내야 한다는 부담감 때문에 과제를 시작조차 못 하고 망설이는 상태',
     medicine: '망작환영제',
     advice: '첫 번째 초안은 엉망이어도 괜찮습니다. 다듬으면 되니까요.',
     sampleItems: ['과제 제출할 때 기준이 너무 높아 시작이 두렵다', '남들에게 잘하는 모습만 보여주고 싶다', '실패할까 봐 손을 못 댄다']

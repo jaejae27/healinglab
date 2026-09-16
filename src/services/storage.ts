@@ -505,7 +505,24 @@ export class StorageService {
 
   // Conditions
   static getConditions(): VirtualCondition[] {
-    return getStoredItem(STORAGE_KEYS.CONDITIONS, VIRTUAL_CONDITIONS);
+    const stored = getStoredItem<VirtualCondition[]>(STORAGE_KEYS.CONDITIONS, VIRTUAL_CONDITIONS);
+    if (!stored || stored.length === 0) return VIRTUAL_CONDITIONS;
+    const canonicalMap = new Map(VIRTUAL_CONDITIONS.map((c) => [c.conditionId, c]));
+    return stored.map((s) => {
+      const canonical = canonicalMap.get(s.conditionId);
+      if (canonical) {
+        return {
+          ...s,
+          name: canonical.name,
+          summary: canonical.summary,
+          prescriptionMedicineName: canonical.prescriptionMedicineName,
+          prescriptionAdvice: canonical.prescriptionAdvice,
+          prescriptionCandidates: canonical.prescriptionCandidates,
+          checkItemsSample: canonical.checkItemsSample
+        };
+      }
+      return s;
+    });
   }
 
   static saveConditions(conditions: VirtualCondition[]) {
