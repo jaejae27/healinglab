@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Student } from '../../types';
 import { StorageService } from '../../services/storage';
 import { HealyCharacter } from '../character/HealyCharacter';
+import { AppFooter } from '../common/AppFooter';
 import { Heart, Sparkles, UserCheck, ShieldCheck, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface StudentLoginProps {
@@ -231,6 +232,11 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
             🌱 힐링약국의 마음신호는 실제 질병을 진단하는 것이 아닙니다. 내 마음 상태를 재미있는 이름으로 알아차려보는 사회정서 실천 공간입니다.
           </p>
         </div>
+      </div>
+
+      {/* Developer and Instagram Credit Footer */}
+      <div className="w-full max-w-md mt-4 z-10 px-2">
+        <AppFooter className="bg-transparent border-t-0 py-2 text-slate-500" />
       </div>
     </div>
   );

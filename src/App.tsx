@@ -20,6 +20,7 @@ import { HealyCharacter } from './components/character/HealyCharacter';
 import { Sparkles } from 'lucide-react';
 import { checkDoneFormEligibility } from './utils/doneFormEligibility';
 import { TeacherAuthModal } from './components/modals/TeacherAuthModal';
+import { AppFooter } from './components/common/AppFooter';
 
 export default function App() {
   const [, setSyncTick] = useState(0);
@@ -323,6 +324,11 @@ export default function App() {
             }}
           />
         )}
+
+        {/* Developer & Instagram Credit Footer */}
+        <div className="pb-16">
+          <AppFooter className="bg-transparent border-t border-amber-900/10" />
+        </div>
       </main>
 
       {/* Interactive Modals */}

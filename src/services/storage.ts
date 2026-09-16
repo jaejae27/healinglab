@@ -126,6 +126,9 @@ export class StorageService {
       },
       (cloudNewConditions) => {
         setStoredItem(STORAGE_KEYS.NEW_CONDITION_REQUESTS, cloudNewConditions);
+      },
+      (cloudEmotionLogs) => {
+        setStoredItem(STORAGE_KEYS.EMOTION_LOGS, cloudEmotionLogs);
       }
     );
   }
@@ -203,6 +206,9 @@ export class StorageService {
   }
 
   static deleteStudentsBatch(studentIds: string[]): Student[] {
+    // Safety guard: create snapshot before destructive batch deletion
+    DataSafetyService.createSnapshot(`학생 ${studentIds.length}명 일괄 삭제 전 안전 백업`, true);
+
     const currentStudents = this.getStudents();
     const idSet = new Set(studentIds);
     const updated = currentStudents.filter(s => !idSet.has(s.id));
@@ -929,6 +935,9 @@ export class StorageService {
 
   // Reset to initial
   static resetAllData() {
+    // Safety guard: create emergency snapshot before clearing
+    DataSafetyService.createSnapshot('전체 데이터 초기화 전 긴급 안전 스냅샷', true);
+
     localStorage.removeItem(STORAGE_KEYS.CLASSES);
     localStorage.removeItem(STORAGE_KEYS.STUDENTS);
     localStorage.removeItem(STORAGE_KEYS.VISITS);
@@ -946,6 +955,7 @@ export class StorageService {
   // --- DATA SAFETY & BACKUP RECOVERY ---
   static exportDataBackup(): void {
     DataSafetyService.exportBackupFile();
+    FirestoreSync.recordBackupTimestamp().catch((e) => console.warn('Record backup timestamp notice:', e));
   }
 
   static async importDataBackup(file: File): Promise<{ success: boolean; message: string }> {
@@ -956,6 +966,7 @@ export class StorageService {
       const visits = this.getVisits();
       FirestoreSync.saveStudentsBatch(students);
       FirestoreSync.saveVisitsBatch(visits);
+      FirestoreSync.recordBackupTimestamp().catch((e) => console.warn('Record backup timestamp notice:', e));
     }
     return res;
   }
@@ -981,5 +992,6 @@ export class StorageService {
 
   static createManualSnapshot(reason: string) {
     DataSafetyService.createSnapshot(reason, true);
+    FirestoreSync.recordBackupTimestamp().catch((e) => console.warn('Record backup timestamp notice:', e));
   }
 }

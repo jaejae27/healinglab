@@ -53,6 +53,7 @@ import {
   Cookie
 } from 'lucide-react';
 import { TeacherPasswordChangeModal } from '../modals/TeacherPasswordChangeModal';
+import { AppFooter } from '../common/AppFooter';
 
 interface TeacherDashboardProps {
   onSwitchToStudent: () => void;
@@ -1547,6 +1548,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
             </div>
           )}
+
+          {/* Developer and Instagram Credit Footer */}
+          <AppFooter className="mt-8 border-t border-slate-200 bg-white/80" />
         </main>
       </div>
 

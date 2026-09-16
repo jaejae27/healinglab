@@ -26,5 +26,8 @@ service cloud.firestore {
     match /emotion_logs/{logId} {
       allow read, write: if true;
     }
+    match /system/{docId} {
+      allow read, write: if true;
+    }
   }
 }

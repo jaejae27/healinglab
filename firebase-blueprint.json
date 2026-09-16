@@ -75,6 +75,21 @@
         "id": { "type": "string" }
       },
       "required": ["id"]
+    },
+    "system": {
+      "title": "SystemMeta",
+      "description": "System metadata, schema versioning, and migration timestamps",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "schemaVersion": { "type": "number" },
+        "appVersion": { "type": "string" },
+        "lastMigrationAt": { "type": "string" },
+        "lastBackupAt": { "type": "string" },
+        "lastSuccessfulConnectionAt": { "type": "string" },
+        "firebaseProjectId": { "type": "string" }
+      },
+      "required": ["id", "schemaVersion"]
     }
   },
   "firestoreRules": "firestore.rules"

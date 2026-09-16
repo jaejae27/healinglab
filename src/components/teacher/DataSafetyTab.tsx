@@ -14,23 +14,41 @@ import {
   History,
   HardDrive,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Server,
+  Activity,
+  GitBranch
 } from 'lucide-react';
 
 export const DataSafetyTab: React.FC = () => {
   const [snapshots, setSnapshots] = useState<SnapshotRecord[]>([]);
   const [safetyStatus, setSafetyStatus] = useState(StorageService.getSafetyStatus());
+  const [syncStatus, setSyncStatus] = useState(FirestoreSync.getStatus());
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isHealthChecking, setIsHealthChecking] = useState(false);
+  const [healthResult, setHealthResult] = useState<{
+    healthy: boolean;
+    studentCount: number;
+    hasSettings: boolean;
+    hasSystemMeta: boolean;
+    schemaVersion: number;
+    error?: string;
+  } | null>(null);
 
   // Load snapshots & status
   const refreshStatus = () => {
     setSnapshots(StorageService.getSnapshots());
     setSafetyStatus(StorageService.getSafetyStatus());
+    setSyncStatus(FirestoreSync.getStatus());
   };
 
   useEffect(() => {
     refreshStatus();
+    const unsub = FirestoreSync.subscribe(() => {
+      setSyncStatus(FirestoreSync.getStatus());
+    });
+    return unsub;
   }, []);
 
   const handleExportBackup = () => {
@@ -109,9 +127,45 @@ export const DataSafetyTab: React.FC = () => {
     }
   };
 
+  const handleRunHealthCheck = async () => {
+    setIsHealthChecking(true);
+    try {
+      const res = await FirestoreSync.verifyDatabaseHealth();
+      setHealthResult(res);
+      refreshStatus();
+      if (res.healthy) {
+        setStatusMessage({
+          type: 'success',
+          text: `클라우드 데이터베이스 검증 완료: 정상 연결 (클라우드 보관 학생: ${res.studentCount}명, 스키마: v${res.schemaVersion})`
+        });
+      } else {
+        setStatusMessage({
+          type: 'error',
+          text: `데이터베이스 진단 실패: ${res.error || '알 수 없는 오류'}`
+        });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: `진단 실행 오류: ${err.message || err}` });
+    } finally {
+      setIsHealthChecking(false);
+    }
+  };
+
+  const handleManualSeedIfEmpty = async () => {
+    if (!confirm('Firestore가 비어있을 때만 기본 예시 데이터를 안전하게 등록합니다. 이미 학생 데이터가 존재하면 실행되지 않습니다. 계속하시겠습니까?')) {
+      return;
+    }
+    const res = await FirestoreSync.manualSeedInitialDataOnlyIfEmpty();
+    if (res.success) {
+      setStatusMessage({ type: 'success', text: res.message });
+      refreshStatus();
+    } else {
+      setStatusMessage({ type: 'error', text: res.message });
+    }
+  };
+
   const students = StorageService.getStudents();
   const visits = StorageService.getVisits();
-  const cookieLogs = StorageService.getCookieLogs();
 
   return (
     <div className="space-y-6">
@@ -123,15 +177,15 @@ export const DataSafetyTab: React.FC = () => {
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>데이터 유실 방지 안전센터</span>
             </span>
-            <span className="text-xs text-emerald-200">2중 안전 금고(Safe Vault) 가동 중</span>
+            <span className="text-xs text-emerald-200">GitHub · Vercel · Firebase 재배포 안전 보호</span>
           </div>
           <h2 className="font-jua text-xl mt-1.5 tracking-tight">
             학생 활동 데이터 무결성 및 자동 백업 복구
           </h2>
           <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-            아이들이 기기를 변경하거나 브라우저 캐시가 비워져도 데이터가 유실되지 않도록
-            <strong> 로컬 안전 금고(Safe Vault)</strong>, <strong>타임머신 자동 스냅샷</strong>,
-            <strong> 클라우드 동기화 보호막</strong>이 3단계로 작동하고 있습니다.
+            GitHub 푸시나 Vercel 재배포, 브라우저 캐시 삭제 시에도 데이터가 보호되도록
+            <strong> 자동 초기화 방지</strong>, <strong>프로젝트 불일치 차단</strong>,
+            <strong> 롤링 스냅샷</strong>, <strong>스키마 버전 관리(v{syncStatus.schemaVersion})</strong>가 가동 중입니다.
           </p>
         </div>
 
@@ -172,12 +226,112 @@ export const DataSafetyTab: React.FC = () => {
           </div>
           <button
             onClick={() => setStatusMessage(null)}
-            className="text-slate-400 hover:text-slate-600 font-bold px-2 py-0.5"
+            className="text-slate-400 hover:text-slate-600 font-bold px-2 py-0.5 cursor-pointer"
           >
             ✕
           </button>
         </div>
       )}
+
+      {/* Cloud & Deployment Diagnostics Panel */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700">
+              <Server className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-jua text-sm text-slate-800">
+                Firebase & Vercel 재배포 환경 안전 진단
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                코드 변경 또는 배포 시 기존 Firestore 데이터의 보존 여부를 실시간으로 모니터링합니다.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRunHealthCheck}
+              disabled={isHealthChecking}
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-jua transition-colors cursor-pointer"
+            >
+              <Activity className={`w-3.5 h-3.5 text-teal-600 ${isHealthChecking ? 'animate-pulse' : ''}`} />
+              <span>{isHealthChecking ? '진단 중...' : '클라우드 무결성 진단'}</span>
+            </button>
+            <button
+              onClick={handleManualSeedIfEmpty}
+              className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-xl text-xs font-jua transition-colors cursor-pointer"
+              title="DB가 0건일 때만 작동하며, 이미 데이터가 있으면 안전하게 차단됩니다."
+            >
+              <span>초기 데이터 안전 등록 (DB 비었을 때만)</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-[11px] text-slate-400 block mb-1">배포 환경 (Env)</span>
+            <div className="flex items-center gap-1.5">
+              <GitBranch className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+              <span className="font-bold text-slate-700 truncate">{syncStatus.environment}</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-[11px] text-slate-400 block mb-1">프로젝트 ID 검증</span>
+            <div className="flex items-center gap-1.5">
+              {syncStatus.isProjectMismatch ? (
+                <span className="inline-flex items-center gap-1 text-rose-600 font-bold text-[11px]">
+                  <AlertTriangle className="w-3.5 h-3.5" /> 불일치 (쓰기 차단)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-emerald-600 font-bold text-[11px]">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> 프로젝트 일치 확인
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-slate-400 block truncate mt-0.5">{syncStatus.currentProjectId}</span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-[11px] text-slate-400 block mb-1">스키마 버전</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-slate-800">Schema v{syncStatus.schemaVersion}</span>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md font-bold">
+                최신
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-400 block mt-0.5">App v{syncStatus.appVersion}</span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-[11px] text-slate-400 block mb-1">실시간 동기화 상태</span>
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${syncStatus.isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+              <span className="font-bold text-slate-800">
+                {syncStatus.isConnected ? '클라우드 연결됨' : '연결 대기 중'}
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-400 block mt-0.5">
+              {syncStatus.lastSyncTime ? `마지막 수신: ${syncStatus.lastSyncTime}` : '수신 대기'}
+            </span>
+          </div>
+        </div>
+
+        {healthResult && (
+          <div className={`p-3 rounded-xl text-xs border ${healthResult.healthy ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'}`}>
+            <div className="flex items-center justify-between font-bold mb-1">
+              <span>진단 결과 요약: {healthResult.healthy ? '정상 무결성 유지' : '오류 감지'}</span>
+              <span className="text-[11px]">스키마 버전: v{healthResult.schemaVersion}</span>
+            </div>
+            <div className="text-[11px] text-slate-600 flex flex-wrap gap-4 mt-1">
+              <span>클라우드 학생 레코드: <strong>{healthResult.studentCount}명</strong></span>
+              <span>앱 설정 문서: <strong>{healthResult.hasSettings ? '존재함' : '없음'}</strong></span>
+              <span>시스템 메타데이터(system/meta): <strong>{healthResult.hasSystemMeta ? '보유' : '자동 생성됨'}</strong></span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 3 Protection Pillars Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -239,7 +393,7 @@ export const DataSafetyTab: React.FC = () => {
           </div>
           <h3 className="font-jua text-sm text-slate-800">클라우드 동기화 보호막</h3>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            Firestore 연결이 불안정하거나 빈 스냅샷이 수신되더라도 기존 학생·처방 데이터를 절대 지우지 않습니다.
+            재배포나 부팅 시 기본 데이터 자동 덮어쓰기를 원천 차단하고, 읽기 오류 시에도 로컬 데이터를 삭제하지 않습니다.
           </p>
           <div className="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-600 flex items-center justify-between">
             <span>현재 보관 데이터:</span>

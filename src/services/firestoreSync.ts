@@ -1,13 +1,14 @@
 import {
   collection,
   doc,
+  getDoc,
   setDoc,
   deleteDoc,
   onSnapshot,
   getDocs,
   writeBatch
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, getProjectSafetyCheck, getDeploymentEnvironment } from './firebase';
 import {
   Student,
   SchoolClass,
@@ -25,13 +26,43 @@ function cleanData<T>(data: T): any {
   return JSON.parse(JSON.stringify(data));
 }
 
+export interface SystemMeta {
+  id: string;
+  schemaVersion: number;
+  appVersion: string;
+  lastMigrationAt: string | null;
+  lastBackupAt: string | null;
+  lastSuccessfulConnectionAt: string | null;
+  firebaseProjectId: string;
+  initializedAt: string;
+  environment: string;
+}
+
+export const CURRENT_SCHEMA_VERSION = 2;
+export const APP_VERSION = '2.5.0';
+
 type SyncListener = () => void;
 
 class FirestoreSyncManager {
   private initialized = false;
   private listeners: Set<SyncListener> = new Set();
   public isConnected = false;
+  public connectionError: string | null = null;
   public lastSyncTime: string | null = null;
+  public lastSuccessfulConnectionAt: string | null = null;
+  public systemMeta: SystemMeta | null = null;
+  public migrationError: string | null = null;
+  public isProjectMismatch = false;
+
+  constructor() {
+    const check = getProjectSafetyCheck();
+    this.isProjectMismatch = !check.isMatch;
+    if (this.isProjectMismatch) {
+      console.warn(
+        `[FirestoreSync Safety] WARNING: Configured project ID (${check.currentProjectId}) does not match expected (${check.expectedProjectId})!`
+      );
+    }
+  }
 
   subscribe(listener: SyncListener): () => void {
     this.listeners.add(listener);
@@ -49,6 +80,213 @@ class FirestoreSyncManager {
     });
   }
 
+  /**
+   * Returns current safety and synchronization status
+   */
+  public getStatus() {
+    const safety = getProjectSafetyCheck();
+    return {
+      isConnected: this.isConnected,
+      connectionError: this.connectionError,
+      lastSyncTime: this.lastSyncTime,
+      lastSuccessfulConnectionAt: this.lastSuccessfulConnectionAt,
+      systemMeta: this.systemMeta,
+      schemaVersion: this.systemMeta?.schemaVersion || CURRENT_SCHEMA_VERSION,
+      appVersion: APP_VERSION,
+      migrationError: this.migrationError,
+      isProjectMismatch: !safety.isMatch,
+      currentProjectId: safety.currentProjectId,
+      expectedProjectId: safety.expectedProjectId,
+      environment: safety.environment,
+      databaseId: safety.databaseId
+    };
+  }
+
+  /**
+   * Non-destructive schema check & version migration
+   */
+  public async checkAndMigrateSchema(): Promise<void> {
+    if (this.isProjectMismatch) {
+      console.warn('[FirestoreSync Safety] Project mismatch detected: Schema migration aborted.');
+      return;
+    }
+
+    try {
+      const metaRef = doc(db, 'system', 'meta');
+      const snap = await getDoc(metaRef);
+      const env = getDeploymentEnvironment();
+      const safety = getProjectSafetyCheck();
+
+      if (!snap.exists()) {
+        // First-time metadata record creation (without wiping anything)
+        const initialMeta: SystemMeta = {
+          id: 'meta',
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          appVersion: APP_VERSION,
+          lastMigrationAt: new Date().toISOString(),
+          lastBackupAt: null,
+          lastSuccessfulConnectionAt: new Date().toISOString(),
+          firebaseProjectId: safety.currentProjectId,
+          initializedAt: new Date().toISOString(),
+          environment: env
+        };
+        await setDoc(metaRef, cleanData(initialMeta), { merge: true });
+        this.systemMeta = initialMeta;
+        console.log('[FirestoreSync Safety] Initialized system/meta document at version', CURRENT_SCHEMA_VERSION);
+      } else {
+        const currentData = snap.data() as SystemMeta;
+        this.systemMeta = currentData;
+
+        // Perform non-destructive schema migration if version is older
+        if (currentData.schemaVersion < CURRENT_SCHEMA_VERSION) {
+          console.log(
+            `[FirestoreSync Safety] Migrating schema from v${currentData.schemaVersion} to v${CURRENT_SCHEMA_VERSION}...`
+          );
+
+          const updatedMeta: Partial<SystemMeta> = {
+            schemaVersion: CURRENT_SCHEMA_VERSION,
+            appVersion: APP_VERSION,
+            lastMigrationAt: new Date().toISOString(),
+            lastSuccessfulConnectionAt: new Date().toISOString(),
+            environment: env
+          };
+
+          await setDoc(metaRef, cleanData(updatedMeta), { merge: true });
+          this.systemMeta = { ...currentData, ...updatedMeta } as SystemMeta;
+          console.log(`[FirestoreSync Safety] Migration to v${CURRENT_SCHEMA_VERSION} successfully applied.`);
+        }
+      }
+      this.lastSuccessfulConnectionAt = new Date().toISOString();
+      this.connectionError = null;
+    } catch (err: any) {
+      console.warn('[FirestoreSync Safety] Schema check error:', err);
+      this.migrationError = err?.message || String(err);
+    }
+  }
+
+  /**
+   * Health Check: tests read capability on core collections without mutating data
+   */
+  public async verifyDatabaseHealth(): Promise<{
+    healthy: boolean;
+    studentCount: number;
+    hasSettings: boolean;
+    hasSystemMeta: boolean;
+    schemaVersion: number;
+    error?: string;
+  }> {
+    try {
+      const studentSnap = await getDocs(collection(db, 'students'));
+      const settingsSnap = await getDoc(doc(db, 'app_settings', 'global'));
+      const metaSnap = await getDoc(doc(db, 'system', 'meta'));
+
+      this.isConnected = true;
+      this.lastSuccessfulConnectionAt = new Date().toISOString();
+      this.connectionError = null;
+
+      const meta = metaSnap.exists() ? (metaSnap.data() as SystemMeta) : null;
+      if (meta) {
+        this.systemMeta = meta;
+      }
+
+      return {
+        healthy: true,
+        studentCount: studentSnap.size,
+        hasSettings: settingsSnap.exists(),
+        hasSystemMeta: metaSnap.exists(),
+        schemaVersion: meta?.schemaVersion || CURRENT_SCHEMA_VERSION
+      };
+    } catch (err: any) {
+      this.connectionError = err?.message || 'Firestore 연결 실패';
+      return {
+        healthy: false,
+        studentCount: 0,
+        hasSettings: false,
+        hasSystemMeta: false,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        error: err?.message || String(err)
+      };
+    }
+  }
+
+  /**
+   * Record last backup timestamp in system/meta
+   */
+  public async recordBackupTimestamp(): Promise<void> {
+    if (this.isProjectMismatch) return;
+    try {
+      const metaRef = doc(db, 'system', 'meta');
+      const now = new Date().toISOString();
+      await setDoc(metaRef, { lastBackupAt: now }, { merge: true });
+      if (this.systemMeta) {
+        this.systemMeta.lastBackupAt = now;
+      }
+    } catch (err) {
+      console.warn('[FirestoreSync Safety] Failed to record backup timestamp:', err);
+    }
+  }
+
+  /**
+   * Manual Seed (Admin-Only): strictly conditional, NEVER run automatically, NEVER deletes existing data
+   */
+  public async manualSeedInitialDataOnlyIfEmpty(): Promise<{ success: boolean; message: string }> {
+    if (this.isProjectMismatch) {
+      return {
+        success: false,
+        message: '프로젝트 불일치 상태에서는 데이터 오염 방지를 위해 생성이 차단됩니다.'
+      };
+    }
+
+    try {
+      const studentSnap = await getDocs(collection(db, 'students'));
+      if (!studentSnap.empty) {
+        return {
+          success: false,
+          message: `이미 학생 데이터(${studentSnap.size}명)가 존재하여 초기 생성을 실행하지 않습니다. 기존 데이터를 보존합니다.`
+        };
+      }
+
+      const batch = writeBatch(db);
+
+      // Seed initial students non-destructively
+      INITIAL_STUDENTS.forEach((st) => {
+        const ref = doc(db, 'students', st.id);
+        batch.set(ref, cleanData(st), { merge: true });
+      });
+
+      // Seed initial classes non-destructively
+      INITIAL_CLASSES.forEach((cl) => {
+        const ref = doc(db, 'classes', `C-${cl.grade}-${cl.classNum}`);
+        batch.set(ref, cleanData(cl), { merge: true });
+      });
+
+      // Seed initial visits non-destructively
+      INITIAL_VISITS.forEach((vi) => {
+        const ref = doc(db, 'visits', vi.visitId);
+        batch.set(ref, cleanData(vi), { merge: true });
+      });
+
+      // Seed initial settings non-destructively
+      const settingsRef = doc(db, 'app_settings', 'global');
+      batch.set(settingsRef, cleanData(DEFAULT_SETTINGS), { merge: true });
+
+      await batch.commit();
+
+      // Ensure system meta is also written
+      await this.checkAndMigrateSchema();
+
+      return {
+        success: true,
+        message: '초기 기본 데이터가 Firestore에 안전하게 등록되었습니다.'
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: `초기 데이터 등록 중 오류: ${err?.message || err}`
+      };
+    }
+  }
+
   async init(
     onStudentsSync: (students: Student[]) => void,
     onClassesSync: (classes: SchoolClass[]) => void,
@@ -56,16 +294,16 @@ class FirestoreSyncManager {
     onCookieLogsSync: (logs: CookieLog[]) => void,
     onGachaLogsSync: (logs: GachaLog[]) => void,
     onSettingsSync: (settings: AppSettings) => void,
-    onNewConditionsSync: (requests: NewConditionRequest[]) => void
+    onNewConditionsSync: (requests: NewConditionRequest[]) => void,
+    onEmotionLogsSync?: (logs: EmotionLog[]) => void
   ) {
     if (this.initialized) return;
     this.initialized = true;
 
     try {
-      // 1. Setup Real-time Listeners first
-      // 2. Check and seed initial data in the background (non-blocking)
-      this.checkAndSeedDefaults().catch((err) => {
-        console.warn('Background Firestore seeding check:', err);
+      // Background schema check & migration (Non-destructive, never seeds or wipes)
+      this.checkAndMigrateSchema().catch((err) => {
+        console.warn('[FirestoreSync Safety] Schema check notice:', err);
       });
 
       // STUDENTS
@@ -215,47 +453,10 @@ class FirestoreSyncManager {
     }
   }
 
-  // Check if Firestore is freshly provisioned and seed initial data
-  private async checkAndSeedDefaults() {
-    try {
-      const studentSnap = await getDocs(collection(db, 'students'));
-      if (studentSnap.empty) {
-        console.log('Seeding initial students & classes to Firestore...');
-        const batch = writeBatch(db);
-
-        // Seed initial students
-        INITIAL_STUDENTS.forEach((st) => {
-          const ref = doc(db, 'students', st.id);
-          batch.set(ref, cleanData(st));
-        });
-
-        // Seed initial classes
-        INITIAL_CLASSES.forEach((cl) => {
-          const ref = doc(db, 'classes', `C-${cl.grade}-${cl.classNum}`);
-          batch.set(ref, cleanData(cl));
-        });
-
-        // Seed initial visits
-        INITIAL_VISITS.forEach((vi) => {
-          const ref = doc(db, 'visits', vi.visitId);
-          batch.set(ref, cleanData(vi));
-        });
-
-        // Seed initial settings
-        const settingsRef = doc(db, 'app_settings', 'global');
-        batch.set(settingsRef, cleanData(DEFAULT_SETTINGS));
-
-        await batch.commit();
-        console.log('Initial Firestore seeding complete.');
-      }
-    } catch (err) {
-      console.warn('Seeding check failed, will rely on local copy until connected:', err);
-    }
-  }
-
-  // --- WRITE METHODS (Async Cloud Sync) ---
+  // --- WRITE METHODS (Non-destructive with { merge: true } & Safety Guard) ---
 
   async saveStudent(student: Student) {
+    if (this.isProjectMismatch) return;
     try {
       await setDoc(doc(db, 'students', student.id), cleanData(student), { merge: true });
     } catch (err) {
@@ -264,6 +465,7 @@ class FirestoreSyncManager {
   }
 
   async saveStudentsBatch(students: Student[]) {
+    if (this.isProjectMismatch) return;
     try {
       const batch = writeBatch(db);
       students.forEach((st) => {
@@ -276,6 +478,7 @@ class FirestoreSyncManager {
   }
 
   async deleteStudent(studentId: string) {
+    if (this.isProjectMismatch) return;
     try {
       await deleteDoc(doc(db, 'students', studentId));
     } catch (err) {
@@ -284,6 +487,7 @@ class FirestoreSyncManager {
   }
 
   async deleteStudentsBatch(studentIds: string[]) {
+    if (this.isProjectMismatch) return;
     try {
       const batch = writeBatch(db);
       studentIds.forEach((id) => {
@@ -296,6 +500,7 @@ class FirestoreSyncManager {
   }
 
   async saveVisit(visit: Visit) {
+    if (this.isProjectMismatch) return;
     try {
       await setDoc(doc(db, 'visits', visit.visitId), cleanData(visit), { merge: true });
     } catch (err) {
@@ -304,6 +509,7 @@ class FirestoreSyncManager {
   }
 
   async saveVisitsBatch(visits: Visit[]) {
+    if (this.isProjectMismatch) return;
     try {
       const batch = writeBatch(db);
       visits.forEach((vi) => {
@@ -316,6 +522,7 @@ class FirestoreSyncManager {
   }
 
   async deleteVisit(visitId: string) {
+    if (this.isProjectMismatch) return;
     try {
       await deleteDoc(doc(db, 'visits', visitId));
     } catch (err) {
@@ -324,22 +531,25 @@ class FirestoreSyncManager {
   }
 
   async addCookieLog(log: CookieLog) {
+    if (this.isProjectMismatch) return;
     try {
-      await setDoc(doc(db, 'cookie_logs', log.id), cleanData(log));
+      await setDoc(doc(db, 'cookie_logs', log.id), cleanData(log), { merge: true });
     } catch (err) {
       console.error(`Failed to save cookie log ${log.id} to Firestore:`, err);
     }
   }
 
   async addGachaLog(log: GachaLog) {
+    if (this.isProjectMismatch) return;
     try {
-      await setDoc(doc(db, 'gacha_logs', log.id), cleanData(log));
+      await setDoc(doc(db, 'gacha_logs', log.id), cleanData(log), { merge: true });
     } catch (err) {
       console.error(`Failed to save gacha log ${log.id} to Firestore:`, err);
     }
   }
 
   async updateGachaLog(logId: string, updates: Partial<GachaLog>) {
+    if (this.isProjectMismatch) return;
     try {
       await setDoc(doc(db, 'gacha_logs', logId), cleanData(updates), { merge: true });
     } catch (err) {
@@ -348,6 +558,7 @@ class FirestoreSyncManager {
   }
 
   async saveSettings(settings: AppSettings) {
+    if (this.isProjectMismatch) return;
     try {
       await setDoc(doc(db, 'app_settings', 'global'), cleanData(settings), { merge: true });
     } catch (err) {
@@ -356,6 +567,7 @@ class FirestoreSyncManager {
   }
 
   async saveClasses(classes: SchoolClass[]) {
+    if (this.isProjectMismatch) return;
     try {
       const batch = writeBatch(db);
       classes.forEach((cl) => {
@@ -368,14 +580,16 @@ class FirestoreSyncManager {
   }
 
   async addNewConditionRequest(req: NewConditionRequest) {
+    if (this.isProjectMismatch) return;
     try {
-      await setDoc(doc(db, 'new_conditions', req.id), cleanData(req));
+      await setDoc(doc(db, 'new_conditions', req.id), cleanData(req), { merge: true });
     } catch (err) {
       console.error(`Failed to save new condition request ${req.id} to Firestore:`, err);
     }
   }
 
   async updateNewConditionRequest(requestId: string, updates: Partial<NewConditionRequest>) {
+    if (this.isProjectMismatch) return;
     try {
       await setDoc(doc(db, 'new_conditions', requestId), cleanData(updates), { merge: true });
     } catch (err) {
@@ -384,6 +598,7 @@ class FirestoreSyncManager {
   }
 
   async saveEmotionLog(log: EmotionLog) {
+    if (this.isProjectMismatch) return;
     try {
       await setDoc(doc(db, 'emotion_logs', log.id), cleanData(log), { merge: true });
     } catch (err) {
