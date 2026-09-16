@@ -70,7 +70,7 @@ export default function App() {
     !currentStudent.preTest?.completed;
 
   // Print state
-  const [printConditionId, setPrintConditionId] = useState<string>('A-06');
+  const [printConditionIds, setPrintConditionIds] = useState<string[]>(['A-06']);
 
   // Selected visit for DoneForm
   const [selectedDoneVisit, setSelectedDoneVisit] = useState<Visit | null>(null);
@@ -134,8 +134,12 @@ export default function App() {
   };
 
   // Print Workbook
-  const handleViewWorkbookPrint = (conditionId: string) => {
-    setPrintConditionId(conditionId);
+  const handleViewWorkbookPrint = (conditionIds: string | string[]) => {
+    if (Array.isArray(conditionIds)) {
+      setPrintConditionIds(conditionIds);
+    } else {
+      setPrintConditionIds([conditionIds]);
+    }
     setAppMode('print_workbook');
   };
 
@@ -178,8 +182,8 @@ export default function App() {
   if (appMode === 'print_workbook') {
     return (
       <WorkbookPrintView
-        conditionId={printConditionId}
-        onBack={() => setAppMode('student')}
+        conditionIds={printConditionIds}
+        onBack={() => setAppMode(isTeacherAuthenticated ? 'teacher' : 'student')}
       />
     );
   }

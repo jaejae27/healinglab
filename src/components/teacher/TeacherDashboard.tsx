@@ -7,6 +7,8 @@ import { AssessmentDashboardTab } from './AssessmentDashboardTab';
 import { SchoolRecordBatchHelper } from './SchoolRecordBatchHelper';
 import { MedicineDistributionTab } from './MedicineDistributionTab';
 import { CookieManagementTab } from './CookieManagementTab';
+import { WorkbookPrintTab } from './WorkbookPrintTab';
+import { DataSafetyTab } from './DataSafetyTab';
 import {
   generateGoogleAppsScript,
   generateGasIndexHtml,
@@ -54,7 +56,7 @@ import { TeacherPasswordChangeModal } from '../modals/TeacherPasswordChangeModal
 
 interface TeacherDashboardProps {
   onSwitchToStudent: () => void;
-  onPrintWorkbook: (conditionId: string) => void;
+  onPrintWorkbook: (conditionIds: string | string[]) => void;
 }
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
@@ -62,7 +64,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onPrintWorkbook
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'stats' | 'medicine' | 'assessment' | 'students' | 'cookies' | 'verify' | 'records' | 'new_med' | 'print' | 'settings'
+    'stats' | 'medicine' | 'assessment' | 'students' | 'cookies' | 'verify' | 'records' | 'new_med' | 'print' | 'safety' | 'settings'
   >('stats');
 
   // State
@@ -503,7 +505,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             },
             { id: 'records', label: '생기부 문장 도우미', icon: FileText },
             { id: 'new_med', label: '신약개발소 심사', icon: FlaskConical },
-            { id: 'print', label: '워크북 인쇄실', icon: Printer },
+            { id: 'print', label: '워크북 인쇄실 (130종)', icon: Printer },
+            { id: 'safety', label: '데이터 안전·백업 복원', icon: ShieldCheck },
             { id: 'settings', label: '설정 & GAS 배포', icon: Settings }
           ].map((item) => {
             const Icon = item.icon;
@@ -1202,37 +1205,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </div>
           )}
 
-          {/* TAB 6: Print Station */}
+          {/* TAB 6: Print Station (All 130 conditions) */}
           {activeTab === 'print' && (
-            <div className="space-y-4">
-              <div className="border-b border-slate-100 pb-3">
-                <h2 className="font-jua text-lg text-slate-800">교실 힐링약국 인쇄실</h2>
-                <p className="text-xs text-slate-500">교실 서류함용 실물 워크북(A4/A5) 양식을 바로 인쇄할 수 있습니다.</p>
-              </div>
+            <WorkbookPrintTab onPrintWorkbook={onPrintWorkbook} />
+          )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                {StorageService.getConditions().slice(0, 15).map((cond) => (
-                  <div
-                    key={cond.conditionId}
-                    className="border border-slate-200 rounded-xl p-3 flex items-center justify-between bg-slate-50 hover:bg-white transition-colors"
-                  >
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 block">
-                        {cond.conditionId}
-                      </span>
-                      <h4 className="font-jua text-xs text-slate-800">{cond.name}</h4>
-                    </div>
-                    <button
-                      onClick={() => onPrintWorkbook(cond.conditionId)}
-                      className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                      title="워크북 인쇄"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* TAB: Data Safety & Backup Recovery Center */}
+          {activeTab === 'safety' && (
+            <DataSafetyTab />
           )}
 
           {/* TAB 7: Settings & Google Apps Script Setup */}

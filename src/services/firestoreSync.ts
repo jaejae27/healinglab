@@ -62,10 +62,11 @@ class FirestoreSyncManager {
     this.initialized = true;
 
     try {
-      // 1. Seed initial data to Firestore if completely empty
-      await this.checkAndSeedDefaults();
-
-      // 2. Setup Real-time Listeners
+      // 1. Setup Real-time Listeners first
+      // 2. Check and seed initial data in the background (non-blocking)
+      this.checkAndSeedDefaults().catch((err) => {
+        console.warn('Background Firestore seeding check:', err);
+      });
 
       // STUDENTS
       onSnapshot(
@@ -125,7 +126,10 @@ class FirestoreSyncManager {
             visits.push(docSnap.data() as Visit);
           });
           visits.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          onVisitsSync(visits);
+          // Safety guard: never wipe local storage if cloud snapshot returns empty
+          if (visits.length > 0) {
+            onVisitsSync(visits);
+          }
           this.notify();
         },
         (error) => {
@@ -143,7 +147,10 @@ class FirestoreSyncManager {
             logs.push(docSnap.data() as CookieLog);
           });
           logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          onCookieLogsSync(logs.slice(0, 300));
+          // Safety guard: only sync non-empty logs to prevent clearing local logs
+          if (logs.length > 0) {
+            onCookieLogsSync(logs.slice(0, 300));
+          }
           this.notify();
         },
         (error) => {
@@ -161,7 +168,9 @@ class FirestoreSyncManager {
             logs.push(docSnap.data() as GachaLog);
           });
           logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          onGachaLogsSync(logs);
+          if (logs.length > 0) {
+            onGachaLogsSync(logs);
+          }
           this.notify();
         },
         (error) => {
@@ -291,6 +300,18 @@ class FirestoreSyncManager {
       await setDoc(doc(db, 'visits', visit.visitId), cleanData(visit), { merge: true });
     } catch (err) {
       console.error(`Failed to save visit ${visit.visitId} to Firestore:`, err);
+    }
+  }
+
+  async saveVisitsBatch(visits: Visit[]) {
+    try {
+      const batch = writeBatch(db);
+      visits.forEach((vi) => {
+        batch.set(doc(db, 'visits', vi.visitId), cleanData(vi), { merge: true });
+      });
+      await batch.commit();
+    } catch (err) {
+      console.error('Failed to batch save visits to Firestore:', err);
     }
   }
 

@@ -19,6 +19,7 @@ import {
 import { INITIAL_CLASSES, INITIAL_STUDENTS, INITIAL_VISITS, DEFAULT_SETTINGS, GACHA_PRIZES, INITIAL_COOKIE_LOGS } from '../data/initialData';
 import { VIRTUAL_CONDITIONS } from '../data/conditions';
 import { FirestoreSync } from './firestoreSync';
+import { DataSafetyService } from './dataSafety';
 
 const STORAGE_KEYS = {
   CLASSES: 'healing_pharmacy_classes',
@@ -77,6 +78,9 @@ function setStoredItem<T>(key: string, value: T): void {
 
 export class StorageService {
   static init() {
+    // 0. Auto-healing safeguard: check if data was accidentally cleared
+    DataSafetyService.autoHealIfCorrupted();
+
     // 1. Local fallback initial check
     if (!localStorage.getItem(STORAGE_KEYS.CLASSES)) {
       setStoredItem(STORAGE_KEYS.CLASSES, INITIAL_CLASSES);
@@ -96,6 +100,9 @@ export class StorageService {
     if (!localStorage.getItem(STORAGE_KEYS.COOKIE_LOGS)) {
       setStoredItem(STORAGE_KEYS.COOKIE_LOGS, INITIAL_COOKIE_LOGS);
     }
+
+    // Take baseline snapshot
+    DataSafetyService.createSnapshot('앱 부팅 시점 자동 스냅샷');
 
     // 2. Initialize Firestore Cloud Real-time Synchronization
     FirestoreSync.init(
@@ -535,6 +542,7 @@ export class StorageService {
     visits.unshift(newVisit);
     setStoredItem(STORAGE_KEYS.VISITS, visits);
     FirestoreSync.saveVisit(newVisit);
+    DataSafetyService.createSnapshot(`처방전 발급: ${newVisit.studentName} (${newVisit.primaryConditionName})`);
     return newVisit;
   }
 
@@ -553,6 +561,7 @@ export class StorageService {
     setStoredItem(STORAGE_KEYS.VISITS, visits);
     FirestoreSync.saveVisit(visits[idx]);
     FirestoreSync.notify();
+    DataSafetyService.createSnapshot(`처방전 실천/상태 업데이트 (${visitId})`);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('school_mind_pharmacy_storage_updated', {
@@ -678,6 +687,7 @@ export class StorageService {
     const updatedLogs = [newLog, ...logs].slice(0, 200);
     setStoredItem(STORAGE_KEYS.COOKIE_LOGS, updatedLogs);
     FirestoreSync.addCookieLog(newLog);
+    DataSafetyService.createSnapshot(`칭찬쿠키 변동: ${student.name} (${safeAmount > 0 ? `+${safeAmount}` : safeAmount}개)`);
 
     return this.getStudentById(studentId) || null;
   }
@@ -914,5 +924,45 @@ export class StorageService {
     localStorage.removeItem(STORAGE_KEYS.SETTINGS);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_STUDENT_ID);
     this.init();
+  }
+
+  // --- DATA SAFETY & BACKUP RECOVERY ---
+  static exportDataBackup(): void {
+    DataSafetyService.exportBackupFile();
+  }
+
+  static async importDataBackup(file: File): Promise<{ success: boolean; message: string }> {
+    const res = await DataSafetyService.importBackupFile(file);
+    if (res.success) {
+      // Sync imported students & visits to Firestore
+      const students = this.getStudents();
+      const visits = this.getVisits();
+      FirestoreSync.saveStudentsBatch(students);
+      FirestoreSync.saveVisitsBatch(visits);
+    }
+    return res;
+  }
+
+  static getSafetyStatus() {
+    return DataSafetyService.getSafetyStatus();
+  }
+
+  static getSnapshots() {
+    return DataSafetyService.getSnapshots();
+  }
+
+  static restoreSnapshot(id: string) {
+    const res = DataSafetyService.restoreSnapshot(id);
+    if (res.success) {
+      const students = this.getStudents();
+      const visits = this.getVisits();
+      FirestoreSync.saveStudentsBatch(students);
+      FirestoreSync.saveVisitsBatch(visits);
+    }
+    return res;
+  }
+
+  static createManualSnapshot(reason: string) {
+    DataSafetyService.createSnapshot(reason, true);
   }
 }
