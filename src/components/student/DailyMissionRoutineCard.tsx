@@ -15,9 +15,10 @@ import {
   Award,
   AlertCircle,
   Check,
-  Lock
+  Lock,
+  FlaskConical
 } from 'lucide-react';
-import { validateMeaningfulText } from '../../utils/koreanName';
+import { validateMeaningfulText, checkIsTestStudent } from '../../utils/koreanName';
 import { checkDoneFormEligibility } from '../../utils/doneFormEligibility';
 import { StorageService } from '../../services/storage';
 import { getActionSuggestionChips, parseMissionExamples } from '../../utils/missionSuggestions';
@@ -193,8 +194,9 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
       }
     }
 
-    // Check if trying to do a NEW check-in when already checked in today
-    if (!currentDayCheckIn && alreadyCheckedInToday) {
+    // Check if trying to do a NEW check-in when already checked in today (bypassed for test students for rapid testing)
+    const isTest = checkIsTestStudent(student);
+    if (!currentDayCheckIn && alreadyCheckedInToday && !isTest) {
       setValidationError('오늘의 마음실천 기록은 이미 완료했어요! 내일 이어서 다음 일차를 기록해주세요.');
       return;
     }
@@ -778,6 +780,17 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
               />
             </div>
 
+            {/* Validation Error Message right above Action Button */}
+            {validationError && (
+              <div className="p-3 bg-rose-50 border-2 border-rose-300 rounded-xl text-xs text-rose-800 flex items-start gap-2 shadow-xs animate-shake">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span className="font-bold text-rose-900 block mb-0.5">확인이 필요해요:</span>
+                  <span>{validationError}</span>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex gap-2 pt-1">
               {isEditing && (
@@ -902,18 +915,21 @@ export const DailyMissionRoutineCard: React.FC<DailyMissionRoutineCardProps> = (
                   style={{ width: `${Math.min(100, (eligibility.daysSince / 5) * 100)}%` }}
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  StorageService.setVisitSimulatedDays(visit.visitId, 5);
-                  setSimulatedDays(5);
-                  setSelectedDay(5);
-                }}
-                className="text-[10.5px] text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 font-bold shrink-0 transition-colors"
-                title="체험 및 평가를 위해 5일차로 이동합니다 (5일차 미션 체크는 필수)"
-              >
-                ⚡ [체험용] 5일차로 이동
-              </button>
+              {checkIsTestStudent(student) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    StorageService.setVisitSimulatedDays(visit.visitId, 5);
+                    setSimulatedDays(5);
+                    setSelectedDay(5);
+                  }}
+                  className="text-[10.5px] text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-lg border border-purple-200 font-bold shrink-0 transition-colors flex items-center gap-1"
+                  title="교사가 제작한 테스트 학생 전용: 5일차 체험 루틴으로 이동합니다 (5일차 미션 체크 필수)"
+                >
+                  <FlaskConical className="w-3 h-3 text-purple-600" />
+                  <span>⚡ [체험용] 5일차로 이동</span>
+                </button>
+              )}
             </div>
           </div>
         )}

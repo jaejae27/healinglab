@@ -50,10 +50,17 @@ import {
   CheckCircle,
   Pill,
   KeyRound,
-  Cookie
+  Cookie,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  ThumbsUp,
+  XCircle
 } from 'lucide-react';
 import { TeacherPasswordChangeModal } from '../modals/TeacherPasswordChangeModal';
 import { AppFooter } from '../common/AppFooter';
+import { checkConditionSimilarity, ConditionSimilarityResult } from '../../utils/conditionSimilarity';
+import { getResearcherTitle, getNextResearcherTitle, checkTitleRewardOnApproval } from '../../utils/researchTitles';
 
 interface TeacherDashboardProps {
   onSwitchToStudent: () => void;
@@ -357,55 +364,107 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     }
   };
 
-  // Approve New Medicine Request
+  // Approve New Medicine Request (With Action Mission count cookies + Researcher Title Bonus)
   const handleApproveRequest = (req: NewConditionRequest) => {
-    const assignedId = `${req.categoryId[0].toUpperCase()}-99`;
+    // 1. Mission count determining cookies: 1, 2, or 3
+    const missionCount = req.missionIdeas && req.missionIdeas.length > 0
+      ? Math.min(3, req.missionIdeas.length)
+      : (req.missionIdea ? 1 : 1);
+    const baseCookies = missionCount;
+
+    // 2. Determine assigned ID
+    const allConds = StorageService.getConditions();
+    const catCode = req.categoryId ? req.categoryId[0].toUpperCase() : 'N';
+    const catConds = allConds.filter(c => c.categoryId === req.categoryId);
+    const assignedId = `${catCode}-${100 + catConds.length + 1}`;
+
+    // 3. Check previous approved proposals count for this student
+    const allRequests = StorageService.getNewConditionRequests();
+    const prevApprovedCount = allRequests.filter(
+      r => r.studentId === req.studentId && (r.status === 'approved' || r.status === 'accepted') && r.id !== req.id
+    ).length;
+    const newApprovedCount = prevApprovedCount + 1;
+    const titleReward = checkTitleRewardOnApproval(prevApprovedCount, newApprovedCount);
+
+    // 4. Update request record in storage
     StorageService.updateNewConditionRequest(req.id, {
       status: 'approved',
-      assignedId
+      assignedId,
+      rewardCookies: baseCookies
     });
 
-    // Add to active conditions
-    const allConds = StorageService.getConditions();
+    // 5. Add to active conditions in storage
     allConds.push({
       conditionId: assignedId,
       categoryId: req.categoryId,
       name: req.suggestedName,
-      summary: req.whenAppears || '학생들이 함께 만든 가상 증상',
-      checkItemsSample: [req.whenAppears || '이 상태가 자주 발생한다.'],
+      summary: req.whenAppears || '학생들이 함께 만든 마음신호',
+      symptoms: req.symptoms || '',
+      checkItemsSample: [
+        req.symptoms || '이 상태가 지속되어 마음이 힘들거나 지친다.',
+        req.whenAppears || '특정 상황에서 비슷한 마음 반응이 나타난다.'
+      ],
       prescriptionCandidates: req.missionIdeas && req.missionIdeas.length > 0
         ? req.missionIdeas.map((idea, idx) => ({
             id: `${assignedId}-M${idx + 1}`,
             type: 'action' as const,
-            title: `학생 제안 실천 행동 ${idx + 1}`,
+            title: `행동 처방 ${idx + 1}`,
             description: idea
           }))
         : [
             {
               id: `${assignedId}-M1`,
               type: 'action' as const,
-              title: '학생 제안 실천 행동',
+              title: '행동 처방 1',
               description: req.missionIdea || '마음을 환기하고 다정한 말 건네기'
             }
           ],
       prescriptionMedicineName: '응원비타민',
-      prescriptionAdvice: '스스로의 마음을 관찰하고 제안해준 멋진 학생의 아이디어입니다.',
+      prescriptionAdvice: `${req.studentName} 학생이 연구 제안하여 학급 공식 마음신호로 채택된 처방입니다.`,
       status: 'active',
       isStudentProposed: true
     });
     StorageService.saveConditions(allConds);
 
-    // Reward proposing student with 5 cookies
+    // 6. Award cookies to student:
+    // Base reward: 1~3 cookies based on number of action missions (1개 1개, 2개 2개, 3개 3개)
     StorageService.addCookieLog(
       req.studentId,
-      5,
-      `신약개발소 가상 증상 채택 보너스 (${req.suggestedName})`
+      baseCookies,
+      `신약개발소 [${req.suggestedName}] 정식 채택 (행동미션 ${missionCount}개)`
     );
+
+    // Bonus reward if student achieved a higher title
+    let bonusTitleCookies = 0;
+    if (titleReward && titleReward.bonusCookies > 0) {
+      bonusTitleCookies = titleReward.bonusCookies;
+      StorageService.addCookieLog(
+        req.studentId,
+        bonusTitleCookies,
+        `신약 연구원 칭호 [${titleReward.reachedTitle.name}] 달성 보너스!`
+      );
+    }
 
     setRequests(StorageService.getNewConditionRequests());
     setStudents(StorageService.getStudents());
     playChimeSound();
-    showToast(`🎉 [${req.suggestedName}] 신약이 정식 등록되었습니다! 학생에게 칭찬쿠키 5개가 보너스로 지급되었습니다.`, 'cookie');
+
+    const titleMsg = titleReward
+      ? ` 🏆 [${titleReward.reachedTitle.emoji} ${titleReward.reachedTitle.name}] 칭호 승급 보너스 +${bonusTitleCookies}🍪 추가!`
+      : '';
+    showToast(
+      `🎉 [${req.suggestedName}] 정식 마음신호 승인 완료! ${req.studentName} 학생에게 행동처방 ${missionCount}개 보상으로 칭찬쿠키 ${baseCookies}개가 지급되었습니다.${titleMsg}`,
+      'cookie'
+    );
+  };
+
+  // Reject / Reconsider proposal
+  const handleRejectRequest = (req: NewConditionRequest) => {
+    StorageService.updateNewConditionRequest(req.id, {
+      status: 'rejected'
+    });
+    setRequests(StorageService.getNewConditionRequests());
+    showToast(`신약 제안 [${req.suggestedName}]을(를) 반려 처리했습니다.`, 'info');
   };
 
   return (
@@ -1143,68 +1202,340 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           {/* TAB 5: New Medicine Lab Review */}
           {activeTab === 'new_med' && (
             <div className="space-y-4">
-              <div className="border-b border-slate-100 pb-3">
-                <h2 className="font-jua text-lg text-slate-800">신약개발소 제안 심사</h2>
-                <p className="text-xs text-slate-500">학생들이 제안한 새로운 마음신호와 처방 아이디어를 검토하고 승인합니다.</p>
+              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h2 className="font-jua text-lg text-slate-800 flex items-center gap-2">
+                    <FlaskConical className="w-5 h-5 text-purple-600" />
+                    <span>신약개발소 제안 심사 및 AI 중복률 검토</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    학생들이 제안한 새로운 마음신호의 주요 증상과 행동처방을 검토하고, AI가 분석한 기존 130종과의 중복률을 확인하여 정식 승인합니다.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-jua">
+                  <span className="bg-purple-100 text-purple-900 px-3 py-1 rounded-xl border border-purple-200">
+                    총 제안: {requests.length}건
+                  </span>
+                  <span className="bg-amber-100 text-amber-900 px-3 py-1 rounded-xl border border-amber-200">
+                    대기 중: {requests.filter((r) => r.status !== 'approved' && r.status !== 'rejected').length}건
+                  </span>
+                  <span className="bg-emerald-100 text-emerald-900 px-3 py-1 rounded-xl border border-emerald-200">
+                    승인됨: {requests.filter((r) => r.status === 'approved').length}건
+                  </span>
+                </div>
               </div>
 
-              <div className="space-y-3">
+              {/* Policy Guide Banner */}
+              <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 border border-purple-200/80 rounded-2xl p-3.5 text-xs text-purple-950 space-y-1 shadow-2xs">
+                <div className="font-jua flex items-center gap-1.5 text-sm text-purple-900">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  <span>선생님 채택 및 보상 기준 안내</span>
+                </div>
+                <p className="text-[11.5px] text-purple-900/90 leading-relaxed">
+                  • <strong>행동처방별 쿠키 지급:</strong> 승인 시 학생이 제안한 행동처방 개수에 따라 쿠키가 자동 지급됩니다 (1개 제안시 1🍪, 2개 2🍪, 3개 3🍪).
+                  <br />
+                  • <strong>신약 연구원 칭호 승급:</strong> 누적 채택 건수(1건, 3건, 5건, 10건, 20건)에 따라 연구원 칭호 승급 보너스 쿠키가 추가 지급됩니다.
+                  <br />
+                  • <strong>AI 중복률 검토 (교사 전용):</strong> 학생 화면에는 표시되지 않으며, 교사 화면에서만 130종과의 증상 중복률(%)과 유사 신호를 확인할 수 있습니다.
+                </p>
+              </div>
+
+              <div className="space-y-4">
                 {requests.length === 0 ? (
-                  <p className="text-xs text-slate-400 py-6 text-center">아직 제안된 신약이 없습니다.</p>
+                  <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-400 space-y-2">
+                    <FlaskConical className="w-10 h-10 text-purple-300 mx-auto" />
+                    <p className="font-jua text-sm text-slate-600">아직 제안된 마음신호가 없습니다.</p>
+                    <p className="text-xs text-slate-400">학생들이 학생 화면의 [신약개발소]에서 제안서를 작성하면 이곳에 등록됩니다.</p>
+                  </div>
                 ) : (
-                  requests.map((req) => (
-                    <div key={req.id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-jua text-sm text-slate-900">{req.suggestedName}</h4>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800">
-                              제안자: {req.studentName}
-                            </span>
+                  requests.map((req) => {
+                    const missionCount = req.missionIdeas && req.missionIdeas.length > 0
+                      ? Math.min(3, req.missionIdeas.length)
+                      : (req.missionIdea ? 1 : 1);
+                    const isApproved = req.status === 'approved';
+                    const isRejected = req.status === 'rejected';
+
+                    // Student Title Info
+                    const studentApprovedCount = requests.filter(
+                      (r) => r.studentId === req.studentId && r.status === 'approved'
+                    ).length;
+                    const studentTitle = getResearcherTitle(studentApprovedCount);
+                    const nextTitleInfo = getNextResearcherTitle(studentApprovedCount);
+
+                    // AI Similarity Check
+                    const similarity: ConditionSimilarityResult = checkConditionSimilarity(
+                      req,
+                      StorageService.getConditions()
+                    );
+
+                    const category = CATEGORIES.find((c) => c.id === req.categoryId);
+
+                    return (
+                      <div
+                        key={req.id}
+                        className={`border rounded-2xl p-4.5 bg-white shadow-xs transition-all ${
+                          isApproved
+                            ? 'border-emerald-200 bg-emerald-50/20'
+                            : isRejected
+                            ? 'border-slate-200 bg-slate-50/60 opacity-80'
+                            : 'border-purple-200 hover:border-purple-300'
+                        }`}
+                      >
+                        {/* Header: Name, Category, Proposer Info */}
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 border-b border-slate-100 pb-3 mb-3">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="font-jua text-base text-slate-900 flex items-center gap-1.5">
+                                <span>{req.suggestedName}</span>
+                              </h4>
+                              {category && (
+                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 flex items-center gap-1">
+                                  <span>{category.icon}</span>
+                                  <span>{category.name}</span>
+                                </span>
+                              )}
+                              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                                제안일: {req.createdAt.split('T')[0]}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-slate-600">
+                              <span className="font-bold text-slate-800 flex items-center gap-1">
+                                <span>👤 제안 학생:</span>
+                                <span className="text-purple-700 underline">{req.studentName}</span>
+                              </span>
+                              <span className="text-slate-300">|</span>
+                              <span className="flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-full font-bold text-[10.5px]">
+                                <span>{studentTitle.emoji}</span>
+                                <span>{studentTitle.name}</span>
+                                <span className="text-slate-400 font-normal">({studentApprovedCount}건 채택됨)</span>
+                              </span>
+                            </div>
                           </div>
-                          <p className="text-xs text-slate-600 mt-1">
-                            <strong>발생 상황:</strong> {req.whenAppears}
-                          </p>
-                          <div className="text-xs text-slate-600 mt-1">
-                            <strong>제안한 행동 처방 ({req.missionIdeas ? req.missionIdeas.length : 1}개):</strong>
-                            {req.missionIdeas && req.missionIdeas.length > 0 ? (
-                              <ul className="list-disc list-inside mt-0.5 space-y-0.5 pl-1 text-[11.5px] text-slate-700">
-                                {req.missionIdeas.map((idea, i) => (
-                                  <li key={i}>{idea}</li>
-                                ))}
-                              </ul>
+
+                          {/* Status Badge */}
+                          <div className="shrink-0 flex items-center gap-2">
+                            {isApproved ? (
+                              <div className="text-right">
+                                <span className="text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-xl flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>정식 승인됨 ({req.assignedId})</span>
+                                </span>
+                                <span className="text-[10.5px] text-emerald-700 block mt-0.5 font-mono">
+                                  쿠키 +{req.rewardCookies || missionCount}개 지급 완료
+                                </span>
+                              </div>
+                            ) : isRejected ? (
+                              <span className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-300 px-3 py-1 rounded-xl">
+                                반려 처리됨
+                              </span>
                             ) : (
-                              <span className="ml-1">{req.missionIdea}</span>
+                              <span className="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 px-3 py-1 rounded-xl animate-pulse">
+                                ⏳ 교사 심사 대기
+                              </span>
                             )}
                           </div>
-                          {req.rewardCookies && (
-                            <span className="inline-block mt-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
-                              🍪 제안 보상: {req.rewardCookies}개 지급됨
-                            </span>
+                        </div>
+
+                        {/* Proposal Content: When, Symptoms, Prescriptions */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-3.5">
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                            <div>
+                              <span className="font-bold text-purple-900 block mb-0.5">
+                                🕒 발생 상황 (언제 나타나나요?):
+                              </span>
+                              <p className="text-slate-700 leading-relaxed bg-white p-2 rounded-lg border border-slate-200/70">
+                                {req.whenAppears || '내용 없음'}
+                              </p>
+                            </div>
+
+                            <div>
+                              <span className="font-bold text-indigo-900 block mb-0.5">
+                                🩺 주요 증상:
+                              </span>
+                              <p className="text-slate-700 leading-relaxed bg-white p-2 rounded-lg border border-slate-200/70">
+                                {req.symptoms || (
+                                  <span className="text-slate-400 italic">
+                                    (신규 문항 추가 전 작성된 제안서로 별도 증상 설명 없음)
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5 flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-bold text-slate-800">
+                                  💊 제안한 행동 처방 ({missionCount}개):
+                                </span>
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                                  채택 시 +{missionCount} 🍪
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                {req.missionIdeas && req.missionIdeas.length > 0 ? (
+                                  req.missionIdeas.map((idea, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="bg-white p-2 rounded-lg border border-slate-200/70 flex items-start gap-1.5"
+                                    >
+                                      <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-800 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                                        {idx + 1}
+                                      </span>
+                                      <span className="text-slate-700 text-[11.5px] leading-snug">
+                                        {idea}
+                                      </span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="bg-white p-2 rounded-lg border border-slate-200/70 flex items-start gap-1.5">
+                                    <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-800 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                                      1
+                                    </span>
+                                    <span className="text-slate-700 text-[11.5px] leading-snug">
+                                      {req.missionIdea || req.whenAppears}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* AI Duplicate Rate & Similarity Inspection Box (TEACHER ONLY) */}
+                        <div
+                          className={`rounded-xl p-3.5 border mb-3.5 transition-colors ${
+                            similarity.level === 'high'
+                              ? 'bg-rose-50/70 border-rose-200 text-rose-950'
+                              : similarity.level === 'medium'
+                              ? 'bg-amber-50/70 border-amber-200 text-amber-950'
+                              : 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">
+                                {similarity.level === 'high' ? '⚠️' : similarity.level === 'medium' ? '⚡' : '✨'}
+                              </span>
+                              <span className="font-jua text-xs flex items-center gap-1.5">
+                                <span>AI 증상 중복률 정밀 분석</span>
+                                <span className="text-[10px] text-slate-500 font-normal">(교사 전용 화면)</span>
+                              </span>
+                            </div>
+
+                            {/* Duplicate Rate Score Badge */}
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full font-mono shadow-2xs ${
+                                  similarity.level === 'high'
+                                    ? 'bg-rose-600 text-white'
+                                    : similarity.level === 'medium'
+                                    ? 'bg-amber-500 text-white'
+                                    : 'bg-emerald-600 text-white'
+                                }`}
+                              >
+                                중복률: {similarity.duplicateRate}%
+                              </span>
+                              <span className="text-[10.5px] font-bold">
+                                {similarity.levelLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="text-[11.5px] leading-relaxed mb-2 opacity-95">
+                            {similarity.aiReviewAdvice}
+                          </p>
+
+                          {/* Matched Keywords Tags */}
+                          {similarity.matchingKeywords && similarity.matchingKeywords.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1 mb-2 pt-1 border-t border-slate-200/50">
+                              <span className="text-[10px] font-bold text-slate-600">감지된 주요 키워드:</span>
+                              {similarity.matchingKeywords.map((kw, i) => (
+                                <span
+                                  key={i}
+                                  className="text-[10px] font-medium bg-white/80 px-1.5 py-0.5 rounded border border-slate-200/60 text-slate-700 font-mono"
+                                >
+                                  #{kw}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Similar Existing Condition if detected */}
+                          {similarity.matchedCondition && (
+                            <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200/70 text-[11px] space-y-1">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-slate-800">
+                                    유사 기존 신호: [{similarity.matchedCondition.conditionId}] {similarity.matchedCondition.name}
+                                  </span>
+                                </div>
+                                <span className="font-mono font-bold text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded text-[10px] shrink-0">
+                                  유사도 {similarity.matchedCondition.score}%
+                                </span>
+                              </div>
+                              <p className="text-slate-600 text-[10.5px] leading-relaxed">
+                                {similarity.matchedCondition.summary}
+                              </p>
+                            </div>
                           )}
                         </div>
 
-                        <div>
-                          {req.status === 'approved' ? (
-                            <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg">
-                              승인됨 ({req.assignedId})
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => handleApproveRequest(req)}
-                              className="bg-purple-600 hover:bg-purple-700 text-white font-jua text-xs px-3 py-1.5 rounded-xl shadow-xs"
-                            >
-                              정식 마음신호로 승인 (+5쿠키)
-                            </button>
-                          )}
-                        </div>
+                        {/* Approval / Rejection Action Area */}
+                        {!isApproved && (
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                            <div className="text-xs text-slate-600 flex items-center gap-2">
+                              <span>
+                                💡 채택 시 보상:{' '}
+                                <strong className="text-amber-700">칭찬쿠키 +{missionCount}개</strong>
+                                <span className="text-slate-400 text-[10.5px] ml-1">
+                                  (작성 처방 {missionCount}개 기준)
+                                </span>
+                              </span>
+                              {nextTitleInfo && nextTitleInfo.remaining === 1 && (
+                                <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                  <span>🏆</span>
+                                  <span>
+                                    채택 시 [{nextTitleInfo.nextTitle.name}] 승급 (+{nextTitleInfo.nextTitle.bonusCookies}🍪)
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 ml-auto">
+                              {!isRejected && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`[${req.suggestedName}] 제안을 반려 처리하시겠습니까?`)) {
+                                      handleRejectRequest(req);
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-jua text-xs transition-colors"
+                                >
+                                  반려
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleApproveRequest(req)}
+                                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-jua text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-transform active:scale-95"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5 text-amber-200" />
+                                <span>정식 마음신호로 승인 (+{missionCount}쿠키 지급)</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
           )}
+
 
           {/* TAB 6: Print Station (All 130 conditions) */}
           {activeTab === 'print' && (

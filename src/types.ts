@@ -30,6 +30,10 @@ export interface PrescriptionCandidate {
 export interface VirtualCondition {
   conditionId: string; // e.g. S-01, A-06
   categoryId: CategoryId;
+  category?: CategoryId; // Category identifier (e.g. self, friends, study, etc.)
+  categoryLabel?: string; // Formatted label (e.g. 🙋 나 자신)
+  categoryName?: string; // Human-friendly name without icon (e.g. 나 자신)
+  categoryIcon?: string; // Category emoji icon (e.g. 🙋)
   name: string; // e.g. 계획만거창해증
   summary: string; // e.g. 계획은 완벽한데 시작이 잘 안 되는 상태
   badge?: string;
@@ -37,6 +41,7 @@ export interface VirtualCondition {
   prescriptionCandidates: PrescriptionCandidate[]; // 6 distinct prescriptions
   prescriptionMedicineName: string; // e.g. 일단시작정, 생각정리제
   prescriptionAdvice: string; // Advice printed on reward card
+  symptoms?: string;
   isStudentProposed?: boolean;
   proposedBy?: string;
   status: 'active' | 'inactive';
@@ -121,6 +126,7 @@ export interface Student {
   preTest?: AssessmentResult;
   postTest?: AssessmentResult;
   pin?: string; // 학생 로그인 비밀번호 (기본값 '0000')
+  isTestStudent?: boolean; // 교사가 생성한 체험/테스트용 학생 여부
 }
 
 export interface MissionItemCheck {
@@ -247,6 +253,7 @@ export interface NewConditionRequest {
   suggestedName: string;
   categoryId: CategoryId;
   whenAppears: string;
+  symptoms?: string; // 이 마음신호의 주요 증상
   helpNeeded: string;
   missionIdea: string;
   missionIdeas?: string[];
@@ -256,6 +263,15 @@ export interface NewConditionRequest {
   assignedConditionId?: string;
   teacherNote?: string;
   createdAt: string;
+}
+
+export interface ResearcherTitle {
+  tier: number;
+  requiredApprovals: number;
+  name: string;
+  emoji: string;
+  bonusCookies: number;
+  description: string;
 }
 
 export interface CookieLog {

@@ -18,6 +18,7 @@ import {
 } from '../types';
 import { INITIAL_CLASSES, INITIAL_STUDENTS, INITIAL_VISITS, DEFAULT_SETTINGS, GACHA_PRIZES, INITIAL_COOKIE_LOGS } from '../data/initialData';
 import { VIRTUAL_CONDITIONS } from '../data/conditions';
+import { CATEGORIES, normalizeCategory, getCategoryFormatted } from '../data/categories';
 import { FirestoreSync } from './firestoreSync';
 import { DataSafetyService } from './dataSafety';
 
@@ -38,6 +39,9 @@ const STORAGE_KEYS = {
 };
 
 function getStoredItem<T>(key: string, defaultValue: T): T {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return defaultValue;
+  }
   try {
     const raw = localStorage.getItem(key);
     if (!raw || raw === 'undefined' || raw === 'null') return defaultValue;
@@ -57,6 +61,9 @@ function getStoredItem<T>(key: string, defaultValue: T): T {
 }
 
 function setStoredItem<T>(key: string, value: T): void {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return;
+  }
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
@@ -91,7 +98,8 @@ export class StorageService {
     if (!localStorage.getItem(STORAGE_KEYS.VISITS)) {
       setStoredItem(STORAGE_KEYS.VISITS, INITIAL_VISITS);
     }
-    if (!localStorage.getItem(STORAGE_KEYS.CONDITIONS)) {
+    const existingConds = getStoredItem<VirtualCondition[]>(STORAGE_KEYS.CONDITIONS, []);
+    if (!existingConds || existingConds.length < 130 || existingConds.some((c) => !(c.category || c.categoryId))) {
       setStoredItem(STORAGE_KEYS.CONDITIONS, VIRTUAL_CONDITIONS);
     }
     if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
@@ -519,6 +527,11 @@ export class StorageService {
       if (canonical) {
         return {
           ...s,
+          categoryId: canonical.categoryId,
+          category: canonical.categoryId,
+          categoryLabel: canonical.categoryLabel,
+          categoryName: canonical.categoryName,
+          categoryIcon: canonical.categoryIcon,
           name: canonical.name,
           summary: canonical.summary,
           prescriptionMedicineName: canonical.prescriptionMedicineName,
@@ -527,7 +540,13 @@ export class StorageService {
           checkItemsSample: canonical.checkItemsSample
         };
       }
-      return s;
+      const catNorm = normalizeCategory(s.categoryId || s.category) as any;
+      return {
+        ...s,
+        categoryId: catNorm,
+        category: catNorm,
+        categoryLabel: getCategoryFormatted(catNorm)
+      };
     });
   }
 
@@ -713,6 +732,234 @@ export class StorageService {
     DataSafetyService.createSnapshot(`칭찬쿠키 변동: ${student.name} (${safeAmount > 0 ? `+${safeAmount}` : safeAmount}개)`);
 
     return this.getStudentById(studentId) || null;
+  }
+
+  // Reset Cookies for Single Student (preserves all other data!)
+  static resetStudentCookies(
+    studentId: string,
+    reason: string = '선생님에 의한 쿠키 초기화 (0개로 변경)',
+    clearLogs: boolean = false,
+    clearCumulative: boolean = false
+  ): Student | null {
+    const student = this.getStudentById(studentId);
+    if (!student) return null;
+
+    const oldBalance = student.cookieBalance || 0;
+    this.updateStudent(studentId, { cookieBalance: 0 });
+
+    if (clearLogs || clearCumulative) {
+      const logs = this.getCookieLogs().filter((l) => l.studentId !== studentId);
+      setStoredItem(STORAGE_KEYS.COOKIE_LOGS, logs);
+    } else if (oldBalance !== 0) {
+      const logs = this.getCookieLogs();
+      const newLog: CookieLog = {
+        id: `CK-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        studentId,
+        studentName: student.name,
+        amount: -oldBalance,
+        reason,
+        balanceAfter: 0,
+        createdAt: new Date().toISOString()
+      };
+      const updatedLogs = [newLog, ...logs].slice(0, 200);
+      setStoredItem(STORAGE_KEYS.COOKIE_LOGS, updatedLogs);
+      FirestoreSync.addCookieLog(newLog);
+    }
+
+    DataSafetyService.createSnapshot(`칭찬쿠키 초기화: ${student.name} (0개로 변경)`);
+    return this.getStudentById(studentId) || null;
+  }
+
+  // Batch Reset Cookies for multiple students (preserves all other data!)
+  static resetStudentsCookiesBatch(
+    studentIds: string[],
+    reason: string = '선생님에 의한 학생 쿠키 일괄 초기화 (0개)',
+    clearLogs: boolean = false
+  ): { updatedCount: number } {
+    let count = 0;
+    const now = new Date().toISOString();
+    const students = this.getStudents();
+    const idSet = new Set(studentIds);
+    const logs = this.getCookieLogs();
+    const newLogs: CookieLog[] = [];
+
+    const updatedStudents = students.map((st) => {
+      if (idSet.has(st.id)) {
+        count++;
+        const oldBalance = st.cookieBalance || 0;
+        if (!clearLogs && oldBalance !== 0) {
+          const newLog: CookieLog = {
+            id: `CK-${Date.now()}-${Math.random().toString(36).substr(2, 4)}-${count}`,
+            studentId: st.id,
+            studentName: st.name,
+            amount: -oldBalance,
+            reason,
+            balanceAfter: 0,
+            createdAt: now
+          };
+          newLogs.push(newLog);
+          FirestoreSync.addCookieLog(newLog);
+        }
+        return { ...st, cookieBalance: 0 };
+      }
+      return st;
+    });
+
+    setStoredItem(STORAGE_KEYS.STUDENTS, updatedStudents);
+    const targetStudents = updatedStudents.filter((s) => idSet.has(s.id));
+    FirestoreSync.saveStudentsBatch(targetStudents);
+
+    if (clearLogs) {
+      const remainingLogs = logs.filter((l) => !idSet.has(l.studentId));
+      setStoredItem(STORAGE_KEYS.COOKIE_LOGS, remainingLogs);
+    } else if (newLogs.length > 0) {
+      const mergedLogs = [...newLogs, ...logs].slice(0, 200);
+      setStoredItem(STORAGE_KEYS.COOKIE_LOGS, mergedLogs);
+    }
+
+    DataSafetyService.createSnapshot(`칭찬쿠키 일괄 초기화 (${count}명)`);
+    return { updatedCount: count };
+  }
+
+  // Reset All Students' Cookies across the school (preserves all other data!)
+  static resetAllStudentsCookies(
+    reason: string = '선생님에 의한 전교생 쿠키 전체 초기화 (0개)',
+    clearLogs: boolean = false
+  ): { updatedCount: number } {
+    const students = this.getStudents();
+    const allIds = students.map((s) => s.id);
+    return this.resetStudentsCookiesBatch(allIds, reason, clearLogs);
+  }
+
+  // Clear all cookie logs history (preserves all other data!)
+  static clearCookieLogs(): void {
+    setStoredItem(STORAGE_KEYS.COOKIE_LOGS, []);
+    DataSafetyService.createSnapshot('칭찬쿠키 변동 로그 내역 전체 초기화');
+  }
+
+  // Reset Cumulative Rewarded Cookies ('누적 지급 칭찬쿠키' +0개 초기화)
+  static resetCumulativeRewarded(targetStudentIds?: string[]): { affectedLogsCount: number } {
+    DataSafetyService.createSnapshot('누적 지급 칭찬쿠키 통계 초기화');
+    const logs = this.getCookieLogs();
+    const idSet = targetStudentIds && targetStudentIds.length > 0 ? new Set(targetStudentIds) : null;
+
+    const remainingLogs = logs.filter((log) => {
+      if (idSet && !idSet.has(log.studentId)) return true;
+      return log.amount <= 0; // retain deductions/spins, clear rewards
+    });
+
+    const affectedLogsCount = logs.length - remainingLogs.length;
+    setStoredItem(STORAGE_KEYS.COOKIE_LOGS, remainingLogs);
+    return { affectedLogsCount };
+  }
+
+  // Reset Cumulative Spent Cookies ('누적 쿠키 사용(가챠)' -0개 초기화)
+  static resetCumulativeSpent(
+    targetStudentIds?: string[],
+    clearGachaLogs: boolean = false
+  ): { affectedLogsCount: number } {
+    DataSafetyService.createSnapshot('누적 쿠키 사용(가챠) 통계 초기화');
+    const logs = this.getCookieLogs();
+    const idSet = targetStudentIds && targetStudentIds.length > 0 ? new Set(targetStudentIds) : null;
+
+    const remainingLogs = logs.filter((log) => {
+      if (idSet && !idSet.has(log.studentId)) return true;
+      return log.amount >= 0; // retain rewards, clear deductions
+    });
+
+    const affectedLogsCount = logs.length - remainingLogs.length;
+    setStoredItem(STORAGE_KEYS.COOKIE_LOGS, remainingLogs);
+
+    if (clearGachaLogs) {
+      if (idSet) {
+        const remainingGacha = this.getGachaLogs().filter((gl) => !idSet.has(gl.studentId));
+        setStoredItem(STORAGE_KEYS.GACHA_LOGS, remainingGacha);
+      } else {
+        setStoredItem(STORAGE_KEYS.GACHA_LOGS, []);
+      }
+    }
+
+    return { affectedLogsCount };
+  }
+
+  // Comprehensive Multi-Option Reset for Cookies and Cumulative Stats
+  static resetCookieSystemComprehensive(options: {
+    targetStudentIds?: string[];
+    resetBalances: boolean;
+    resetRewarded: boolean;
+    resetSpent: boolean;
+    clearGachaLogs?: boolean;
+    reason?: string;
+  }): {
+    updatedStudentsCount: number;
+    clearedLogsCount: number;
+  } {
+    DataSafetyService.createSnapshot('칭찬쿠키 및 누적 통계 종합 초기화');
+    const {
+      targetStudentIds,
+      resetBalances,
+      resetRewarded,
+      resetSpent,
+      clearGachaLogs = false
+    } = options;
+
+    const idSet = targetStudentIds && targetStudentIds.length > 0 ? new Set(targetStudentIds) : null;
+    let updatedStudentsCount = 0;
+
+    // 1. Reset balances if requested
+    if (resetBalances) {
+      const students = this.getStudents();
+      const updatedStudents = students.map((st) => {
+        if (!idSet || idSet.has(st.id)) {
+          if ((st.cookieBalance || 0) !== 0) updatedStudentsCount++;
+          return { ...st, cookieBalance: 0 };
+        }
+        return st;
+      });
+      setStoredItem(STORAGE_KEYS.STUDENTS, updatedStudents);
+      const affected = updatedStudents.filter((s) => !idSet || idSet.has(s.id));
+      FirestoreSync.saveStudentsBatch(affected);
+    }
+
+    // 2. Filter cookie logs based on resetRewarded & resetSpent
+    const currentLogs = this.getCookieLogs();
+    const remainingLogs = currentLogs.filter((log) => {
+      if (idSet && !idSet.has(log.studentId)) return true;
+      if (resetRewarded && log.amount > 0) return false;
+      if (resetSpent && log.amount < 0) return false;
+      if (resetBalances && resetRewarded && resetSpent) return false;
+      return true;
+    });
+
+    const clearedLogsCount = currentLogs.length - remainingLogs.length;
+    setStoredItem(STORAGE_KEYS.COOKIE_LOGS, remainingLogs);
+
+    // 3. Clear gacha logs if requested
+    if (clearGachaLogs) {
+      if (idSet) {
+        const remainingGacha = this.getGachaLogs().filter((gl) => !idSet.has(gl.studentId));
+        setStoredItem(STORAGE_KEYS.GACHA_LOGS, remainingGacha);
+      } else {
+        setStoredItem(STORAGE_KEYS.GACHA_LOGS, []);
+      }
+    }
+
+    return {
+      updatedStudentsCount,
+      clearedLogsCount
+    };
+  }
+
+  // Clear Gacha Logs
+  static clearGachaLogs(targetStudentIds?: string[]): void {
+    if (targetStudentIds && targetStudentIds.length > 0) {
+      const idSet = new Set(targetStudentIds);
+      const remaining = this.getGachaLogs().filter((l) => !idSet.has(l.studentId));
+      setStoredItem(STORAGE_KEYS.GACHA_LOGS, remaining);
+    } else {
+      setStoredItem(STORAGE_KEYS.GACHA_LOGS, []);
+    }
+    DataSafetyService.createSnapshot('칭찬가챠 뽑기 기록 초기화');
   }
 
   // Gacha System

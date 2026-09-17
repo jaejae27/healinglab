@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { StorageService } from '../../services/storage';
+import { CATEGORIES } from '../../data/categories';
 import { VirtualCondition } from '../../types';
 import { Printer, ArrowLeft } from 'lucide-react';
 
@@ -77,26 +78,44 @@ export const WorkbookPrintView: React.FC<WorkbookPrintViewProps> = ({
 
       {/* Printable Sheet Container(s) */}
       <div className="w-full flex flex-col items-center space-y-8 print:space-y-0">
-        {conditions.map((condition) => (
-          <div
-            key={condition.conditionId}
-            style={{ breakAfter: 'page', pageBreakAfter: 'always' }}
-            className="w-full max-w-2xl bg-white border-2 border-slate-300 print:border-none p-8 rounded-2xl print:p-4 text-slate-900 shadow-lg print:shadow-none print:w-full print:m-0"
-          >
-            {/* Header */}
-            <div className="border-b-2 border-slate-800 pb-3 mb-4 flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-slate-900 text-white font-mono font-bold text-xs px-2 py-0.5 rounded">
-                    HEALING PHARMACY WORKBOOK
-                  </span>
-                  <span className="font-bold text-xs text-slate-600">사회정서 마음 처방전</span>
+        {conditions.map((condition) => {
+          const catMeta = CATEGORIES.find(
+            (c) => c.id === (condition.category || condition.categoryId)
+          );
+
+          return (
+            <div
+              key={condition.conditionId}
+              style={{ breakAfter: 'page', pageBreakAfter: 'always' }}
+              className="w-full max-w-2xl bg-white border-2 border-slate-300 print:border-none p-8 rounded-2xl print:p-4 text-slate-900 shadow-lg print:shadow-none print:w-full print:m-0"
+            >
+              {/* Header */}
+              <div className="border-b-2 border-slate-800 pb-3 mb-4 flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-slate-900 text-white font-mono font-bold text-xs px-2 py-0.5 rounded">
+                      HEALING PHARMACY WORKBOOK
+                    </span>
+                    <span className="font-bold text-xs text-slate-600">사회정서 마음 처방전</span>
+                    {catMeta && (
+                      <span
+                        className="text-[11px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 print:border-slate-400"
+                        style={{
+                          backgroundColor: catMeta.bgLight,
+                          color: catMeta.color,
+                          borderColor: catMeta.borderColor
+                        }}
+                      >
+                        <span>{catMeta.icon}</span>
+                        <span>{catMeta.name}</span>
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="font-jua text-2xl mt-1 tracking-tight">
+                    [{condition.conditionId}] {condition.name}
+                  </h1>
+                  <p className="text-xs text-slate-600 mt-0.5 italic">"{condition.summary}"</p>
                 </div>
-                <h1 className="font-jua text-2xl mt-1 tracking-tight">
-                  [{condition.conditionId}] {condition.name}
-                </h1>
-                <p className="text-xs text-slate-600 mt-0.5 italic">"{condition.summary}"</p>
-              </div>
 
               {/* Student Info Stamp Box */}
               <div className="border border-slate-400 text-xs rounded divide-y divide-slate-300 text-center w-48 shrink-0">
@@ -186,7 +205,8 @@ export const WorkbookPrintView: React.FC<WorkbookPrintViewProps> = ({
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

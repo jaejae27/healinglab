@@ -25,19 +25,39 @@ export const WorkbookPrintTab: React.FC<WorkbookPrintTabProps> = ({ onPrintWorkb
 
   const allConditions = useMemo(() => StorageService.getConditions(), []);
 
+  // 130종 전체 데이터 무결성 검증 (총 130개 & 카테고리 누락 방지)
+  const validationResult = useMemo(() => {
+    const totalCount = allConditions.length;
+    const missingCategory = allConditions.filter((c) => !(c.category || c.categoryId));
+    const validCategories = new Set(CATEGORIES.map((cat) => cat.id));
+    const unknownCategory = allConditions.filter(
+      (c) => !validCategories.has((c.category || c.categoryId) as any)
+    );
+
+    const isValid = totalCount === 130 && missingCategory.length === 0 && unknownCategory.length === 0;
+
+    return {
+      isValid,
+      totalCount,
+      missingCount: missingCategory.length,
+      unknownCount: unknownCategory.length
+    };
+  }, [allConditions]);
+
   // Category counts
   const categoryCounts = useMemo(() => {
     const map: Record<string, number> = { all: allConditions.length };
     CATEGORIES.forEach((cat) => {
-      map[cat.id] = allConditions.filter((c) => c.category === cat.id).length;
+      map[cat.id] = allConditions.filter((c) => (c.category || c.categoryId) === cat.id).length;
     });
     return map;
   }, [allConditions]);
 
-  // Filtered conditions
+  // Filtered conditions (카테고리 필터와 검색어 동시 적용)
   const filteredConditions = useMemo(() => {
     return allConditions.filter((c) => {
-      const matchCat = selectedCategory === 'all' || c.category === selectedCategory;
+      const condCat = c.category || c.categoryId;
+      const matchCat = selectedCategory === 'all' || condCat === selectedCategory;
       const q = searchQuery.trim().toLowerCase();
       if (!q) return matchCat;
 
@@ -92,9 +112,12 @@ export const WorkbookPrintTab: React.FC<WorkbookPrintTabProps> = ({ onPrintWorkb
     onPrintWorkbook(allConditions.map((c) => c.conditionId));
   };
 
-  const getCategoryMeta = (catId: string) => {
+  const getCategoryMeta = (catId?: string) => {
+    if (!catId) return undefined;
     return CATEGORIES.find((c) => c.id === catId);
   };
+
+  const currentCategoryMeta = selectedCategory !== 'all' ? getCategoryMeta(selectedCategory) : null;
 
   return (
     <div className="space-y-5">
@@ -142,7 +165,11 @@ export const WorkbookPrintTab: React.FC<WorkbookPrintTabProps> = ({ onPrintWorkb
               className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-jua shadow-md shadow-indigo-900/50 transition-all hover:scale-[1.02] cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>현재 목록 ({filteredConditions.length}종) 인쇄</span>
+              <span>
+                {currentCategoryMeta
+                  ? `${currentCategoryMeta.name} (${filteredConditions.length}종) 인쇄`
+                  : `현재 목록 (${filteredConditions.length}종) 인쇄`}
+              </span>
             </button>
           )}
         </div>
@@ -239,7 +266,7 @@ export const WorkbookPrintTab: React.FC<WorkbookPrintTabProps> = ({ onPrintWorkb
       {/* Condition Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filteredConditions.map((cond) => {
-          const catMeta = getCategoryMeta(cond.category);
+          const catMeta = getCategoryMeta(cond.category || cond.categoryId);
           const isChecked = selectedIds.includes(cond.conditionId);
 
           return (

@@ -53,7 +53,7 @@ function setupHealingPharmacy() {
     { name: 'FORTUNE_LOG', headers: ['log_id', 'student_id', 'fortune_id', 'is_best', 'saved_at'] },
     { name: 'WORRY_GACHA', headers: ['hint_id', 'hint_text', 'category'] },
     { name: 'WORRY_CHALLENGES', headers: ['challenge_id', 'student_id', 'hint', 'tested', 'rating', 'will_use_again', 'reflection', 'created_at'] },
-    { name: 'NEW_CONDITION_REQUESTS', headers: ['request_id', 'student_id', 'suggested_name', 'category_id', 'when_appears', 'help_needed', 'mission_idea', 'status', 'assigned_id', 'created_at'] },
+    { name: 'NEW_CONDITION_REQUESTS', headers: ['request_id', 'student_id', 'student_name', 'suggested_name', 'category_id', 'when_appears', 'symptoms', 'mission_ideas_json', 'status', 'assigned_id', 'reward_cookies', 'created_at'] },
     { name: 'REPORT_LOG', headers: ['report_id', 'type', 'student_id', 'generated_at'] },
     { name: 'STUDENT_RECORD_SENTENCES', headers: ['record_id', 'student_id', 'source_visit_id', 'ai_draft_sentence', 'created_at'] }
   ];
@@ -216,6 +216,12 @@ function doPost(e) {
       result.result = handleTeacherVerifyVisit(payload);
     } else if (action === 'drawGacha') {
       result.prize = handleDrawGacha(payload);
+    } else if (action === 'submitNewCondition') {
+      result.requestId = handleSubmitNewCondition(payload);
+    } else if (action === 'approveNewCondition') {
+      result.result = handleApproveNewCondition(payload);
+    } else if (action === 'rejectNewCondition') {
+      result.result = handleRejectNewCondition(payload);
     }
   } catch (err) {
     result = { status: 'error', message: err.toString() };
@@ -255,6 +261,125 @@ function handleDrawGacha(data) {
   return prize;
 }
 
+function handleSubmitNewCondition(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const reqId = 'REQ-' + Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyyMMdd-HHmmss');
+  const missionsJson = JSON.stringify(data.missionIdeas || (data.missionIdea ? [data.missionIdea] : []));
+  
+  ss.getSheetByName('NEW_CONDITION_REQUESTS').appendRow([
+    reqId,
+    data.studentId,
+    data.studentName || '',
+    data.suggestedName,
+    data.categoryId,
+    data.whenAppears || '',
+    data.symptoms || '',
+    missionsJson,
+    'pending',
+    '',
+    0,
+    new Date()
+  ]);
+  return reqId;
+}
+
+function handleApproveNewCondition(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const reqSheet = ss.getSheetByName('NEW_CONDITION_REQUESTS');
+  const rows = reqSheet.getDataRange().getValues();
+  let targetRowIdx = -1;
+  let reqData = null;
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(data.requestId)) {
+      targetRowIdx = i + 1;
+      reqData = {
+        requestId: rows[i][0],
+        studentId: rows[i][1],
+        studentName: rows[i][2],
+        suggestedName: rows[i][3],
+        categoryId: rows[i][4],
+        whenAppears: rows[i][5],
+        symptoms: rows[i][6],
+        missionsJson: rows[i][7]
+      };
+      break;
+    }
+  }
+
+  if (targetRowIdx === -1 || !reqData) {
+    throw new Error('해당 신약 제안 요청을 찾을 수 없습니다.');
+  }
+
+  let missionIdeas = [];
+  try {
+    missionIdeas = JSON.parse(reqData.missionsJson || '[]');
+  } catch (e) {
+    missionIdeas = ['마음 환기하기'];
+  }
+  const missionCount = Math.min(3, Math.max(1, missionIdeas.length));
+  const baseRewardCookies = missionCount;
+
+  const condSheet = ss.getSheetByName('CONDITIONS');
+  const condRows = condSheet.getDataRange().getValues();
+  const assignedId = 'NEW-' + String(condRows.length).padStart(3, '0');
+
+  condSheet.appendRow([
+    assignedId,
+    reqData.categoryId,
+    reqData.suggestedName,
+    reqData.whenAppears,
+    '응원비타민',
+    reqData.studentName + ' 학생이 연구 제안하여 채택된 처방입니다.',
+    'active',
+    true
+  ]);
+
+  reqSheet.getRange(targetRowIdx, 9).setValue('approved');
+  reqSheet.getRange(targetRowIdx, 10).setValue(assignedId);
+  reqSheet.getRange(targetRowIdx, 11).setValue(baseRewardCookies);
+
+  adjustStudentCookie(
+    reqData.studentId,
+    baseRewardCookies,
+    '신약개발소 [' + reqData.suggestedName + '] 정식 채택 (행동미션 ' + missionCount + '개)'
+  );
+
+  const allReqs = rows.slice(1);
+  const studentApprovedCount = allReqs.filter(r => String(r[1]) === String(reqData.studentId) && r[8] === 'approved').length + 1;
+
+  let bonusCookies = 0;
+  let titleName = '';
+  if (studentApprovedCount === 1) { bonusCookies = 2; titleName = '주니어 신약 연구원'; }
+  else if (studentApprovedCount === 3) { bonusCookies = 2; titleName = '어시스턴트 연구원'; }
+  else if (studentApprovedCount === 5) { bonusCookies = 3; titleName = '선임 마음 연구원'; }
+  else if (studentApprovedCount === 10) { bonusCookies = 5; titleName = '수석 힐링 연구원'; }
+  else if (studentApprovedCount === 15) { bonusCookies = 7; titleName = '명예 연구교수'; }
+  else if (studentApprovedCount === 20) { bonusCookies = 10; titleName = '전설의 신약 명장'; }
+
+  if (bonusCookies > 0) {
+    adjustStudentCookie(
+      reqData.studentId,
+      bonusCookies,
+      '신약 연구원 칭호 [' + titleName + '] 승급 보너스!'
+    );
+  }
+
+  return {
+    success: true,
+    assignedId: assignedId,
+    rewardCookies: baseRewardCookies,
+    titleUpgraded: bonusCookies > 0,
+    titleName: titleName,
+    bonusCookies: bonusCookies
+  };
+}
+
+function handleRejectNewCondition(data) {
+  updateRowByKey('NEW_CONDITION_REQUESTS', 'request_id', data.requestId, { status: 'rejected' });
+  return { success: true };
+}
+
 function adjustStudentCookie(studentId, amount, reason) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('STUDENTS');
@@ -275,7 +400,8 @@ function getFullInitialData() {
   return {
     students: getTableData('STUDENTS'),
     conditions: getTableData('CONDITIONS'),
-    visits: getTableData('VISITS')
+    visits: getTableData('VISITS'),
+    newConditions: getTableData('NEW_CONDITION_REQUESTS')
   };
 }
 
@@ -485,6 +611,18 @@ export function generateGasIndexHtml(): string {
           <p class="text-base font-black text-[#1E40AF] font-jua">칭찬쿠키 가챠</p>
         </button>
       </div>
+
+      <!-- New Medicine Lab Banner Button -->
+      <button onclick="openNewMedModal()" class="w-full bg-gradient-to-r from-purple-50 to-pink-50 border-4 border-white rounded-[32px] p-4 flex items-center justify-between shadow-lg hover:scale-[1.01] transition-all">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-purple-200 rounded-2xl flex items-center justify-center text-2xl shadow-xs">🧪</div>
+          <div class="text-left">
+            <p class="text-sm font-black text-purple-900 font-jua">신약개발소 (새 마음신호 연구)</p>
+            <p class="text-[11px] text-purple-700">언제 나타나는지 & 주요 증상 & 행동처방 제안</p>
+          </div>
+        </div>
+        <span class="text-xs font-jua text-purple-600 bg-white px-3 py-1.5 rounded-xl shadow-xs border border-purple-100">제안하기 ➔</span>
+      </button>
     </div>
 
     <!-- Diagnosis Flow -->
@@ -559,17 +697,112 @@ export function generateGasIndexHtml(): string {
     <!-- Teacher Dashboard -->
     <div id="viewTeacher" class="hidden space-y-4">
       <div class="bg-white/85 border-4 border-white rounded-[36px] p-5 flex justify-between items-center">
-        <h2 class="font-jua text-xl text-[#5A5A40]">선생님 관리자 센터</h2>
+        <div>
+          <h2 class="font-jua text-xl text-[#5A5A40]">선생님 관리자 센터</h2>
+          <p class="text-[11px] text-slate-500">실물 확인 및 신약개발소 심사</p>
+        </div>
         <button onclick="toggleTeacherMode()" class="text-xs font-bold bg-white border px-3 py-1.5 rounded-xl">학생 모드</button>
       </div>
-      <div id="tVerificationTable" class="space-y-2 text-xs"></div>
+
+      <!-- Sub Tabs -->
+      <div class="flex rounded-2xl bg-slate-100 p-1 text-xs font-jua">
+        <button id="tTabVerify" onclick="switchTeacherTab('verify')" class="flex-1 py-2 rounded-xl bg-white shadow-xs text-slate-800">
+          📋 처방 실물 확인
+        </button>
+        <button id="tTabNewMed" onclick="switchTeacherTab('newmed')" class="flex-1 py-2 rounded-xl text-slate-500">
+          🧪 신약 심사 (<span id="tNewMedCount">0</span>)
+        </button>
+      </div>
+
+      <div id="tVerificationContainer" class="space-y-2">
+        <div id="tVerificationTable" class="space-y-2 text-xs"></div>
+      </div>
+
+      <div id="tNewMedContainer" class="hidden space-y-3">
+        <div id="tNewMedTable" class="space-y-3 text-xs"></div>
+      </div>
     </div>
   </main>
+
+  <!-- Modal: Student New Medicine Proposal -->
+  <div id="modalNewCondition" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-[#FDFCF0] w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[36px] border-4 border-white shadow-2xl p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🧪</span>
+          <div>
+            <h3 class="font-jua text-lg text-[#5A5A40]">신약개발소 연구 제안</h3>
+            <p class="text-[10px] text-purple-700 font-bold">새로운 마음신호 & 행동처방 연구원</p>
+          </div>
+        </div>
+        <button onclick="closeNewMedModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold flex items-center justify-center">✕</button>
+      </div>
+
+      <!-- Cookie & Approval Notice -->
+      <div class="bg-purple-50 border border-purple-200 rounded-2xl p-3 text-xs text-purple-900 space-y-1">
+        <p class="font-bold flex items-center gap-1">
+          <span>💡</span> <span>신약 제안 및 보상 규칙 안내</span>
+        </p>
+        <p class="text-[11px] text-purple-800 leading-relaxed">
+          • 제안 직후 바로 쿠키가 지급되지 않으며, <strong>선생님이 정식 마음신호로 채택 시</strong> 쿠키를 받습니다.<br>
+          • 내가 제안한 <strong>행동 처방 개수(1~3개)</strong>에 따라 채택 시 쿠키가 <strong>1개~3개</strong> 지급됩니다.<br>
+          • 연구 제안이 많이 채택될수록 <strong>연구원 칭호</strong>(주니어, 선임, 수석 등)와 <strong>승급 보너스 쿠키</strong>가 주어집니다!
+        </p>
+      </div>
+
+      <form id="newConditionForm" onsubmit="handleNewConditionSubmit(event)" class="space-y-3.5 text-xs text-slate-700">
+        <div>
+          <label class="block font-bold mb-1 text-slate-800">1. 새로운 마음신호의 이름은 무엇인가요? *</label>
+          <input type="text" id="newCondName" required placeholder="예: 친구 눈치 과열증, 발표 울렁증" class="w-full bg-white border-2 border-slate-200 rounded-2xl p-2.5 text-xs font-bold text-slate-800 focus:border-purple-400 outline-none">
+        </div>
+
+        <div>
+          <label class="block font-bold mb-1 text-slate-800">2. 어떤 영역의 고민인가요? *</label>
+          <select id="newCondCategory" required class="w-full bg-white border-2 border-slate-200 rounded-2xl p-2.5 text-xs font-bold text-slate-800 focus:border-purple-400 outline-none">
+            <option value="self">🙋 나 자신 (자존감, 자기이해)</option>
+            <option value="friends">💌 친구·관계 (소통, 서운함, 갈등)</option>
+            <option value="study">📚 공부·할 일 (학습, 미루기, 집중)</option>
+            <option value="worries">😟 걱정·생각 (불안, 생각 과다)</option>
+            <option value="emotions">🌋 감정 다루기 (분노, 짜증, 롤러코스터)</option>
+            <option value="vitality">🛌 피로·생활 (수면, 방전, 스마트폰)</option>
+            <option value="future">🌱 실패·도전·미래 (진로, 회복탄력성)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold mb-1 text-slate-800">3. 이 마음신호는 주로 언제 나타나나요? *</label>
+          <textarea id="newCondWhenAppears" required rows="2" placeholder="예: 쉬는 시간에 친구들이 삼삼오오 모여서 귓속말할 때" class="w-full bg-white border-2 border-slate-200 rounded-2xl p-2.5 text-xs text-slate-800 focus:border-purple-400 outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-bold mb-1 text-slate-800">4. 주요 증상은 무엇인가요? *</label>
+          <textarea id="newCondSymptoms" required rows="2" placeholder="예: 내 얘기를 하는 것 같아 심장이 빠르게 뛰고 얼굴이 굳어져요" class="w-full bg-white border-2 border-slate-200 rounded-2xl p-2.5 text-xs text-slate-800 focus:border-purple-400 outline-none"></textarea>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block font-bold text-slate-800">
+            5. 친구들에게 도움이 될 행동 처방 (1~3개) *
+            <span class="text-[10.5px] font-normal text-purple-700 block">채택 시 작성한 개수만큼 칭찬쿠키를 받아요! (1개=1쿠키, 2개=2쿠키, 3개=3쿠키)</span>
+          </label>
+          <input type="text" id="newCondMission1" required placeholder="행동 처방 1 (필수) 예: 심호흡 3번 하고 시원한 물 마시기" class="w-full bg-white border-2 border-slate-200 rounded-2xl p-2.5 text-xs font-medium text-slate-800 focus:border-purple-400 outline-none">
+          <input type="text" id="newCondMission2" placeholder="행동 처방 2 (선택) 예: 내가 좋아하는 책이나 음악 1분 집중하기" class="w-full bg-white border-2 border-slate-200 rounded-2xl p-2.5 text-xs font-medium text-slate-800 focus:border-purple-400 outline-none">
+          <input type="text" id="newCondMission3" placeholder="행동 처방 3 (선택) 예: 친한 친구에게 '오늘 뭐해?' 먼저 말 걸어보기" class="w-full bg-white border-2 border-slate-200 rounded-2xl p-2.5 text-xs font-medium text-slate-800 focus:border-purple-400 outline-none">
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-jua text-sm py-3.5 rounded-2xl shadow-md border-2 border-white transition-colors">
+            🧪 신약 연구 제안서 제출하기
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <nav id="bottomNav" class="hidden fixed bottom-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-md border-t-2 border-white py-2 px-4 shadow-lg">
     <div class="max-w-md mx-auto flex items-center justify-around">
       <button onclick="showView('home')" class="py-1 px-3 text-xs font-jua text-[#5A5A40]">🏠 홈</button>
       <button onclick="showView('diagnosis')" class="py-1 px-3 text-xs font-jua text-[#5A5A40]">🩺 진료</button>
+      <button onclick="openNewMedModal()" class="py-1 px-3 text-xs font-jua text-purple-700">🧪 신약</button>
       <button onclick="showView('doneForm')" class="py-1 px-3 text-xs font-jua text-[#5A5A40]">✅ 처방완료</button>
       <button onclick="showView('mypage')" class="py-1 px-3 text-xs font-jua text-[#5A5A40]">📒 기록</button>
     </div>
@@ -578,13 +811,16 @@ export function generateGasIndexHtml(): string {
   <script>
     let currentStudent = null;
     let isTeacherMode = false;
+    let activeTeacherTab = 'verify';
     let appData = {
       categories: [
-        { id: 'self', code: 'S', name: '나 자신', bgLight: '#FDF2F8', icon: '🪞' },
-        { id: 'friends', code: 'R', name: '친구·관계', bgLight: '#FFF1F2', icon: '💌' },
-        { id: 'study', code: 'A', name: '공부·할 일', bgLight: '#F0F9FF', icon: '📚' },
-        { id: 'worries', code: 'W', name: '걱정·생각', bgLight: '#F5F3FF', icon: '🤯' },
-        { id: 'vitality', code: 'L', name: '피로·생활', bgLight: '#ECFDF5', icon: '🪫' }
+        { id: 'self', code: 'S', name: '나 자신', bgLight: '#FDF2F8', icon: '🙋', color: '#F472B6' },
+        { id: 'friends', code: 'R', name: '친구·관계', bgLight: '#FFF1F2', icon: '💌', color: '#FB7185' },
+        { id: 'study', code: 'A', name: '공부·할 일', bgLight: '#F0F9FF', icon: '📚', color: '#38BDF8' },
+        { id: 'worries', code: 'W', name: '걱정·생각', bgLight: '#F5F3FF', icon: '😟', color: '#A78BFA' },
+        { id: 'emotions', code: 'E', name: '감정 다루기', bgLight: '#FFF7ED', icon: '🌋', color: '#FB923C' },
+        { id: 'vitality', code: 'L', name: '피로·생활', bgLight: '#ECFDF5', icon: '🛌', color: '#34D399' },
+        { id: 'future', code: 'G', name: '실패·도전·미래', bgLight: '#F0FDF4', icon: '🌱', color: '#4ADE80' }
       ],
       students: [
         { id: 'S1-1-01', grade: 1, classNum: 1, number: 1, name: '김민준', cookieBalance: 5 },
@@ -592,11 +828,16 @@ export function generateGasIndexHtml(): string {
         { id: 'S1-1-03', grade: 1, classNum: 1, number: 3, name: '박도윤', cookieBalance: 3 }
       ],
       conditions: [
-        { id: 'A01', categoryId: 'study', name: '내일부터 시작병', summary: '해야 할 공부를 미루며 마음만 무거운 상태' },
-        { id: 'R01', categoryId: 'friends', name: '단톡방 알림 집착증', summary: '메시지가 늦으면 심장이 쿵쾅거릴 때' },
-        { id: 'S01', categoryId: 'self', name: '유리구슬 자존감 증후군', summary: '작은 실수에도 마음이 와장창 깨지는 느낌' }
+        { id: 'A01', categoryId: 'study', name: '내일부터 시작병', summary: '해야 할 공부를 미루며 마음만 무거운 상태', symptoms: '공부 시작하기 전에 딴짓을 하거나 휴대폰을 본다' },
+        { id: 'R01', categoryId: 'friends', name: '단톡방 알림 집착증', summary: '메시지가 늦으면 심장이 쿵쾅거릴 때', symptoms: '친구들의 반응에 신경이 곤두서고 불안하다' },
+        { id: 'S01', categoryId: 'self', name: '유리구슬 자존감 증후군', summary: '작은 실수에도 마음이 와장창 깨지는 느낌', symptoms: '남과 비교하며 자신감을 잃고 자책한다' },
+        { id: 'W01', categoryId: 'worries', name: '꼬리물기 걱정 기관차', summary: '작은 걱정이 꼬리를 물고 커져서 잠들기 어려움', symptoms: '아직 일어나지 않은 일 때문에 밤에 잠이 안 온다' },
+        { id: 'E01', categoryId: 'emotions', name: '순간 점화 버럭 화산', summary: '사소한 일에 갑자기 욱해서 감정이 폭발할 때', symptoms: '얼굴이 빨개지고 말이나 행동이 거칠어진다' },
+        { id: 'L01', categoryId: 'vitality', name: '방전 배터리 증후군', summary: '아침에 일어나기 힘들고 온몸에 힘이 없는 무기력증', symptoms: '온몸이 천근만근이고 쉬어도 피로가 풀리지 않는다' },
+        { id: 'G01', categoryId: 'future', name: '한 번 실패 포기증', summary: '한 번의 실수나 실패로 모든 것을 포기하고 싶은 마음', symptoms: '다시 도전하는 것이 두렵고 도망치고 싶다' }
       ],
-      visits: []
+      visits: [],
+      newConditions: []
     };
 
     let selectedCategory = 'study';
@@ -604,8 +845,11 @@ export function generateGasIndexHtml(): string {
     let activeVisit = null;
 
     window.addEventListener('DOMContentLoaded', () => {
-      const saved = localStorage.getItem('hp_visits');
-      if (saved) appData.visits = JSON.parse(saved);
+      const savedVisits = localStorage.getItem('hp_visits');
+      if (savedVisits) appData.visits = JSON.parse(savedVisits);
+      const savedNewConds = localStorage.getItem('hp_new_conditions');
+      if (savedNewConds) appData.newConditions = JSON.parse(savedNewConds);
+
       updateStudentOptions();
       renderCategories();
     });
@@ -664,7 +908,7 @@ export function generateGasIndexHtml(): string {
     function renderCategories() {
       const grid = document.getElementById('categoriesGrid');
       grid.innerHTML = appData.categories.map(c => \`
-        <button onclick="selectCategory('\${c.id}')" style="background-color:\${c.bgLight}" class="p-4 rounded-[28px] border-4 border-white text-left shadow-md">
+        <button onclick="selectCategory('\${c.id}')" style="background-color:\${c.bgLight}" class="p-4 rounded-[28px] border-4 border-white text-left shadow-md hover:scale-[1.02] transition-transform">
           <span class="text-3xl">\${c.icon}</span>
           <h4 class="font-jua text-base text-[#5A5A40] mt-2">\${c.name}</h4>
         </button>
@@ -675,8 +919,9 @@ export function generateGasIndexHtml(): string {
       selectedCategory = id;
       document.getElementById('diagStepCategory').classList.add('hidden');
       document.getElementById('diagStepRecommend').classList.remove('hidden');
-      const conds = appData.conditions.filter(c => c.categoryId === id || c.categoryId === 'study');
-      document.getElementById('recommendedConditionsList').innerHTML = conds.map(c => \`
+      const conds = appData.conditions.filter(c => c.categoryId === id);
+      const displayConds = conds.length > 0 ? conds : appData.conditions.slice(0, 3);
+      document.getElementById('recommendedConditionsList').innerHTML = displayConds.map(c => \`
         <div class="rounded-[28px] border-4 border-white p-4 bg-[#FFFBEB]">
           <h4 class="font-jua text-lg text-[#5A5A40]">\${c.name}</h4>
           <p class="text-xs text-slate-500 mb-2">"\${c.summary}"</p>
@@ -735,12 +980,14 @@ export function generateGasIndexHtml(): string {
       document.getElementById('myPageStudentName').textContent = currentStudent.name + ' 학생의 서랍';
       document.getElementById('myPageCookieCount').textContent = currentStudent.cookieBalance;
       const myVisits = appData.visits.filter(v => v.studentId === currentStudent.id);
-      document.getElementById('myPageVisitsList').innerHTML = myVisits.map(v => \`
-        <div class="p-3 bg-[#FDFCF0] border-2 border-white rounded-2xl flex justify-between">
-          <span class="font-jua text-sm">\${v.primaryConditionName}</span>
-          <span class="text-xs font-bold \${v.status === 'submitted' ? 'text-teal-600' : 'text-amber-600'}">\${v.status === 'submitted' ? '완료' : '진행중'}</span>
-        </div>
-      \`).join('');
+      document.getElementById('myPageVisitsList').innerHTML = myVisits.length === 0
+        ? '<div class="p-4 bg-white/70 rounded-2xl text-center text-xs text-slate-400">아직 완료한 처방전이 없습니다.</div>'
+        : myVisits.map(v => \`
+          <div class="p-3 bg-[#FDFCF0] border-2 border-white rounded-2xl flex justify-between items-center">
+            <span class="font-jua text-sm">\${v.primaryConditionName}</span>
+            <span class="text-xs font-bold \${v.status === 'submitted' ? 'text-teal-600' : 'text-amber-600'}">\${v.status === 'submitted' ? '완료' : '진행중'}</span>
+          </div>
+        \`).join('');
     }
 
     function pullGachaMachine() {
@@ -753,6 +1000,59 @@ export function generateGasIndexHtml(): string {
       alert('🎉 축하합니다! [✨ 힐리 무지개 스티커팩 (SSR)] 당첨!');
     }
 
+    // New Medicine Lab Handlers
+    function openNewMedModal() {
+      if (!currentStudent) {
+        alert('먼저 학생 이름을 선택하여 로그인해주세요!');
+        return;
+      }
+      document.getElementById('modalNewCondition').classList.remove('hidden');
+    }
+
+    function closeNewMedModal() {
+      document.getElementById('modalNewCondition').classList.add('hidden');
+    }
+
+    function handleNewConditionSubmit(e) {
+      e.preventDefault();
+      if (!currentStudent) return;
+
+      const suggestedName = document.getElementById('newCondName').value.trim();
+      const categoryId = document.getElementById('newCondCategory').value;
+      const whenAppears = document.getElementById('newCondWhenAppears').value.trim();
+      const symptoms = document.getElementById('newCondSymptoms').value.trim();
+      
+      const m1 = document.getElementById('newCondMission1').value.trim();
+      const m2 = document.getElementById('newCondMission2').value.trim();
+      const m3 = document.getElementById('newCondMission3').value.trim();
+      const missions = [m1, m2, m3].filter(Boolean);
+
+      const payload = {
+        requestId: 'REQ-' + Date.now(),
+        studentId: currentStudent.id,
+        studentName: currentStudent.name,
+        suggestedName,
+        categoryId,
+        whenAppears,
+        symptoms,
+        missionIdeas: missions,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+
+      appData.newConditions.push(payload);
+      localStorage.setItem('hp_new_conditions', JSON.stringify(appData.newConditions));
+
+      if (window.google && google.script && google.script.run) {
+        google.script.run.doPost({ action: 'submitNewCondition', data: payload });
+      }
+
+      alert('🧪 [' + suggestedName + '] 제안서가 연구소에 접수되었습니다!\\n\\n선생님이 확인 후 정식 마음신호로 채택하면, 작성하신 행동 처방 ' + missions.length + '개에 따라 칭찬쿠키 ' + missions.length + '개가 지급됩니다!');
+      document.getElementById('newConditionForm').reset();
+      closeNewMedModal();
+    }
+
+    // Teacher Dashboard Functions
     function toggleTeacherMode() {
       if (!isTeacherMode) {
         const pass = prompt('선생님 비밀번호를 입력해주세요 (1234)');
@@ -766,14 +1066,192 @@ export function generateGasIndexHtml(): string {
       }
     }
 
+    function switchTeacherTab(tab) {
+      activeTeacherTab = tab;
+      const btnVerify = document.getElementById('tTabVerify');
+      const btnNewMed = document.getElementById('tTabNewMed');
+      const boxVerify = document.getElementById('tVerificationContainer');
+      const boxNewMed = document.getElementById('tNewMedContainer');
+
+      if (tab === 'verify') {
+        btnVerify.className = 'flex-1 py-2 rounded-xl bg-white shadow-xs text-slate-800';
+        btnNewMed.className = 'flex-1 py-2 rounded-xl text-slate-500';
+        boxVerify.classList.remove('hidden');
+        boxNewMed.classList.add('hidden');
+      } else {
+        btnVerify.className = 'flex-1 py-2 rounded-xl text-slate-500';
+        btnNewMed.className = 'flex-1 py-2 rounded-xl bg-white shadow-xs text-purple-800 font-bold';
+        boxVerify.classList.add('hidden');
+        boxNewMed.classList.remove('hidden');
+      }
+      renderTeacherDashboard();
+    }
+
+    // Calculate AI Duplicate Rate for teacher review
+    function computeDuplicateRate(proposal, allConds) {
+      const text = (proposal.suggestedName + ' ' + (proposal.whenAppears || '') + ' ' + (proposal.symptoms || '')).toLowerCase();
+      let maxScore = 0;
+      let matchedCond = null;
+
+      allConds.forEach(cond => {
+        const target = (cond.name + ' ' + (cond.summary || '') + ' ' + (cond.symptoms || '')).toLowerCase();
+        let matches = 0;
+        const words = text.split(/\\s+/).filter(w => w.length >= 2);
+        if (words.length === 0) return;
+        words.forEach(w => {
+          if (target.includes(w)) matches++;
+        });
+        const score = Math.min(100, Math.round((matches / words.length) * 100));
+        if (score > maxScore) {
+          maxScore = score;
+          matchedCond = cond;
+        }
+      });
+
+      let safety = 'safe';
+      let label = '안전: 독창적인 새로운 신호';
+      if (maxScore >= 45) {
+        safety = 'danger';
+        label = '주의: 기존 신호와 중복 우려';
+      } else if (maxScore >= 20) {
+        safety = 'warning';
+        label = '참고: 일부 키워드 유사';
+      }
+
+      return { duplicateRate: maxScore, safety, label, matchedCond };
+    }
+
     function renderTeacherDashboard() {
-      const table = document.getElementById('tVerificationTable');
-      table.innerHTML = appData.visits.map(v => \`
-        <div class="p-3 bg-[#FDFCF0] rounded-2xl border-2 border-white flex justify-between items-center">
-          <span>\${v.primaryConditionName} (\${v.studentId})</span>
-          <button onclick="verifyVisit('\${v.visitId}')" class="px-3 py-1 bg-amber-200 rounded-xl font-jua">\${v.status === 'rewarded' ? '완료 ✓' : '확인 (+1쿠키)'}</button>
-        </div>
-      \`).join('');
+      // 1. Render Verification Table
+      const vTable = document.getElementById('tVerificationTable');
+      vTable.innerHTML = appData.visits.length === 0
+        ? '<div class="p-4 bg-white/70 rounded-2xl text-center text-slate-400">확인 대기 중인 처방전이 없습니다.</div>'
+        : appData.visits.map(v => \`
+          <div class="p-3 bg-[#FDFCF0] rounded-2xl border-2 border-white flex justify-between items-center">
+            <span>\${v.primaryConditionName} (\${v.studentId})</span>
+            <button onclick="verifyVisit('\${v.visitId}')" class="px-3 py-1 bg-amber-200 rounded-xl font-jua">\${v.status === 'rewarded' ? '완료 ✓' : '확인 (+1쿠키)'}</button>
+          </div>
+        \`).join('');
+
+      // 2. Render New Condition Table
+      const pendingReqs = appData.newConditions.filter(r => r.status === 'pending');
+      document.getElementById('tNewMedCount').textContent = pendingReqs.length;
+      const nTable = document.getElementById('tNewMedTable');
+
+      nTable.innerHTML = appData.newConditions.length === 0
+        ? '<div class="p-4 bg-white/70 rounded-2xl text-center text-slate-400">제안된 신약이 없습니다.</div>'
+        : appData.newConditions.map(req => {
+            const isApproved = req.status === 'approved';
+            const isRejected = req.status === 'rejected';
+            const cat = appData.categories.find(c => c.id === req.categoryId);
+            const missions = req.missionIdeas || (req.missionIdea ? [req.missionIdea] : []);
+            const missionCount = Math.min(3, Math.max(1, missions.length));
+            const sim = computeDuplicateRate(req, appData.conditions);
+
+            return \`
+              <div class="border-2 \${isApproved ? 'border-emerald-300 bg-emerald-50/40' : isRejected ? 'border-slate-200 opacity-60 bg-slate-50' : 'border-purple-200 bg-white'} rounded-2xl p-4 space-y-3">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="flex items-center gap-1.5">
+                      <h4 class="font-jua text-base text-slate-900">\${req.suggestedName}</h4>
+                      <span class="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-bold">
+                        \${cat ? cat.icon + ' ' + cat.name : req.categoryId}
+                      </span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-0.5">제안자: <strong>\${req.studentName || req.studentId}</strong></p>
+                  </div>
+                  \${isApproved ? '<span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-xl">✓ 승인됨</span>' : isRejected ? '<span class="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-xl">반려됨</span>' : '<span class="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-xl">심사 대기</span>'}
+                </div>
+
+                <div class="bg-slate-50 p-2.5 rounded-xl space-y-1 text-[11px] border border-slate-100">
+                  <p><strong class="text-slate-700">언제 나타나나요?</strong> <span class="text-slate-600">\${req.whenAppears || '-'}</span></p>
+                  <p><strong class="text-slate-700">주요 증상:</strong> <span class="text-slate-600">\${req.symptoms || '-'}</span></p>
+                  <div>
+                    <strong class="text-slate-700">제안한 행동 처방 (\${missions.length}개):</strong>
+                    <ul class="list-disc list-inside mt-0.5 text-purple-950 font-medium">
+                      \${missions.map((m, idx) => '<li>처방 ' + (idx + 1) + ': ' + m + '</li>').join('')}
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- AI Duplicate Rate Inspection Box (TEACHER ONLY) -->
+                <div class="rounded-xl p-2.5 border text-[11px] \${sim.safety === 'danger' ? 'bg-rose-50 border-rose-200 text-rose-950' : sim.safety === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-950' : 'bg-emerald-50 border-emerald-200 text-emerald-950'}">
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="font-jua text-xs flex items-center gap-1">
+                      <span>\${sim.safety === 'danger' ? '⚠️' : sim.safety === 'warning' ? '⚡' : '✨'}</span>
+                      <span>AI 증상 중복률 정밀 분석</span>
+                      <span class="text-[9px] text-slate-500 font-normal">(교사 전용)</span>
+                    </span>
+                    <span class="font-mono font-bold text-[10px] px-2 py-0.5 rounded-full text-white \${sim.safety === 'danger' ? 'bg-rose-600' : sim.safety === 'warning' ? 'bg-amber-500' : 'bg-emerald-600'}">
+                      중복률 \${sim.duplicateRate}%
+                    </span>
+                  </div>
+                  <p class="text-[10.5px]">\${sim.label}</p>
+                  \${sim.matchedCond ? '<p class="text-[10px] mt-1 text-slate-600 border-t border-slate-200/60 pt-1">가장 유사한 기존 신호: [' + sim.matchedCond.id + '] ' + sim.matchedCond.name + ' - ' + sim.matchedCond.summary + '</p>' : ''}
+                </div>
+
+                \${!isApproved && !isRejected ? \`
+                  <div class="flex justify-between items-center pt-2 border-t border-slate-100">
+                    <span class="text-[11px] text-amber-800 font-bold">
+                      💡 채택 시 보상: 칭찬쿠키 +\${missionCount}개 (처방 \${missionCount}개 기준)
+                    </span>
+                    <div class="flex gap-2">
+                      <button onclick="rejectNewCondition('\${req.requestId}')" class="px-2.5 py-1 border border-slate-300 rounded-xl font-jua text-slate-600 hover:bg-slate-100 text-xs">반려</button>
+                      <button onclick="approveNewCondition('\${req.requestId}')" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-jua text-xs shadow-xs">✓ 승인 (+쿠키 \${missionCount}개)</button>
+                    </div>
+                  </div>
+                \` : ''}
+              </div>
+            \`;
+          }).join('');
+    }
+
+    function approveNewCondition(reqId) {
+      const req = appData.newConditions.find(r => r.requestId === reqId);
+      if (!req) return;
+      const missions = req.missionIdeas || (req.missionIdea ? [req.missionIdea] : []);
+      const missionCount = Math.min(3, Math.max(1, missions.length));
+
+      req.status = 'approved';
+      const st = appData.students.find(s => s.id === req.studentId);
+      if (st) {
+        st.cookieBalance += missionCount;
+        if (currentStudent && currentStudent.id === st.id) {
+          currentStudent.cookieBalance = st.cookieBalance;
+          document.getElementById('studentBadgeCookies').textContent = st.cookieBalance;
+        }
+      }
+
+      appData.conditions.push({
+        id: 'NEW-' + (appData.conditions.length + 1),
+        categoryId: req.categoryId,
+        name: req.suggestedName,
+        summary: req.whenAppears || '학생들이 함께 만든 마음신호',
+        symptoms: req.symptoms || ''
+      });
+
+      localStorage.setItem('hp_new_conditions', JSON.stringify(appData.newConditions));
+
+      if (window.google && google.script && google.script.run) {
+        google.script.run.doPost({ action: 'approveNewCondition', data: { requestId: reqId } });
+      }
+
+      alert('🎉 [' + req.suggestedName + '] 정식 마음신호 승인 완료!\\n' + req.studentName + ' 학생에게 행동처방 ' + missionCount + '개 보상으로 칭찬쿠키 ' + missionCount + '개가 지급되었습니다.');
+      renderTeacherDashboard();
+    }
+
+    function rejectNewCondition(reqId) {
+      const req = appData.newConditions.find(r => r.requestId === reqId);
+      if (!req) return;
+      if (!confirm('[' + req.suggestedName + '] 제안을 반려 처리하시겠습니까?')) return;
+      req.status = 'rejected';
+      localStorage.setItem('hp_new_conditions', JSON.stringify(appData.newConditions));
+
+      if (window.google && google.script && google.script.run) {
+        google.script.run.doPost({ action: 'rejectNewCondition', data: { requestId: reqId } });
+      }
+
+      renderTeacherDashboard();
     }
 
     function verifyVisit(id) {

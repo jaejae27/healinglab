@@ -522,10 +522,10 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     sampleItems: ['목표가 뚜렷한 친구를 보면 위축된다', '나만 멍하니 사는 것 같다', '언젠가 내 길을 찾을 수 있을까 의심된다']
   },
 
-  // H. 학교생활·일상 추가 영역 (D-01 ~ D-12)
+  // H. 학교생활·일상 추가 영역 (D-01 ~ D-12) - 7대 핵심 영역으로 통합 배정
   {
     id: 'D-01',
-    categoryId: 'school',
+    categoryId: 'vitality',
     name: '아침등교거부증',
     summary: '아침 알람 소리만 들리면 학교 가기 싫어 이불을 뒤집어쓰는 상태',
     medicine: '등교부스터젤리',
@@ -534,7 +534,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-02',
-    categoryId: 'school',
+    categoryId: 'vitality',
     name: '일요일밤월요병증',
     summary: '일요일 저녁부터 가슴이 답답하고 내일 학교 갈 생각에 기운 빠지는 상태',
     medicine: '월요병완화차',
@@ -543,7 +543,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-03',
-    categoryId: 'school',
+    categoryId: 'vitality',
     name: '쉬는시간10초순삭증',
     summary: '10분 쉬는 시간이 순식간에 지나가고 수업 종소리가 야속한 상태',
     medicine: '꿀맛충전모래시계',
@@ -552,7 +552,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-04',
-    categoryId: 'school',
+    categoryId: 'worries',
     name: '발표전심장쿵쾅증',
     summary: '발표 차례가 다가올수록 심장이 쿵쾅거리고 목소리가 떨리는 상태',
     medicine: '당당발표캔디',
@@ -561,7 +561,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-05',
-    categoryId: 'school',
+    categoryId: 'friends',
     name: '모둠활동어색얼음증',
     summary: '조별 과제나 모둠 활동 때 말 꺼내기가 어색해 얼어붙는 상태',
     medicine: '팀워크윤활유',
@@ -570,7 +570,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-06',
-    categoryId: 'school',
+    categoryId: 'self',
     name: '질문삼키기눈치증',
     summary: '모르는 게 있어도 부끄럽거나 혼날까 봐 질문을 꿀꺽 삼키는 상태',
     medicine: '용기있는손들기정',
@@ -579,7 +579,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-07',
-    categoryId: 'school',
+    categoryId: 'self',
     name: '정답알면서침묵증',
     summary: '답을 알면서도 틀릴까 봐 손들지 못하고 머뭇거리는 상태',
     medicine: '정답자신감환',
@@ -588,7 +588,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-08',
-    categoryId: 'school',
+    categoryId: 'emotions',
     name: '머피의법칙일꼬임증',
     summary: '준비물 깜빡, 지각 등 작은 불운이 연속으로 겹쳐 울컥하는 상태',
     medicine: '액땜완료스티커',
@@ -597,7 +597,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-09',
-    categoryId: 'school',
+    categoryId: 'friends',
     name: '교실속외딴섬소외증',
     summary: '시끌벅적한 교실 안에서 나 혼자만 외딴섬처럼 뚝 떨어진 것 같은 상태',
     medicine: '다정한연결고리단',
@@ -606,7 +606,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-10',
-    categoryId: 'school',
+    categoryId: 'vitality',
     name: '1교시부터집갈래증',
     summary: '등교하자마자 머릿속에 "집에 가고 싶다"만 자동 재생되는 상태',
     medicine: '스위트홈순간이동환',
@@ -615,7 +615,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-11',
-    categoryId: 'school',
+    categoryId: 'friends',
     name: '교무실문턱백두산증',
     summary: '선생님께 말 걸거나 상담하고 싶지만 교무실 문턱이 너무 높게 느껴지는 상태',
     medicine: '교무실노크캔디',
@@ -624,7 +624,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   },
   {
     id: 'D-12',
-    categoryId: 'school',
+    categoryId: 'vitality',
     name: '종일눈치살핌방전증',
     summary: '학교에서 종일 친구와 선생님 눈치를 살피느라 녹초가 된 상태',
     medicine: '눈치오프휴식차',

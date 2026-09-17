@@ -185,7 +185,7 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   },
   {
     id: 'D-13',
-    categoryId: 'school',
+    categoryId: 'study',
     name: '모둠과제독박운전증',
     summary: '모둠 과제할 때 아무도 안 해서 결국 나 혼자 다 떠맡아 속 터지는 상태',
     medicine: '역할나눔호각단',
@@ -198,7 +198,7 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
   },
   {
     id: 'D-14',
-    categoryId: 'school',
+    categoryId: 'friends',
     name: '줄설때혼자남을까겁증',
     summary: '체육 시간이나 급식 줄을 설 때 혼자 짝꿍이 없을까 봐 긴장하는 상태',
     medicine: '당당한발걸음패치',

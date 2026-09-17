@@ -112,3 +112,16 @@ export function validateMeaningfulText(text: string, minLength = 3): { valid: bo
 
   return { valid: true };
 }
+
+/**
+ * Checks if a student is a test student created for simulation/testing purposes.
+ * Returns true if isTestStudent flag is set, or if name/ID includes test keywords.
+ */
+export function checkIsTestStudent(student?: { name?: string; id?: string; isTestStudent?: boolean } | null): boolean {
+  if (!student) return false;
+  if (student.isTestStudent === true) return true;
+  const name = (student.name || '').toLowerCase().trim();
+  const id = (student.id || '').toLowerCase().trim();
+  const testKeywords = ['테스트', 'test', '체험', '모의', '샘플', 'sample', '시연', '가상'];
+  return testKeywords.some((kw) => name.includes(kw) || id.includes(kw));
+}

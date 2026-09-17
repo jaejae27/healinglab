@@ -1,12 +1,40 @@
 import { Category } from '../types';
 
+export const CATEGORY_NAMES_WITH_ICON: Record<string, string> = {
+  self: '🙋 나 자신',
+  friends: '💌 친구·관계',
+  study: '📚 공부·할 일',
+  worries: '😟 걱정·생각',
+  emotions: '🌋 감정 다루기',
+  vitality: '🛌 피로·생활',
+  future: '🌱 실패·도전·미래'
+};
+
+export function normalizeCategory(val?: string | null): string {
+  if (!val) return 'self';
+  const v = val.trim();
+  if (v === 'self' || v === 'S' || v.includes('나 자신') || v.includes('🙋')) return 'self';
+  if (v === 'friends' || v === 'R' || v.includes('친구') || v.includes('관계') || v.includes('💌')) return 'friends';
+  if (v === 'study' || v === 'A' || v.includes('공부') || v.includes('할 일') || v.includes('할일') || v.includes('📚')) return 'study';
+  if (v === 'worries' || v === 'W' || v.includes('걱정') || v.includes('생각') || v.includes('😟') || v.includes('🤯')) return 'worries';
+  if (v === 'emotions' || v === 'E' || v.includes('감정') || v.includes('다루기') || v.includes('🌋')) return 'emotions';
+  if (v === 'vitality' || v === 'L' || v.includes('피로') || v.includes('생활') || v.includes('🛌') || v.includes('🪫')) return 'vitality';
+  if (v === 'future' || v === 'G' || v.includes('실패') || v.includes('도전') || v.includes('미래') || v.includes('🌱')) return 'future';
+  return 'self';
+}
+
+export function getCategoryFormatted(catIdOrName?: string | null): string {
+  const norm = normalizeCategory(catIdOrName);
+  return CATEGORY_NAMES_WITH_ICON[norm] || '🙋 나 자신';
+}
+
 export const CATEGORIES: Category[] = [
   {
     id: 'self',
     code: 'S',
     name: '나 자신',
     subName: '자기이해 & 자존감',
-    icon: '🪞',
+    icon: '🙋',
     color: '#F472B6',
     bgLight: '#FDF2F8',
     borderColor: '#FBCFE8',
@@ -39,7 +67,7 @@ export const CATEGORIES: Category[] = [
     code: 'W',
     name: '걱정·생각',
     subName: '불안 & 생각 과다',
-    icon: '🤯',
+    icon: '😟',
     color: '#A78BFA',
     bgLight: '#F5F3FF',
     borderColor: '#DDD6FE',
@@ -61,7 +89,7 @@ export const CATEGORIES: Category[] = [
     code: 'L',
     name: '피로·생활',
     subName: '에너지 & 수면·스마트폰',
-    icon: '🪫',
+    icon: '🛌',
     color: '#34D399',
     bgLight: '#ECFDF5',
     borderColor: '#A7F3D0',
@@ -77,16 +105,5 @@ export const CATEGORIES: Category[] = [
     bgLight: '#F0FDF4',
     borderColor: '#BBF7D0',
     desc: '실패 후의 두려움, 포기하고 싶은 마음, 꿈과 진로에 대한 막막함'
-  },
-  {
-    id: 'school',
-    code: 'D',
-    name: '학교생활·일상',
-    subName: '교실 적응 & 일상',
-    icon: '🏫',
-    color: '#FBBF24',
-    bgLight: '#FFFBEB',
-    borderColor: '#FDE68A',
-    desc: '발표 부담, 모둠활동 눈치, 질문하기 어려움, 등교 스트레스'
   }
 ];

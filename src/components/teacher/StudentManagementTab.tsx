@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Student } from '../../types';
 import { StorageService } from '../../services/storage';
+import { checkIsTestStudent } from '../../utils/koreanName';
 import * as XLSX from 'xlsx';
 import {
   Upload,
@@ -21,7 +22,9 @@ import {
   Check,
   Cookie,
   KeyRound,
-  Lock
+  Lock,
+  FlaskConical,
+  RotateCcw
 } from 'lucide-react';
 
 interface StudentManagementTabProps {
@@ -47,9 +50,10 @@ interface ConfirmDialogState {
 interface CookieModalState {
   isOpen: boolean;
   targets: Student[];
-  mode: 'add' | 'subtract';
+  mode: 'add' | 'subtract' | 'reset';
   amount: number;
   reason: string;
+  clearCumulative?: boolean;
 }
 
 export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
@@ -69,6 +73,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
   const [isAddSingleOpen, setIsAddSingleOpen] = useState(false);
   const [newNumber, setNewNumber] = useState('');
   const [newName, setNewName] = useState('');
+  const [isTestStudentFlag, setIsTestStudentFlag] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -216,26 +221,79 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
   };
 
   // Open Cookie Modal for Single Student
-  const handleOpenCookieModal = (target: Student, defaultMode: 'add' | 'subtract' = 'add') => {
+  const handleOpenCookieModal = (target: Student, defaultMode: 'add' | 'subtract' | 'reset' = 'add') => {
     setCookieModal({
       isOpen: true,
       targets: [target],
       mode: defaultMode,
-      amount: 1,
-      reason: defaultMode === 'add' ? '마음처방 미션 성실 실천' : '가챠 뽑기'
+      amount: defaultMode === 'reset' ? 0 : 1,
+      clearCumulative: true,
+      reason:
+        defaultMode === 'add'
+          ? '마음처방 미션 성실 실천'
+          : defaultMode === 'subtract'
+          ? '가챠 뽑기'
+          : '선생님 쿠키 잔액 및 누적 통계 초기화 (0개)'
     });
   };
 
   // Open Cookie Modal for Selected Students (Batch)
-  const handleOpenBatchCookieModal = (defaultMode: 'add' | 'subtract' = 'add') => {
+  const handleOpenBatchCookieModal = (defaultMode: 'add' | 'subtract' | 'reset' = 'add') => {
     const targets = students.filter((s) => selectedStudentIds.includes(s.id));
     if (targets.length === 0) return;
     setCookieModal({
       isOpen: true,
       targets,
       mode: defaultMode,
-      amount: 1,
-      reason: defaultMode === 'add' ? '마음처방 미션 성실 실천' : '가챠 뽑기'
+      amount: defaultMode === 'reset' ? 0 : 1,
+      clearCumulative: true,
+      reason:
+        defaultMode === 'add'
+          ? '마음처방 미션 성실 실천'
+          : defaultMode === 'subtract'
+          ? '가챠 뽑기'
+          : '선생님 쿠키 잔액 및 누적 통계 일괄 초기화 (0개)'
+    });
+  };
+
+  // Reset Single Student Cookies (preserves all other data!)
+  const handleResetSingleStudentCookies = (student: Student) => {
+    setConfirmModal({
+      isOpen: true,
+      title: '학생 보유 쿠키 및 누적 통계 초기화',
+      message: `[${student.name}] 학생의 현재 보유 쿠키(${student.cookieBalance || 0}개) 및 누적 지급/사용 기록을 모두 0개로 초기화하시겠습니까?`,
+      subMessage: '🔒 학생 계정, 비밀번호, 사전/사후 진단평가, 처방전, 5일 실천 기록 등 다른 모든 데이터는 100% 안전하게 보존됩니다.',
+      confirmLabel: '0개로 초기화 실행',
+      isDanger: true,
+      onConfirm: () => {
+        StorageService.resetStudentCookies(student.id, `[${student.name}] 학생 쿠키 초기화 (0개)`, true, true);
+        onStudentsUpdated();
+        showToast(`🍪 [${student.name}] 학생의 보유 쿠키 및 누적 기록이 0개로 초기화되었습니다. (다른 데이터 보존)`, 'cookie');
+        setConfirmModal(null);
+      }
+    });
+  };
+
+  // Reset Batch Students Cookies (preserves all other data!)
+  const handleResetBatchCookies = () => {
+    if (selectedStudentIds.length === 0) return;
+    setConfirmModal({
+      isOpen: true,
+      title: '선택 학생 쿠키 및 누적 통계 일괄 초기화',
+      message: `선택된 ${selectedStudentIds.length}명 학생의 보유 쿠키와 누적 지급/사용 기록을 모두 0개로 초기화하시겠습니까?`,
+      subMessage: '🔒 학생 계정(PIN), 진단검사, 처방전 및 5일 실천 미션 기록 등 다른 모든 정보는 100% 안전하게 보존됩니다.',
+      confirmLabel: `선택 ${selectedStudentIds.length}명 쿠키 0개로 초기화`,
+      isDanger: true,
+      onConfirm: () => {
+        const count = StorageService.resetStudentsCookiesBatch(
+          selectedStudentIds,
+          '선생님에 의한 선택 학생 쿠키 일괄 초기화 (0개)',
+          true
+        ).updatedCount;
+        onStudentsUpdated();
+        showToast(`🍪 선택된 ${count}명 학생의 보유 쿠키 및 누적 기록이 0개로 초기화되었습니다. (다른 데이터 보존)`, 'cookie');
+        setConfirmModal(null);
+      }
     });
   };
 
@@ -283,6 +341,22 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
       showToast('쿠키 지급/차감 사유를 반드시 입력해주세요.', 'error');
       return;
     }
+    // Handle reset mode
+    if (mode === 'reset') {
+      const clearCumulative = cookieModal.clearCumulative ?? true;
+      const count = StorageService.resetStudentsCookiesBatch(
+        targets.map((s) => s.id),
+        trimmedReason || '선생님에 의한 쿠키 잔액 및 누적 통계 초기화 (0개)',
+        clearCumulative
+      ).updatedCount;
+      onStudentsUpdated();
+      setCookieModal(null);
+      const namesStr = targets.length === 1 ? `[${targets[0].name}]` : `선택된 ${count}명의`;
+      const cumMsg = clearCumulative ? ' 및 누적 통계' : '';
+      showToast(`🍪 ${namesStr} 학생의 칭찬쿠키${cumMsg}가 0개로 초기화되었습니다. (다른 모든 정보는 안전하게 보존됨)`, 'cookie');
+      return;
+    }
+
     if (amount <= 0) {
       showToast('1개 이상의 유효한 쿠키 수량을 입력해주세요.', 'error');
       return;
@@ -313,6 +387,8 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
     const name = newName.trim();
     if (!num || !name) return;
 
+    const isTest = isTestStudentFlag || checkIsTestStudent({ name });
+
     const newStudent: Student = {
       id: `s_${selectedGrade}_${selectedClass}_${num}`,
       grade: selectedGrade,
@@ -320,15 +396,47 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
       number: num,
       name,
       cookieBalance: 5,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isTestStudent: isTest
     };
 
     StorageService.addStudentsBatch([newStudent]);
     setNewNumber('');
     setNewName('');
+    setIsTestStudentFlag(false);
     setIsAddSingleOpen(false);
     onStudentsUpdated();
-    showToast(`[${name}] 학생이 ${selectedGrade}학년 ${selectedClass}반에 등록되었습니다.`, 'success');
+    showToast(`[${name}] ${isTest ? '(체험/테스트 학생) ' : ''}학생이 ${selectedGrade}학년 ${selectedClass}반에 등록되었습니다.`, 'success');
+  };
+
+  // Quick Add Teacher Test Student
+  const handleAddQuickTestStudent = () => {
+    // Find next available number in current class
+    const existingNumbers = new Set(filteredStudents.map((s) => s.number));
+    let nextNum = 99;
+    if (existingNumbers.has(nextNum)) {
+      nextNum = 98;
+      while (existingNumbers.has(nextNum) && nextNum > 0) {
+        nextNum--;
+      }
+    }
+    if (nextNum <= 0) nextNum = Math.floor(Math.random() * 800) + 100;
+
+    const testStudent: Student = {
+      id: `s_${selectedGrade}_${selectedClass}_${nextNum}`,
+      grade: selectedGrade,
+      classNum: selectedClass,
+      number: nextNum,
+      name: `테스트학생${nextNum}`,
+      cookieBalance: 10,
+      createdAt: new Date().toISOString(),
+      isTestStudent: true,
+      pin: '0000'
+    };
+
+    StorageService.addStudentsBatch([testStudent]);
+    onStudentsUpdated();
+    showToast(`🧪 [${testStudent.name}] (${selectedGrade}학년 ${selectedClass}반 ${nextNum}번) 교사용 테스트 학생이 즉시 생성되었습니다! (5일차 체험 루틴 테스트 가능)`, 'success');
   };
 
   // Parse Text Paste: [번호 이름]
@@ -567,6 +675,17 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
             <span>직접 추가</span>
           </button>
 
+          {/* Quick Create Test Student for Teacher */}
+          <button
+            type="button"
+            onClick={handleAddQuickTestStudent}
+            className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+            title="5일차 미션 체험 테스트를 위해 교사 전용 테스트 학생을 즉시 생성합니다"
+          >
+            <FlaskConical className="w-3.5 h-3.5 text-purple-600" />
+            <span>+ 테스트 학생 생성</span>
+          </button>
+
           {/* Download Template */}
           <button
             type="button"
@@ -584,7 +703,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
       {isAddSingleOpen && (
         <form
           onSubmit={handleAddSingle}
-          className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-3 flex items-center gap-2 text-xs"
+          className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-3 flex flex-wrap items-center gap-2 text-xs"
         >
           <span className="font-bold text-indigo-900">
             {selectedGrade}학년 {selectedClass}반 신규 등록:
@@ -607,6 +726,15 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
             placeholder="학생 이름"
             className="w-32 px-2.5 py-1.5 bg-white border border-indigo-300 rounded-lg"
           />
+          <label className="flex items-center gap-1.5 cursor-pointer select-none px-2 py-1 bg-white/80 border border-purple-200 rounded-lg text-purple-800 font-medium">
+            <input
+              type="checkbox"
+              checked={isTestStudentFlag}
+              onChange={(e) => setIsTestStudentFlag(e.target.checked)}
+              className="w-3.5 h-3.5 text-purple-600 rounded"
+            />
+            <span>🧪 테스트 학생으로 지정 (5일차 체험 루틴 가능)</span>
+          </label>
           <button
             type="submit"
             className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg"
@@ -615,7 +743,10 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setIsAddSingleOpen(false)}
+            onClick={() => {
+              setIsAddSingleOpen(false);
+              setIsTestStudentFlag(false);
+            }}
             className="px-2 py-1.5 text-slate-500 hover:text-slate-800"
           >
             취소
@@ -648,6 +779,15 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
             >
               <Minus className="w-3.5 h-3.5" />
               <span>쿠키 일괄 차감 (-)</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleResetBatchCookies}
+              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl font-bold flex items-center gap-1 transition-all shadow-xs cursor-pointer"
+              title="선택한 학생들의 보유 쿠키 잔액을 0개로 일괄 초기화 (다른 데이터는 안전하게 보존)"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-rose-500" />
+              <span>쿠키 일괄 초기화 (0개)</span>
             </button>
             <button
               type="button"
@@ -751,7 +891,16 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                         </button>
                       </td>
                       <td className="py-2.5 px-3 font-bold text-slate-700">{s.number}번</td>
-                      <td className="py-2.5 px-3 font-bold text-slate-900">{s.name}</td>
+                      <td className="py-2.5 px-3 font-bold text-slate-900">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{s.name}</span>
+                          {checkIsTestStudent(s) && (
+                            <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 border border-purple-200">
+                              🧪체험용
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-2.5 px-3">
                         {s.privacyConsent?.agreed ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
@@ -846,6 +995,15 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                           >
                             <Minus className="w-3 h-3 text-slate-600" />
                             <span>차감</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResetSingleStudentCookies(s)}
+                            className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold transition-all flex items-center gap-1 hover:scale-102 cursor-pointer text-[11px]"
+                            title="해당 학생의 보유 쿠키를 0개로 초기화 (다른 정보 보존)"
+                          >
+                            <RotateCcw className="w-3 h-3 text-rose-500" />
+                            <span>쿠키초기화</span>
                           </button>
                           <button
                             type="button"
@@ -1137,8 +1295,8 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
               </button>
             </div>
 
-            {/* Mode Switch (Add / Subtract) */}
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl">
+            {/* Mode Switch (Add / Subtract / Reset) */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl">
               <button
                 type="button"
                 onClick={() =>
@@ -1155,7 +1313,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                 }`}
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>칭찬쿠키 지급 (+)</span>
+                <span>지급 (+)</span>
               </button>
               <button
                 type="button"
@@ -1173,51 +1331,105 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                 }`}
               >
                 <Minus className="w-3.5 h-3.5" />
-                <span>쿠키 차감 (-)</span>
+                <span>차감 (-)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setCookieModal({
+                    ...cookieModal,
+                    mode: 'reset',
+                    amount: 0,
+                    reason: '선생님에 의한 쿠키 잔액 초기화 (0개)'
+                  })
+                }
+                className={`py-2 text-xs font-jua rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  cookieModal.mode === 'reset'
+                    ? 'bg-rose-600 text-white shadow-xs font-bold'
+                    : 'text-rose-700 hover:bg-rose-50'
+                }`}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>0개 초기화</span>
               </button>
             </div>
 
-            {/* Quantity Selector */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 block">
-                {cookieModal.mode === 'add' ? '지급할 쿠키 수량' : '차감할 쿠키 수량'}
-              </label>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {[1, 2, 3, 5, 10].map((num) => (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => setCookieModal({ ...cookieModal, amount: num })}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      cookieModal.amount === num
-                        ? cookieModal.mode === 'add'
-                          ? 'bg-amber-500 text-white ring-2 ring-amber-300'
-                          : 'bg-slate-800 text-white ring-2 ring-slate-400'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                  >
-                    {cookieModal.mode === 'add' ? `+${num}개` : `-${num}개`}
-                  </button>
-                ))}
-                <div className="flex items-center gap-1 ml-auto">
-                  <span className="text-[11px] text-slate-500">직접 입력:</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={cookieModal.amount}
-                    onChange={(e) =>
-                      setCookieModal({
-                        ...cookieModal,
-                        amount: Math.max(1, parseInt(e.target.value, 10) || 1)
-                      })
-                    }
-                    className="w-16 px-2 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-center"
-                  />
-                  <span className="text-xs text-slate-600">개</span>
+            {/* Quantity Selector or Reset Notice */}
+            {cookieModal.mode === 'reset' ? (
+              <div className="space-y-2">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800">
+                    <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+                    <span>보유 쿠키 잔액을 0개로 설정합니다</span>
+                  </div>
+                  <p className="text-[11px] text-rose-700/90 leading-relaxed">
+                    대상 학생의 현재 쿠키 잔액이 즉시 0개로 초기화되며, 학생 계정, 사전/사후 진단평가, 처방전, 5일 실천 미션 기록 등 다른 모든 데이터는 안전하게 보존됩니다.
+                  </p>
+                </div>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={cookieModal.clearCumulative ?? true}
+                      onChange={(e) =>
+                        setCookieModal({
+                          ...cookieModal,
+                          clearCumulative: e.target.checked
+                        })
+                      }
+                      className="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500"
+                    />
+                    <span className="text-xs font-bold text-slate-700">
+                      누적 획득 및 누적 소모 기록도 함께 0개로 리셋
+                    </span>
+                  </label>
+                  <p className="text-[10.5px] text-slate-400 pl-6 mt-0.5">
+                    체크 시 상단 누적 통계와 학생 누적 집계가 함께 초기화됩니다.
+                  </p>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  {cookieModal.mode === 'add' ? '지급할 쿠키 수량' : '차감할 쿠키 수량'}
+                </label>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[1, 2, 3, 5, 10].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setCookieModal({ ...cookieModal, amount: num })}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        cookieModal.amount === num
+                          ? cookieModal.mode === 'add'
+                            ? 'bg-amber-500 text-white ring-2 ring-amber-300'
+                            : 'bg-slate-800 text-white ring-2 ring-slate-400'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {cookieModal.mode === 'add' ? `+${num}개` : `-${num}개`}
+                    </button>
+                  ))}
+                  <div className="flex items-center gap-1 ml-auto">
+                    <span className="text-[11px] text-slate-500">직접 입력:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={cookieModal.amount}
+                      onChange={(e) =>
+                        setCookieModal({
+                          ...cookieModal,
+                          amount: Math.max(1, parseInt(e.target.value, 10) || 1)
+                        })
+                      }
+                      className="w-16 px-2 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-center"
+                    />
+                    <span className="text-xs text-slate-600">개</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Reason Selector (Chips & Mandatory Input) */}
             <div className="space-y-2">
@@ -1307,14 +1519,22 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                 className={`px-5 py-2 rounded-xl text-xs font-jua shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                   cookieModal.mode === 'add'
                     ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                    : 'bg-slate-700 hover:bg-slate-800 text-white'
+                    : cookieModal.mode === 'subtract'
+                    ? 'bg-slate-700 hover:bg-slate-800 text-white'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white'
                 }`}
               >
-                <Check className="w-3.5 h-3.5" />
+                {cookieModal.mode === 'reset' ? (
+                  <RotateCcw className="w-3.5 h-3.5" />
+                ) : (
+                  <Check className="w-3.5 h-3.5" />
+                )}
                 <span>
                   {cookieModal.mode === 'add'
                     ? `${cookieModal.amount}개 지급하기`
-                    : `${cookieModal.amount}개 차감하기`}
+                    : cookieModal.mode === 'subtract'
+                    ? `${cookieModal.amount}개 차감하기`
+                    : '0개로 초기화 실행'}
                 </span>
               </button>
             </div>

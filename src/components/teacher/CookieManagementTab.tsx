@@ -19,7 +19,10 @@ import {
   TrendingUp,
   Gift,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  RotateCcw,
+  ShieldCheck,
+  Trash2
 } from 'lucide-react';
 
 interface CookieManagementTabProps {
@@ -71,6 +74,32 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
   const [batchAmount, setBatchAmount] = useState<number>(1);
   const [batchReason, setBatchReason] = useState<string>(PRESET_REASONS[0]);
   const [batchCustomReason, setBatchCustomReason] = useState<string>('');
+
+  // Reset Cookies & Cumulative Stats Modal States
+  const [isResetAllModalOpen, setIsResetAllModalOpen] = useState<boolean>(false);
+  const [resetScope, setResetScope] = useState<'all' | 'filtered'>('all');
+  const [resetTargetType, setResetTargetType] = useState<
+    'all_inclusive' | 'balances_only' | 'rewarded_only' | 'spent_only'
+  >('all_inclusive');
+  const [resetClearGacha, setResetClearGacha] = useState<boolean>(false);
+  const [resetReason, setResetReason] = useState<string>('선생님에 의한 쿠키 잔액 및 누적 통계 전체 초기화');
+
+  // Quick KPI Reset Modal (direct reset from stats cards: circulating, rewarded, spent)
+  const [quickKpiResetModal, setQuickKpiResetModal] = useState<{
+    isOpen: boolean;
+    type: 'circulating' | 'rewarded' | 'spent';
+    title: string;
+    description: string;
+    includeBalances: boolean;
+    clearGacha: boolean;
+  } | null>(null);
+
+  // Single Student Reset Modal State (in-app safe confirmation)
+  const [studentToReset, setStudentToReset] = useState<Student | null>(null);
+  const [singleResetIncludeCumulative, setSingleResetIncludeCumulative] = useState<boolean>(true);
+
+  // Clear Logs Confirm Modal State
+  const [isClearLogsModalOpen, setIsClearLogsModalOpen] = useState<boolean>(false);
 
   // Logs state
   const [cookieLogs, setCookieLogs] = useState<CookieLog[]>(() => StorageService.getCookieLogs());
@@ -148,6 +177,149 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
 
     return map;
   }, [cookieLogs]);
+
+  // Execute Global or Filtered Cookie & Cumulative Stats Reset (preserves all other data!)
+  const handleExecuteResetAll = () => {
+    const targetIds =
+      resetScope === 'all'
+        ? students.map((s) => s.id)
+        : filteredStudents.map((s) => s.id);
+
+    if (targetIds.length === 0) {
+      if (showToast) showToast('초기화할 대상 학생이 없습니다.', 'info');
+      setIsResetAllModalOpen(false);
+      return;
+    }
+
+    const resetBalances = resetTargetType === 'all_inclusive' || resetTargetType === 'balances_only';
+    const resetRewarded = resetTargetType === 'all_inclusive' || resetTargetType === 'rewarded_only';
+    const resetSpent = resetTargetType === 'all_inclusive' || resetTargetType === 'spent_only';
+
+    const result = StorageService.resetCookieSystemComprehensive({
+      targetStudentIds: resetScope === 'all' ? undefined : targetIds,
+      resetBalances,
+      resetRewarded,
+      resetSpent,
+      clearGachaLogs: resetClearGacha,
+      reason: resetReason.trim() || '선생님에 의한 쿠키 잔액 및 누적 통계 초기화'
+    });
+
+    reloadData();
+    setIsResetAllModalOpen(false);
+
+    if (showToast) {
+      const scopeText = resetScope === 'all' ? '전교생' : `선택 학급 (${targetIds.length}명)`;
+      if (resetTargetType === 'all_inclusive') {
+        showToast(
+          `🍪✨ ${scopeText}의 보유 쿠키(0개), 누적 지급(+0개), 누적 사용(-0개) 통계가 모두 완전 초기화되었습니다. (다른 데이터 100% 안전 보존)`,
+          'cookie'
+        );
+      } else if (resetTargetType === 'rewarded_only') {
+        showToast(
+          `✨ ${scopeText}의 '누적 지급 칭찬쿠키' 통계가 +0개로 초기화되었습니다.`,
+          'cookie'
+        );
+      } else if (resetTargetType === 'spent_only') {
+        showToast(
+          `🔮 ${scopeText}의 '누적 쿠키 사용(가챠)' 통계가 -0개로 초기화되었습니다.`,
+          'cookie'
+        );
+      } else {
+        showToast(
+          `🪙 ${scopeText} ${result.updatedStudentsCount}명의 보유 쿠키 잔액이 0개로 초기화되었습니다.`,
+          'cookie'
+        );
+      }
+    }
+  };
+
+  // Quick KPI Reset Handlers for stats cards
+  const handleOpenQuickKpiReset = (type: 'circulating' | 'rewarded' | 'spent') => {
+    if (type === 'circulating') {
+      setQuickKpiResetModal({
+        isOpen: true,
+        type: 'circulating',
+        title: '현재 총 순환 쿠키 잔액 초기화 (0개)',
+        description: `학생들이 현재 보유 중인 총 순환 쿠키(${summaryStats.totalCirculating}개)를 0개로 초기화하시겠습니까?`,
+        includeBalances: true,
+        clearGacha: false
+      });
+    } else if (type === 'rewarded') {
+      setQuickKpiResetModal({
+        isOpen: true,
+        type: 'rewarded',
+        title: '누적 지급 칭찬쿠키 통계 초기화 (+0개)',
+        description: `지금까지 지급된 누적 칭찬쿠키(+${summaryStats.totalRewarded}개) 통계를 +0개로 초기화하시겠습니까? (학생 계정, 설문 및 다른 활동 데이터는 안전하게 보존됩니다)`,
+        includeBalances: false,
+        clearGacha: false
+      });
+    } else if (type === 'spent') {
+      setQuickKpiResetModal({
+        isOpen: true,
+        type: 'spent',
+        title: '누적 쿠키 사용(가챠) 통계 초기화 (-0개)',
+        description: `지금까지 가챠 뽑기 및 쿠키 소모로 사용된 누적 사용(-${summaryStats.totalSpent}개) 통계를 -0개로 초기화하시겠습니까?`,
+        includeBalances: false,
+        clearGacha: false
+      });
+    }
+  };
+
+  const handleExecuteQuickKpiReset = () => {
+    if (!quickKpiResetModal) return;
+    const { type, includeBalances, clearGacha } = quickKpiResetModal;
+    if (type === 'circulating') {
+      StorageService.resetAllStudentsCookies('선생님에 의한 현재 총 순환 쿠키 잔액 초기화 (0개)', false);
+      if (showToast) showToast('🪙 전교생의 현재 보유 쿠키 잔액이 0개로 초기화되었습니다.', 'cookie');
+    } else if (type === 'rewarded') {
+      StorageService.resetCumulativeRewarded();
+      if (includeBalances) {
+        StorageService.resetAllStudentsCookies('누적 지급 통계 초기화에 따른 잔액 0개 동기화', false);
+      }
+      if (showToast) showToast('✨ 누적 지급 칭찬쿠키 통계가 +0개로 초기화되었습니다.', 'cookie');
+    } else if (type === 'spent') {
+      StorageService.resetCumulativeSpent(undefined, clearGacha);
+      if (showToast) showToast('🔮 누적 쿠키 사용(가챠) 통계가 -0개로 초기화되었습니다.', 'cookie');
+    }
+    reloadData();
+    setQuickKpiResetModal(null);
+  };
+
+  // Execute Single Student Cookie Reset (preserves all other data!)
+  const handleExecuteResetSingle = (student: Student) => {
+    const updated = StorageService.resetStudentCookies(
+      student.id,
+      `[${student.name}] 학생 쿠키 잔액 초기화 (0개)`,
+      singleResetIncludeCumulative,
+      singleResetIncludeCumulative
+    );
+    if (updated) {
+      reloadData();
+      if (selectedStudentForDetail?.id === student.id) {
+        setSelectedStudentForDetail(updated);
+      }
+      setStudentToReset(null);
+      if (showToast) {
+        const detailMsg = singleResetIncludeCumulative
+          ? '보유 쿠키(0개) 및 누적 획득(+0개)/누적 소모(-0개) 기록이 모두 초기화되었습니다.'
+          : '보유 쿠키 잔액이 0개로 초기화되었습니다.';
+        showToast(
+          `🍪 [${student.name}] 학생의 ${detailMsg} (다른 데이터 보존 완료)`,
+          'cookie'
+        );
+      }
+    }
+  };
+
+  // Execute Clear Cookie Logs
+  const handleExecuteClearLogs = () => {
+    StorageService.clearCookieLogs();
+    reloadData();
+    setIsClearLogsModalOpen(false);
+    if (showToast) {
+      showToast('📋 칭찬쿠키 변동 타임라인 로그가 초기화되었습니다.', 'info');
+    }
+  };
 
   // Handle individual quick gift
   const handleExecuteGift = () => {
@@ -269,22 +441,35 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
         </div>
 
         {/* Global Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => {
               setBatchSelectedIds(filteredStudents.map((s) => s.id));
               setIsBatchGiftOpen(true);
             }}
-            className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-jua text-xs rounded-xl shadow-xs hover:from-amber-600 hover:to-yellow-600 transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-jua text-xs rounded-xl shadow-xs hover:from-amber-600 hover:to-yellow-600 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Gift className="w-4 h-4" />
             <span>학급 일괄 쿠키 지급</span>
           </button>
           <button
             type="button"
+            onClick={() => {
+              setResetScope(filteredStudents.length < students.length ? 'filtered' : 'all');
+              setResetTargetType('all_inclusive');
+              setIsResetAllModalOpen(true);
+            }}
+            className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-jua text-xs rounded-xl shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+            title="쿠키 잔액, 누적 지급/사용 통계를 맞춤형으로 초기화합니다 (다른 데이터 100% 안전 보존)"
+          >
+            <RotateCcw className="w-4 h-4 text-rose-500" />
+            <span>쿠키 및 누적통계 전체 초기화</span>
+          </button>
+          <button
+            type="button"
             onClick={handleExportCSV}
-            className="px-3 py-2 bg-white border border-slate-300 text-slate-700 font-jua text-xs rounded-xl hover:bg-slate-50 shadow-2xs transition-all flex items-center gap-1.5"
+            className="px-3 py-2 bg-white border border-slate-300 text-slate-700 font-jua text-xs rounded-xl hover:bg-slate-50 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="w-4 h-4 text-slate-500" />
             <span>현황 CSV 다운로드</span>
@@ -297,7 +482,18 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
         <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 border border-amber-200 rounded-2xl p-4 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-amber-800">현재 총 순환 쿠키</span>
-            <span className="text-lg">🍪</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-base">🍪</span>
+              <button
+                type="button"
+                onClick={() => handleOpenQuickKpiReset('circulating')}
+                className="text-[10.5px] font-bold text-amber-800 bg-amber-200/80 hover:bg-amber-300 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-0.5 shadow-2xs"
+                title="현재 총 순환 쿠키 잔액을 0개로 초기화"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>초기화</span>
+              </button>
+            </div>
           </div>
           <div className="mt-2 flex items-baseline gap-1">
             <span className="font-jua text-2xl text-amber-950">{summaryStats.totalCirculating}</span>
@@ -309,7 +505,18 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
         <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 border border-emerald-200 rounded-2xl p-4 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-emerald-800">누적 지급 칭찬쿠키</span>
-            <Sparkles className="w-4 h-4 text-emerald-600" />
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <button
+                type="button"
+                onClick={() => handleOpenQuickKpiReset('rewarded')}
+                className="text-[10.5px] font-bold text-emerald-800 bg-emerald-200/80 hover:bg-emerald-300 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-0.5 shadow-2xs"
+                title="누적 지급 칭찬쿠키 통계를 +0개로 초기화"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>초기화</span>
+              </button>
+            </div>
           </div>
           <div className="mt-2 flex items-baseline gap-1">
             <span className="font-jua text-2xl text-emerald-950">+{summaryStats.totalRewarded}</span>
@@ -321,7 +528,18 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
         <div className="bg-gradient-to-br from-purple-50 to-pink-50/50 border border-purple-200 rounded-2xl p-4 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-purple-800">누적 쿠키 사용(가챠)</span>
-            <span className="text-lg">🔮</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-base">🔮</span>
+              <button
+                type="button"
+                onClick={() => handleOpenQuickKpiReset('spent')}
+                className="text-[10.5px] font-bold text-purple-800 bg-purple-200/80 hover:bg-purple-300 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-0.5 shadow-2xs"
+                title="누적 쿠키 사용(가챠) 통계를 -0개로 초기화"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>초기화</span>
+              </button>
+            </div>
           </div>
           <div className="mt-2 flex items-baseline gap-1">
             <span className="font-jua text-2xl text-purple-950">-{summaryStats.totalSpent}</span>
@@ -559,7 +777,7 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex gap-1.5 pt-2 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() => {
@@ -569,18 +787,27 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
                           setCustomReason('');
                           setIsQuickGiftOpen(true);
                         }}
-                        className="flex-1 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-jua text-xs rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs"
+                        className="flex-1 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-jua text-xs rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>쿠키 지급/차감</span>
                       </button>
                       <button
                         type="button"
+                        onClick={() => setStudentToReset(st)}
+                        title="해당 학생의 쿠키 잔액을 0개로 초기화합니다 (다른 데이터 보존)"
+                        className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-jua text-xs rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-rose-500" />
+                        <span>초기화</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setSelectedStudentForDetail(st)}
-                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-all flex items-center justify-center gap-1"
+                        className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer"
                       >
                         <History className="w-3.5 h-3.5 text-slate-500" />
-                        <span>상세 내역</span>
+                        <span>상세</span>
                       </button>
                     </div>
                   </div>
@@ -594,12 +821,25 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
       {/* VIEW MODE 2: Global Timeline Logs */}
       {activeSubTab === 'history' && (
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
-          <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-jua text-sm text-slate-800 flex items-center gap-2">
               <History className="w-4 h-4 text-indigo-600" />
               <span>실시간 칭찬쿠키 변동 타임라인 로그</span>
             </h3>
-            <span className="text-xs text-slate-500">최근 발생한 순서대로 정렬됩니다.</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">최근 발생한 순서대로 정렬됩니다.</span>
+              {cookieLogs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsClearLogsModalOpen(true)}
+                  className="px-2.5 py-1 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 border border-slate-200 rounded-lg text-xs font-jua transition-colors flex items-center gap-1 cursor-pointer"
+                  title="타임라인 로그 내역만 비웁니다 (학생 쿠키 잔액이나 다른 정보는 보존)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>로그 비우기</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="divide-y divide-slate-100 overflow-x-auto">
@@ -727,24 +967,39 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
                   <span className="text-[11px] text-amber-700">사유 선택 또는 직접 입력</span>
                 </div>
 
-                {/* Amount buttons */}
-                <div className="flex gap-1.5">
-                  {[1, 2, 3, 5, -1, -3].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setGiftAmount(amt)}
-                      className={`flex-1 py-1.5 rounded-xl font-jua text-xs border transition-all ${
-                        giftAmount === amt
-                          ? amt > 0
-                            ? 'bg-amber-500 text-white border-amber-500 shadow-2xs'
-                            : 'bg-rose-500 text-white border-rose-500 shadow-2xs'
-                          : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100'
-                      }`}
-                    >
-                      {amt > 0 ? `+${amt}` : amt}
-                    </button>
-                  ))}
+                {/* Amount buttons & Reset button */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex gap-1.5 flex-1 min-w-[200px]">
+                    {[1, 2, 3, 5, -1, -3].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setGiftAmount(amt)}
+                        className={`flex-1 py-1.5 rounded-xl font-jua text-xs border transition-all cursor-pointer ${
+                          giftAmount === amt
+                            ? amt > 0
+                              ? 'bg-amber-500 text-white border-amber-500 shadow-2xs'
+                              : 'bg-rose-500 text-white border-rose-500 shadow-2xs'
+                            : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100'
+                        }`}
+                      >
+                        {amt > 0 ? `+${amt}` : amt}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedStudentForDetail) {
+                        setStudentToReset(selectedStudentForDetail);
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl font-jua text-xs flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                    title="이 학생의 보유 쿠키를 0개로 즉시 초기화합니다"
+                  >
+                    <RotateCcw className="w-3 h-3 text-rose-500" />
+                    <span>0개 초기화</span>
+                  </button>
                 </div>
 
                 {/* Preset Reason Chips */}
@@ -991,6 +1246,26 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
               />
             </div>
 
+            {/* Quick reset button for this target */}
+            <div className="p-2.5 bg-rose-50/70 border border-rose-100 rounded-xl flex items-center justify-between">
+              <span className="text-[11px] text-slate-600 font-medium">현재 보유 잔액을 0개로 리셋:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (quickGiftTarget) {
+                    const target = quickGiftTarget;
+                    setIsQuickGiftOpen(false);
+                    setQuickGiftTarget(null);
+                    setStudentToReset(target);
+                  }
+                }}
+                className="px-2.5 py-1 bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-jua text-xs flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3 h-3 text-rose-500" />
+                <span>0개로 초기화</span>
+              </button>
+            </div>
+
             {/* Actions */}
             <div className="flex gap-2 pt-2 border-t border-slate-100">
               <button
@@ -1133,21 +1408,494 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
             </div>
 
             {/* Action buttons */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBatchGiftOpen(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteBatchGift}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-jua text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>선택 {batchSelectedIds.length}명 일괄 지급</span>
+                </button>
+              </div>
+
+              {/* Batch Reset Button */}
+              <div className="pt-1 flex items-center justify-between text-xs bg-slate-50 p-2 rounded-xl">
+                <span className="text-[11px] text-slate-500">선택 학생 쿠키만 0개로 비우기:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (batchSelectedIds.length === 0) {
+                      if (showToast) showToast('초기화할 학생을 1명 이상 선택해주세요.', 'info');
+                      return;
+                    }
+                    setIsBatchGiftOpen(false);
+                    const count = StorageService.resetStudentsCookiesBatch(
+                      batchSelectedIds,
+                      '선생님에 의한 선택 학생 쿠키 일괄 초기화 (0개)'
+                    ).updatedCount;
+                    reloadData();
+                    if (showToast) {
+                      showToast(`🍪 선택한 ${count}명의 칭찬쿠키가 0개로 초기화되었습니다.`, 'cookie');
+                    }
+                  }}
+                  className="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 rounded-lg font-jua text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3 text-rose-500" />
+                  <span>선택 {batchSelectedIds.length}명 0개 초기화</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Reset All Students Cookies & Cumulative Stats Modal */}
+      {isResetAllModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border-4 border-white space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-2xs">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-jua text-base text-slate-800">
+                    칭찬쿠키 및 누적 통계 초기화
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    쿠키 잔액, 누적 지급/사용 통계를 선택하여 안전하게 초기화합니다
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsResetAllModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Reset Target Type Selection */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">초기화 항목 선택:</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setResetTargetType('all_inclusive')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                    resetTargetType === 'all_inclusive'
+                      ? 'bg-rose-50/80 border-rose-300 ring-2 ring-rose-400/30'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">🌟</span>
+                    <span className="font-jua text-xs text-rose-950">전체 완전 초기화</span>
+                    <span className="text-[10px] bg-rose-200/80 text-rose-800 font-bold px-1.5 py-0.2 rounded-full ml-auto">
+                      추천
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-tight">
+                    잔액(0개) + 누적 지급(+0개) + 누적 사용(-0개) + 변동 로그 모두 리셋
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResetTargetType('balances_only')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                    resetTargetType === 'balances_only'
+                      ? 'bg-amber-50/80 border-amber-300 ring-2 ring-amber-400/30'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">🪙</span>
+                    <span className="font-jua text-xs text-amber-950">현재 보유 잔액만</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-tight">
+                    누적 통계는 보존하고 학생들의 현재 지갑 잔액만 0개로 설정
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResetTargetType('rewarded_only')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                    resetTargetType === 'rewarded_only'
+                      ? 'bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-400/30'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    <span className="font-jua text-xs text-emerald-950">누적 지급 통계만</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-tight">
+                    과거 지급 기록을 정리하여 '누적 지급 칭찬쿠키' 통계만 +0개로 리셋
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setResetTargetType('spent_only')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                    resetTargetType === 'spent_only'
+                      ? 'bg-purple-50/80 border-purple-300 ring-2 ring-purple-400/30'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">🔮</span>
+                    <span className="font-jua text-xs text-purple-950">누적 사용(가챠)만</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-tight">
+                    과거 사용 기록을 정리하여 '누적 쿠키 사용(가챠)' 통계만 -0개로 리셋
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Scope selection */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">초기화 대상 선택:</label>
+              <div className="space-y-1.5">
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                  resetScope === 'all'
+                    ? 'bg-rose-50/70 border-rose-300 text-rose-950 font-bold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}>
+                  <input
+                    type="radio"
+                    name="resetScope"
+                    checked={resetScope === 'all'}
+                    onChange={() => setResetScope('all')}
+                    className="mt-0.5 text-rose-600 focus:ring-rose-500"
+                  />
+                  <div className="text-xs">
+                    <span className="font-jua block">전교생 전체 초기화 (총 {students.length}명)</span>
+                    <span className="text-[10.5px] font-normal text-slate-500 block">
+                      등록된 모든 학년, 모든 반 학생에게 적용됩니다.
+                    </span>
+                  </div>
+                </label>
+
+                <label className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                  resetScope === 'filtered'
+                    ? 'bg-rose-50/70 border-rose-300 text-rose-950 font-bold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}>
+                  <input
+                    type="radio"
+                    name="resetScope"
+                    checked={resetScope === 'filtered'}
+                    onChange={() => setResetScope('filtered')}
+                    className="mt-0.5 text-rose-600 focus:ring-rose-500"
+                  />
+                  <div className="text-xs">
+                    <span className="font-jua block">
+                      현재 조회 목록만 초기화 ({filteredStudents.length}명)
+                    </span>
+                    <span className="text-[10.5px] font-normal text-slate-500 block">
+                      {gradeFilter !== 'all' ? `${gradeFilter}학년 ` : '전체 학년 '}
+                      {classFilter !== 'all' ? `${classFilter}반` : '전체 반'}
+                      {searchQuery ? ` ('${searchQuery}' 검색 결과)` : ''}
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Optional Gacha reset checkbox */}
+            {(resetTargetType === 'all_inclusive' || resetTargetType === 'spent_only') && (
+              <div className="bg-purple-50/60 p-2.5 rounded-xl border border-purple-200">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={resetClearGacha}
+                    onChange={(e) => setResetClearGacha(e.target.checked)}
+                    className="w-4 h-4 text-purple-600 rounded border-purple-300 focus:ring-purple-500"
+                  />
+                  <span className="text-xs font-bold text-purple-900">
+                    학생들의 가챠 뽑기 보관함(스티커 컬렉션) 기록도 함께 비우기
+                  </span>
+                </label>
+                <p className="text-[10.5px] text-purple-700/80 mt-0.5 pl-6">
+                  체크 해제 시 가챠에서 뽑은 스티커는 보존되며 통계 수치만 리셋됩니다.
+                </p>
+              </div>
+            )}
+
+            {/* Reason input */}
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-700">초기화 사유 (감사 기록용):</label>
+              <input
+                type="text"
+                value={resetReason}
+                onChange={(e) => setResetReason(e.target.value)}
+                placeholder="예: 새 학기 시작에 따른 쿠키 및 누적 통계 초기화"
+                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 text-slate-800"
+              />
+            </div>
+
+            {/* Safety Assurance Banner */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-emerald-900">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-bold block text-[11.5px]">다른 모든 데이터 100% 안전 보존</span>
+                <p className="text-[10.5px] text-emerald-800/90 leading-tight">
+                  학생 계정(이름, 번호, 비밀번호), 마음약국 진료 처방전, 5일 실천 미션 기록, 사회정서 진단평가(사전/사후) 등 다른 모든 교육 데이터는 전혀 손상되지 않고 안전하게 보존됩니다.
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
             <div className="flex gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setIsBatchGiftOpen(false)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors"
+                onClick={() => setIsResetAllModalOpen(false)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors cursor-pointer"
               >
                 취소
               </button>
               <button
                 type="button"
-                onClick={handleExecuteBatchGift}
-                className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-jua text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                onClick={handleExecuteResetAll}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-jua text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>선택 {batchSelectedIds.length}명 일괄 지급</span>
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>
+                  {resetTargetType === 'all_inclusive'
+                    ? '잔액 및 누적통계 전체 초기화'
+                    : resetTargetType === 'rewarded_only'
+                    ? '누적 지급 통계 초기화'
+                    : resetTargetType === 'spent_only'
+                    ? '누적 사용 통계 초기화'
+                    : '보유 잔액 0개 초기화'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: Single Student Reset Confirm Modal */}
+      {studentToReset && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border-4 border-white space-y-4 animate-in zoom-in-95">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-500 mx-auto flex items-center justify-center text-xl shadow-inner">
+                <RotateCcw className="w-6 h-6" />
+              </div>
+              <h3 className="font-jua text-base text-slate-800">
+                [{studentToReset.name}] 학생 쿠키 초기화
+              </h3>
+              <p className="text-xs text-slate-500">
+                {studentToReset.grade}학년 {studentToReset.classNum}반 {studentToReset.number}번
+              </p>
+
+              {/* Student status badges */}
+              {(() => {
+                const stStats = studentStatsMap.get(studentToReset.id);
+                return (
+                  <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">현재 보유</span>
+                      <strong className="text-amber-800 text-xs font-jua">
+                        {studentToReset.cookieBalance || 0}개
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">누적 획득</span>
+                      <strong className="text-emerald-700 text-xs font-jua">
+                        +{stStats?.earned || 0}개
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">누적 소모</span>
+                      <strong className="text-purple-700 text-xs font-jua">
+                        -{stStats?.spent || 0}개
+                      </strong>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Toggle cumulative reset */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={singleResetIncludeCumulative}
+                  onChange={(e) => setSingleResetIncludeCumulative(e.target.checked)}
+                  className="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500"
+                />
+                <span className="text-xs font-bold text-slate-800">
+                  누적 획득/소모 통계도 함께 0개로 초기화
+                </span>
+              </label>
+              <p className="text-[10.5px] text-slate-500 leading-tight pl-6">
+                체크 시 이 학생의 '누적 획득(+0개)' 및 '누적 소모(-0개)' 통계가 함께 리셋됩니다.
+              </p>
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 text-[11px] text-emerald-800 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>학생의 진료 처방 및 5일 실천 기록은 안전하게 보존됩니다.</span>
+            </div>
+
+            <div className="flex gap-2 pt-1 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setStudentToReset(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExecuteResetSingle(studentToReset)}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-jua text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <span>0개로 초기화</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 6: Clear Cookie Logs Modal */}
+      {isClearLogsModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border-4 border-white space-y-4 animate-in zoom-in-95">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 mx-auto flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-slate-500" />
+              </div>
+              <h3 className="font-jua text-base text-slate-800">
+                칭찬쿠키 변동 로그 전체 비우기
+              </h3>
+              <p className="text-xs text-slate-500">
+                총 {cookieLogs.length}건의 쿠키 지급 및 차감 내역 로그를 비웁니다.
+              </p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-[11px] text-amber-900 space-y-0.5">
+              <p className="font-bold">⚠️ 상단 '누적 지급' & '누적 사용' 통계가 함께 0개로 리셋됩니다</p>
+              <p className="text-amber-800 text-[10.5px]">
+                과거 변동 로그가 비워지며 상단의 누적 지급/사용 통계도 함께 리셋됩니다. 학생들의 현재 지갑 쿠키 잔액이나 진료 처방전은 100% 안전하게 보존됩니다.
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-1 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsClearLogsModalOpen(false)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteClearLogs}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-jua text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                로그 비우기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 7: Quick KPI Reset Modal */}
+      {quickKpiResetModal && quickKpiResetModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border-4 border-white space-y-4 animate-in zoom-in-95">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-500 mx-auto flex items-center justify-center text-xl shadow-inner">
+                <RotateCcw className="w-6 h-6" />
+              </div>
+              <h3 className="font-jua text-base text-slate-800">
+                {quickKpiResetModal.title}
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {quickKpiResetModal.description}
+              </p>
+            </div>
+
+            {quickKpiResetModal.type === 'rewarded' && (
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={quickKpiResetModal.includeBalances}
+                    onChange={(e) =>
+                      setQuickKpiResetModal({
+                        ...quickKpiResetModal,
+                        includeBalances: e.target.checked
+                      })
+                    }
+                    className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                  />
+                  <span className="text-xs font-bold text-slate-700">
+                    학생들의 현재 보유 잔액도 함께 0개로 설정
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {quickKpiResetModal.type === 'spent' && (
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={quickKpiResetModal.clearGacha}
+                    onChange={(e) =>
+                      setQuickKpiResetModal({
+                        ...quickKpiResetModal,
+                        clearGacha: e.target.checked
+                      })
+                    }
+                    className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500"
+                  />
+                  <span className="text-xs font-bold text-slate-700">
+                    가챠 뽑기 보관함(스티커) 기록도 함께 비우기
+                  </span>
+                </label>
+              </div>
+            )}
+
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2.5 text-[11px] text-emerald-800 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>학생 계정, 설문, 처방전 등 다른 모든 데이터는 보존됩니다.</span>
+            </div>
+
+            <div className="flex gap-2 pt-1 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setQuickKpiResetModal(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-jua text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteQuickKpiReset}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-jua text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>초기화 실행</span>
               </button>
             </div>
           </div>
