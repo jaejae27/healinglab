@@ -649,7 +649,7 @@ export const CookieManagementTab: React.FC<CookieManagementTabProps> = ({
                 .filter((c) => gradeFilter === 'all' || c.grade === gradeFilter)
                 .map((c) => (
                   <option key={`${c.grade}-${c.classNum}`} value={c.classNum}>
-                    {c.classNum}반
+                    {c.classNum}반 ({c.studentCount || 0}명)
                   </option>
                 ))}
             </select>

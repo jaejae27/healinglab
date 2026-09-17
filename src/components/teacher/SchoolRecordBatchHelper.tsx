@@ -124,12 +124,50 @@ export const SchoolRecordBatchHelper: React.FC<SchoolRecordBatchHelperProps> = (
   classes,
   showToast
 }) => {
-  const [selectedGrade, setSelectedGrade] = useState<number>(classes[0]?.grade || 1);
-  const [selectedClass, setSelectedClass] = useState<number>(classes[0]?.classNum || 1);
+  const [selectedGrade, setSelectedGrade] = useState<number>(() => {
+    return classes[0]?.grade || students[0]?.grade || 1;
+  });
+  const [selectedClass, setSelectedClass] = useState<number>(() => {
+    return classes[0]?.classNum || students[0]?.classNum || 1;
+  });
   const [selectedCategory, setSelectedCategory] = useState<RecordCategoryType>('행동발달');
   const [recordsMap, setRecordsMap] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Dynamically calculate actual student count per grade and class from students list
+  const studentCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    students.forEach((s) => {
+      const key = `${s.grade}-${s.classNum}`;
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    return map;
+  }, [students]);
+
+  // Available grades (derived from both registered classes and actual students)
+  const availableGrades = useMemo(() => {
+    const gradeSet = new Set<number>();
+    classes.forEach((c) => gradeSet.add(c.grade));
+    students.forEach((s) => gradeSet.add(s.grade));
+    if (gradeSet.size === 0) gradeSet.add(1);
+    return Array.from(gradeSet).sort((a, b) => a - b);
+  }, [classes, students]);
+
+  // Available classes for currently selected grade
+  const availableClasses = useMemo(() => {
+    const classSet = new Set<number>();
+    classes
+      .filter((c) => c.grade === selectedGrade)
+      .forEach((c) => classSet.add(c.classNum));
+    students
+      .filter((s) => s.grade === selectedGrade)
+      .forEach((s) => classSet.add(s.classNum));
+    if (classSet.size === 0) {
+      [1, 2, 3].forEach((cn) => classSet.add(cn));
+    }
+    return Array.from(classSet).sort((a, b) => a - b);
+  }, [classes, students, selectedGrade]);
 
   // Target students in chosen class
   const targetStudents = useMemo(() => {
@@ -294,10 +332,22 @@ export const SchoolRecordBatchHelper: React.FC<SchoolRecordBatchHelperProps> = (
             <label className="block text-[11px] font-bold text-slate-600 mb-1">학년 선택</label>
             <select
               value={selectedGrade}
-              onChange={(e) => setSelectedGrade(Number(e.target.value))}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+              onChange={(e) => {
+                const nextGrade = Number(e.target.value);
+                setSelectedGrade(nextGrade);
+                const nextClasses = Array.from(
+                  new Set([
+                    ...classes.filter((c) => c.grade === nextGrade).map((c) => c.classNum),
+                    ...students.filter((s) => s.grade === nextGrade).map((s) => s.classNum)
+                  ])
+                ).sort((a, b) => a - b);
+                if (nextClasses.length > 0 && !nextClasses.includes(selectedClass)) {
+                  setSelectedClass(nextClasses[0]);
+                }
+              }}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 cursor-pointer"
             >
-              {Array.from(new Set(classes.map((c) => c.grade))).map((g) => (
+              {availableGrades.map((g) => (
                 <option key={g} value={g}>
                   {g}학년
                 </option>
@@ -311,15 +361,16 @@ export const SchoolRecordBatchHelper: React.FC<SchoolRecordBatchHelperProps> = (
             <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(Number(e.target.value))}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 cursor-pointer"
             >
-              {classes
-                .filter((c) => c.grade === selectedGrade)
-                .map((c) => (
-                  <option key={c.classNum} value={c.classNum}>
-                    {c.classNum}반 ({c.studentCount || 0}명)
+              {availableClasses.map((classNum) => {
+                const count = studentCountMap.get(`${selectedGrade}-${classNum}`) || 0;
+                return (
+                  <option key={classNum} value={classNum}>
+                    {classNum}반 ({count}명)
                   </option>
-                ))}
+                );
+              })}
             </select>
           </div>
 

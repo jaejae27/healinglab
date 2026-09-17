@@ -605,6 +605,83 @@ class FirestoreSyncManager {
       console.error(`Failed to save emotion log ${log.id} to Firestore:`, err);
     }
   }
+
+  /**
+   * Completely clears all documents in a Firestore collection in batches of 400.
+   */
+  async clearCollection(collectionName: string) {
+    if (this.isProjectMismatch) return;
+    try {
+      const snap = await getDocs(collection(db, collectionName));
+      if (snap.empty) return;
+      const docs = snap.docs;
+      for (let i = 0; i < docs.length; i += 400) {
+        const chunk = docs.slice(i, i + 400);
+        const batch = writeBatch(db);
+        chunk.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+      console.log(`[FirestoreSync] Cleared ${docs.length} documents from ${collectionName}`);
+    } catch (err) {
+      console.error(`Failed to clear collection ${collectionName} from Firestore:`, err);
+    }
+  }
+
+  async clearVisitsBatch(visitIds: string[]) {
+    if (this.isProjectMismatch || visitIds.length === 0) return;
+    try {
+      for (let i = 0; i < visitIds.length; i += 400) {
+        const chunk = visitIds.slice(i, i + 400);
+        const batch = writeBatch(db);
+        chunk.forEach((id) => batch.delete(doc(db, 'visits', id)));
+        await batch.commit();
+      }
+    } catch (err) {
+      console.error('Failed to batch delete visits from Firestore:', err);
+    }
+  }
+
+  async clearCookieLogsBatch(logIds: string[]) {
+    if (this.isProjectMismatch || logIds.length === 0) return;
+    try {
+      for (let i = 0; i < logIds.length; i += 400) {
+        const chunk = logIds.slice(i, i + 400);
+        const batch = writeBatch(db);
+        chunk.forEach((id) => batch.delete(doc(db, 'cookie_logs', id)));
+        await batch.commit();
+      }
+    } catch (err) {
+      console.error('Failed to batch delete cookie logs from Firestore:', err);
+    }
+  }
+
+  async clearGachaLogsBatch(logIds: string[]) {
+    if (this.isProjectMismatch || logIds.length === 0) return;
+    try {
+      for (let i = 0; i < logIds.length; i += 400) {
+        const chunk = logIds.slice(i, i + 400);
+        const batch = writeBatch(db);
+        chunk.forEach((id) => batch.delete(doc(db, 'gacha_logs', id)));
+        await batch.commit();
+      }
+    } catch (err) {
+      console.error('Failed to batch delete gacha logs from Firestore:', err);
+    }
+  }
+
+  async clearEmotionLogsBatch(logIds: string[]) {
+    if (this.isProjectMismatch || logIds.length === 0) return;
+    try {
+      for (let i = 0; i < logIds.length; i += 400) {
+        const chunk = logIds.slice(i, i + 400);
+        const batch = writeBatch(db);
+        chunk.forEach((id) => batch.delete(doc(db, 'emotion_logs', id)));
+        await batch.commit();
+      }
+    } catch (err) {
+      console.error('Failed to batch delete emotion logs from Firestore:', err);
+    }
+  }
 }
 
 export const FirestoreSync = new FirestoreSyncManager();

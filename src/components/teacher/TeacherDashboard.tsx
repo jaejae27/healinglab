@@ -1544,7 +1544,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
           {/* TAB: Data Safety & Backup Recovery Center */}
           {activeTab === 'safety' && (
-            <DataSafetyTab />
+            <DataSafetyTab
+              onDataReset={() => {
+                setStudents(StorageService.getStudents());
+                setClasses(StorageService.getClasses());
+                setVisits(StorageService.getVisits());
+                setRequests(StorageService.getNewConditionRequests());
+                setSettings(StorageService.getSettings());
+              }}
+            />
           )}
 
           {/* TAB 7: Settings & Google Apps Script Setup */}

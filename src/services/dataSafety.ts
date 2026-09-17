@@ -155,16 +155,36 @@ export class DataSafetyService {
   }
 
   /**
+   * Records an intentional reset so autoHeal will not treat empty state as data loss.
+   */
+  static markIntentionalReset(reason: string): void {
+    safeSet('healing_pharmacy_intentional_reset', {
+      timestamp: Date.now(),
+      reason
+    });
+  }
+
+  /**
    * Auto-heals local storage if data was accidentally cleared or corrupted.
    * Returns true if healing was performed.
    */
   static autoHealIfCorrupted(): boolean {
     try {
-      const currentStudents = safeGet<Student[]>(STORAGE_KEYS.STUDENTS, []);
-      const currentVisits = safeGet<Visit[]>(STORAGE_KEYS.VISITS, []);
+      // If user deliberately performed a reset, do NOT auto-heal!
+      const resetMarker = safeGet<{ timestamp: number; reason: string } | null>(
+        'healing_pharmacy_intentional_reset',
+        null
+      );
+      if (resetMarker && Date.now() - resetMarker.timestamp < 3600000 * 24 * 7) {
+        // Valid intentional reset within last 7 days; respect user action
+        return false;
+      }
 
-      // If both students and visits are missing/empty, check if a safe vault or snapshot exists
-      if (currentStudents.length === 0 || currentVisits.length === 0) {
+      const studentsRaw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.STUDENTS) : null;
+      const classesRaw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.CLASSES) : null;
+
+      // Only heal if storage keys were unexpectedly wiped/missing entirely
+      if (studentsRaw === null && classesRaw === null) {
         const safeVault = safeGet<DataBackupPayload | null>(STORAGE_KEYS.SAFE_VAULT, null);
         if (
           safeVault &&
@@ -172,14 +192,14 @@ export class DataSafetyService {
           safeVault.data.students &&
           safeVault.data.students.length > 0
         ) {
-          console.warn('[DataSafety] Corrupted/empty state detected! Restoring from Safe Vault...');
+          console.warn('[DataSafety] Missing storage keys detected! Restoring from Safe Vault...');
           this.applyPayload(safeVault);
           return true;
         }
 
         const snapshots = this.getSnapshots();
         if (snapshots.length > 0 && snapshots[0].payload) {
-          console.warn('[DataSafety] Corrupted state detected! Restoring from latest snapshot...');
+          console.warn('[DataSafety] Missing storage keys detected! Restoring from latest snapshot...');
           this.applyPayload(snapshots[0].payload);
           return true;
         }
@@ -218,7 +238,7 @@ export class DataSafetyService {
   static applyPayload(payload: DataBackupPayload): void {
     if (!payload.data) throw new Error('올바르지 않은 백업 데이터 구조입니다.');
 
-    if (Array.isArray(payload.data.students) && payload.data.students.length > 0) {
+    if (Array.isArray(payload.data.students)) {
       safeSet(STORAGE_KEYS.STUDENTS, payload.data.students);
     }
     if (Array.isArray(payload.data.classes) && payload.data.classes.length > 0) {

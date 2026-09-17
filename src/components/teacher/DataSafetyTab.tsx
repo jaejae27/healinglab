@@ -17,10 +17,17 @@ import {
   Sparkles,
   Server,
   Activity,
-  GitBranch
+  GitBranch,
+  Trash2,
+  Check,
+  X
 } from 'lucide-react';
 
-export const DataSafetyTab: React.FC = () => {
+interface DataSafetyTabProps {
+  onDataReset?: () => void;
+}
+
+export const DataSafetyTab: React.FC<DataSafetyTabProps> = ({ onDataReset }) => {
   const [snapshots, setSnapshots] = useState<SnapshotRecord[]>([]);
   const [safetyStatus, setSafetyStatus] = useState(StorageService.getSafetyStatus());
   const [syncStatus, setSyncStatus] = useState(FirestoreSync.getStatus());
@@ -35,6 +42,44 @@ export const DataSafetyTab: React.FC = () => {
     schemaVersion: number;
     error?: string;
   } | null>(null);
+
+  // Granular Reset States
+  const [resetModalMode, setResetModalMode] = useState<'content_only' | 'full_reset' | null>(null);
+  const [isResetExecuting, setIsResetExecuting] = useState(false);
+  const [resetConfirmInput, setResetConfirmInput] = useState('');
+
+  const handleExecuteReset = async () => {
+    if (!resetModalMode) return;
+    setIsResetExecuting(true);
+    try {
+      if (resetModalMode === 'content_only') {
+        const res = await StorageService.resetContentOnly();
+        refreshStatus();
+        if (onDataReset) onDataReset();
+        setStatusMessage({
+          type: 'success',
+          text: `✨ 학생 명단(${res.affectedStudentsCount}명)은 안전하게 유지되고, 쿠키 잔액 및 모든 활동 기록이 깨끗하게 초기화되었습니다!`
+        });
+      } else {
+        const res = await StorageService.resetAllWithRoster();
+        refreshStatus();
+        if (onDataReset) onDataReset();
+        setStatusMessage({
+          type: 'success',
+          text: `🗑️ 학생 명단(${res.deletedStudentsCount}명)을 포함한 모든 데이터가 완전히 삭제되어 초기 상태(0명)로 리셋되었습니다.`
+        });
+      }
+      setResetModalMode(null);
+      setResetConfirmInput('');
+    } catch (err: any) {
+      setStatusMessage({
+        type: 'error',
+        text: `초기화 실행 중 오류가 발생했습니다: ${err.message || err}`
+      });
+    } finally {
+      setIsResetExecuting(false);
+    }
+  };
 
   // Load snapshots & status
   const refreshStatus = () => {
@@ -482,6 +527,85 @@ export const DataSafetyTab: React.FC = () => {
         </div>
       </div>
 
+      {/* Granular Reset Center Section */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
+        <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+          <div>
+            <h3 className="font-jua text-base text-slate-900 flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-amber-600" />
+              <span>데이터 초기화 센터 (내용 초기화 vs 전체 초기화)</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              원하는 범위에 맞춰 데이터를 안전하게 초기화할 수 있습니다. 학생 명단을 유지할지, 명단까지 완전히 비울지 선택하세요.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Card 1: Content Only */}
+          <div className="border border-amber-200 bg-amber-50/40 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-amber-900 font-jua text-sm">
+                <span className="p-1.5 bg-amber-100 rounded-xl text-amber-700">
+                  <RotateCcw className="w-4 h-4" />
+                </span>
+                <span>1. 활동 내용만 초기화 (학생 명단 유지)</span>
+              </div>
+              <p className="text-xs text-amber-800/90 leading-relaxed">
+                학생 명부(이름, 번호, 로그인 PIN)는 <strong>그대로 안전하게 보존</strong>하고, 칭찬쿠키 잔액(0개 리셋), 쿠키 로그, 처방전, 5일 실천 미션, 진단평가 기록만 깨끗하게 초기화합니다.
+              </p>
+              <div className="text-[11px] text-amber-700 space-y-1 pt-1 border-t border-amber-200/60">
+                <p>✅ <strong>보존</strong>: 학생 명단 {safetyStatus.studentCount}명, 로그인 PIN, 가상질환 백과, 학급 기본 설정</p>
+                <p>🔄 <strong>초기화</strong>: 쿠키 잔액 0개, 쿠키 지급 내역, 마음약국 진료 기록, 감정 일기</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setResetModalMode('content_only');
+                setResetConfirmInput('');
+              }}
+              className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-jua shadow-2xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>활동 내용만 초기화 실행 (명단 유지)</span>
+            </button>
+          </div>
+
+          {/* Card 2: Full Reset */}
+          <div className="border border-rose-200 bg-rose-50/40 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-rose-900 font-jua text-sm">
+                <span className="p-1.5 bg-rose-100 rounded-xl text-rose-700">
+                  <Trash2 className="w-4 h-4" />
+                </span>
+                <span>2. 전체 초기화 (학생 명단까지 삭제)</span>
+              </div>
+              <p className="text-xs text-rose-800/90 leading-relaxed">
+                등록된 학생 명단을 포함하여 모든 데이터와 활동 기록을 완전히 영구 삭제합니다. 학생 수가 0명으로 초기화되어 새 학년도 시작 상태가 됩니다.
+              </p>
+              <div className="text-[11px] text-rose-700 space-y-1 pt-1 border-t border-rose-200/60">
+                <p>🗑️ <strong>영구 삭제</strong>: 전교생 학생 명단 {safetyStatus.studentCount}명 전체, 학생 로그인 정보</p>
+                <p>🗑️ <strong>영구 삭제</strong>: 모든 쿠키 잔액/로그, 모든 처방전, 미션, 진단평가 기록</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setResetModalMode('full_reset');
+                setResetConfirmInput('');
+              }}
+              className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-jua shadow-2xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>전체 초기화 실행 (명단까지 삭제)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Time Machine Snapshots List */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-4">
         <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
@@ -561,6 +685,228 @@ export const DataSafetyTab: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* MODAL: Granular Data Reset Modal (Content Only vs. Full Reset with Roster) */}
+      {resetModalMode !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border-4 border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`p-2.5 rounded-2xl ${
+                    resetModalMode === 'content_only'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-rose-100 text-rose-700'
+                  }`}
+                >
+                  {resetModalMode === 'content_only' ? (
+                    <RotateCcw className="w-5 h-5" />
+                  ) : (
+                    <Trash2 className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-jua text-base text-slate-900">
+                    {resetModalMode === 'content_only'
+                      ? '활동 내용만 초기화 (학생 명단 유지)'
+                      : '전체 초기화 (학생 명단까지 삭제)'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {resetModalMode === 'content_only'
+                      ? '학생 명부(이름, 번호, 비번)는 100% 보존하고 쿠키 및 활동 기록만 0으로 비웁니다'
+                      : '등록된 학생 명단을 포함하여 모든 데이터와 기록을 영구 삭제합니다'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isResetExecuting) return;
+                  setResetModalMode(null);
+                  setResetConfirmInput('');
+                }}
+                disabled={isResetExecuting}
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setResetModalMode('content_only');
+                  setResetConfirmInput('');
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-jua transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  resetModalMode === 'content_only'
+                    ? 'bg-amber-500 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>1. 내용만 초기화 (명단 유지)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setResetModalMode('full_reset');
+                  setResetConfirmInput('');
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-jua transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  resetModalMode === 'full_reset'
+                    ? 'bg-rose-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>2. 전체 초기화 (명단 포함)</span>
+              </button>
+            </div>
+
+            {/* Mode Explanation & Detail Box */}
+            {resetModalMode === 'content_only' ? (
+              <div className="space-y-3">
+                <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>학생 명단 {safetyStatus.studentCount}명은 100% 안전하게 유지됩니다!</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                    새 학기 또는 새로운 활동 차시를 시작할 때 사용하는 기능입니다. 학생 명단을 다시 등록할 필요 없이, 누적된 활동 기록과 쿠키만 깔끔하게 비웁니다.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-1.5">
+                    <div className="font-bold text-emerald-800 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>그대로 보존되는 항목:</span>
+                    </div>
+                    <ul className="text-[11px] text-emerald-700 space-y-1 pl-4 list-disc">
+                      <li>학생 명부 (이름, 번호, 학년, 반)</li>
+                      <li>학생 로그인 비밀번호 (PIN)</li>
+                      <li>가상질환 130종 백과 데이터</li>
+                      <li>학급 설정 및 시스템 기본값</li>
+                    </ul>
+                  </div>
+
+                  <div className="p-3 bg-rose-50/60 border border-rose-200 rounded-xl space-y-1.5">
+                    <div className="font-bold text-rose-800 flex items-center gap-1">
+                      <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+                      <span>0으로 초기화되는 항목:</span>
+                    </div>
+                    <ul className="text-[11px] text-rose-700 space-y-1 pl-4 list-disc">
+                      <li>모든 학생 칭찬쿠키 잔액 (0개)</li>
+                      <li>쿠키 지급 및 차감 타임라인 기록</li>
+                      <li>마음약국 처방전 & 5일 실천 미션</li>
+                      <li>사전/사후 사회정서 진단평가 기록</li>
+                      <li>가챠 뽑기·스티커·감정 일기 기록</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-rose-900">
+                    <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    <span>주의: 학생 명단 {safetyStatus.studentCount}명까지 모두 완전히 삭제됩니다!</span>
+                  </div>
+                  <p className="text-[11px] text-rose-800/90 leading-relaxed">
+                    새 학년도가 되어 전교생 명단을 새 엑셀 파일로 완전히 새로 등록하거나, 모든 테스트 데이터를 깨끗하게 비우고 0명 상태에서 시작할 때 사용합니다.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
+                  <div className="font-bold text-slate-800 flex items-center gap-1">
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>영구 삭제되는 대상:</span>
+                  </div>
+                  <ul className="text-[11px] text-slate-600 space-y-1 pl-4 list-disc">
+                    <li>등록된 전교생 학생 명단 {safetyStatus.studentCount}명 전체 (학생 수 0명으로 리셋)</li>
+                    <li>학생 계정 및 로그인 PIN 비밀번호 정보</li>
+                    <li>모든 진료 처방전, 5일 실천 미션, 진단평가 기록</li>
+                    <li>모든 칭찬쿠키 잔액 및 지급/사용 로그</li>
+                  </ul>
+                </div>
+
+                {/* Double Safety Input for Full Reset */}
+                <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-xl space-y-1.5">
+                  <label className="text-xs font-bold text-rose-900 block">
+                    명단 삭제 안전 확인: 아래에 <span className="underline font-black text-rose-600">전체삭제</span>를 입력해주세요
+                  </label>
+                  <input
+                    type="text"
+                    value={resetConfirmInput}
+                    onChange={(e) => setResetConfirmInput(e.target.value)}
+                    placeholder="전체삭제"
+                    className="w-full px-3 py-1.5 bg-white border border-rose-300 rounded-lg text-xs font-bold text-rose-900 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Automatic Snapshot Safeguard Note */}
+            <div className="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500">
+              <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+              <span>
+                <strong>안심 스냅샷 자동 생성</strong>: 초기화 실행 직전 현재 데이터가 [타임머신 자동 스냅샷]에 저장되므로, 필요 시 언제든 되돌릴 수 있습니다.
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isResetExecuting) return;
+                  setResetModalMode(null);
+                  setResetConfirmInput('');
+                }}
+                disabled={isResetExecuting}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+              >
+                취소
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExecuteReset}
+                disabled={
+                  isResetExecuting ||
+                  (resetModalMode === 'full_reset' && resetConfirmInput.trim() !== '전체삭제')
+                }
+                className={`px-5 py-2 rounded-xl text-xs font-jua shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                  resetModalMode === 'content_only'
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white'
+                }`}
+              >
+                {isResetExecuting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>초기화 처리 중...</span>
+                  </>
+                ) : resetModalMode === 'content_only' ? (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>명단 유지하고 내용만 초기화 실행</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>학생 명단 포함 전체 초기화 실행</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

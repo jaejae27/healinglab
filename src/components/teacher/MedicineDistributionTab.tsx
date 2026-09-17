@@ -202,7 +202,7 @@ export const MedicineDistributionTab: React.FC<MedicineDistributionTabProps> = (
         grade: previewVisit.grade,
         classNum: previewVisit.classNum,
         number: previewVisit.number,
-        cookieBalance: 10,
+        cookieBalance: 0,
         createdAt: previewVisit.createdAt
       }
     : null;

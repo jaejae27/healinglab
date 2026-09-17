@@ -309,6 +309,7 @@ export interface SchoolClass {
   grade: number;
   classNum: number;
   active: boolean;
+  studentCount?: number;
 }
 
 export interface AppSettings {

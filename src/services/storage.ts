@@ -156,7 +156,42 @@ export class StorageService {
 
   // Classes
   static getClasses(): SchoolClass[] {
-    return getStoredItem(STORAGE_KEYS.CLASSES, INITIAL_CLASSES);
+    const rawClasses = getStoredItem<SchoolClass[]>(STORAGE_KEYS.CLASSES, INITIAL_CLASSES);
+    const students = this.getStudents();
+
+    // Group actual student count by grade-class
+    const countMap = new Map<string, number>();
+    students.forEach((s) => {
+      const key = `${s.grade}-${s.classNum}`;
+      countMap.set(key, (countMap.get(key) || 0) + 1);
+    });
+
+    const classMap = new Map<string, SchoolClass>();
+    rawClasses.forEach((c) => {
+      const key = `${c.grade}-${c.classNum}`;
+      classMap.set(key, {
+        ...c,
+        studentCount: countMap.get(key) || 0
+      });
+    });
+
+    // Auto-include any classes present in registered students
+    students.forEach((s) => {
+      const key = `${s.grade}-${s.classNum}`;
+      if (!classMap.has(key)) {
+        classMap.set(key, {
+          grade: s.grade,
+          classNum: s.classNum,
+          active: true,
+          studentCount: countMap.get(key) || 0
+        });
+      }
+    });
+
+    return Array.from(classMap.values()).sort((a, b) => {
+      if (a.grade !== b.grade) return a.grade - b.grade;
+      return a.classNum - b.classNum;
+    });
   }
 
   static saveClasses(classes: SchoolClass[]) {
@@ -197,7 +232,7 @@ export class StorageService {
       existingMap.set(st.id, {
         ...existingMap.get(st.id),
         ...st,
-        cookieBalance: existingMap.get(st.id)?.cookieBalance ?? st.cookieBalance ?? 5,
+        cookieBalance: existingMap.get(st.id)?.cookieBalance ?? st.cookieBalance ?? 0,
         createdAt: existingMap.get(st.id)?.createdAt ?? st.createdAt ?? new Date().toISOString()
       });
     });
@@ -1197,6 +1232,116 @@ export class StorageService {
     localStorage.removeItem(STORAGE_KEYS.SETTINGS);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_STUDENT_ID);
     this.init();
+  }
+
+  /**
+   * Option A: 내용만 초기화 (학생 명단 유지)
+   * 학생 명부(이름, 번호, 학년, 학급, 로그인 PIN)는 100% 안전 보존하고,
+   * 쿠키 잔액(0개), 쿠키 지급/사용 로그, 진료 처방전, 5일 실천 미션 기록,
+   * 사전/사후 사회정서 진단평가(SEL), 가챠 뽑기 및 스티커 보관함, 감정 일기 등 모든 활동 기록만 0으로 초기화합니다.
+   */
+  static async resetContentOnly(): Promise<{
+    affectedStudentsCount: number;
+    deletedVisitsCount: number;
+    deletedCookieLogsCount: number;
+  }> {
+    // 1. Take safety snapshot first
+    DataSafetyService.createSnapshot('활동 내용만 초기화 (학생 명단 유지) 전 자동 백업', true);
+
+    const currentStudents = this.getStudents();
+    const visits = this.getVisits();
+    const cookieLogs = this.getCookieLogs();
+
+    // 2. Keep students but reset their cookieBalance to 0, clear assessments and visit logs
+    const resetStudents: Student[] = currentStudents.map((st) => ({
+      ...st,
+      cookieBalance: 0,
+      gachaTickets: 0,
+      lastVisitDate: undefined,
+      preTest: undefined,
+      postTest: undefined
+    }));
+
+    // 3. Update localStorage
+    setStoredItem(STORAGE_KEYS.STUDENTS, resetStudents);
+    setStoredItem(STORAGE_KEYS.VISITS, []);
+    setStoredItem(STORAGE_KEYS.COOKIE_LOGS, []);
+    setStoredItem(STORAGE_KEYS.GACHA_LOGS, []);
+    setStoredItem(STORAGE_KEYS.SAVED_FORTUNES, []);
+    setStoredItem(STORAGE_KEYS.WORRY_CHALLENGES, []);
+    setStoredItem(STORAGE_KEYS.NEW_CONDITION_REQUESTS, []);
+    setStoredItem(STORAGE_KEYS.EMOTION_LOGS, []);
+
+    DataSafetyService.markIntentionalReset('활동 내용만 초기화 (학생 명단 유지)');
+
+    // 4. Sync to Firestore
+    try {
+      await FirestoreSync.saveStudentsBatch(resetStudents);
+      await FirestoreSync.clearCollection('visits');
+      await FirestoreSync.clearCollection('cookie_logs');
+      await FirestoreSync.clearCollection('gacha_logs');
+      await FirestoreSync.clearCollection('emotion_logs');
+      await FirestoreSync.clearCollection('new_conditions');
+    } catch (e) {
+      console.warn('Firestore cloud sync notice during content reset:', e);
+    }
+
+    return {
+      affectedStudentsCount: resetStudents.length,
+      deletedVisitsCount: visits.length,
+      deletedCookieLogsCount: cookieLogs.length
+    };
+  }
+
+  /**
+   * Option B: 전체 초기화 (학생 명단까지 삭제)
+   * 등록된 학생 명단을 포함하여 모든 처방전, 칭찬쿠키, 진단평가, 미션 등 모든 활동 데이터를 완전히 삭제하여
+   * 깨끗한 초기 상태(학생 0명)로 리셋합니다.
+   */
+  static async resetAllWithRoster(): Promise<{
+    deletedStudentsCount: number;
+    deletedVisitsCount: number;
+    deletedCookieLogsCount: number;
+  }> {
+    // 1. Take safety snapshot first
+    DataSafetyService.createSnapshot('전체 초기화 (학생 명단 및 모든 기록 삭제) 전 자동 백업', true);
+
+    const currentStudents = this.getStudents();
+    const visits = this.getVisits();
+    const cookieLogs = this.getCookieLogs();
+
+    // 2. Clear all local storage records
+    setStoredItem(STORAGE_KEYS.STUDENTS, []);
+    setStoredItem(STORAGE_KEYS.VISITS, []);
+    setStoredItem(STORAGE_KEYS.COOKIE_LOGS, []);
+    setStoredItem(STORAGE_KEYS.GACHA_LOGS, []);
+    setStoredItem(STORAGE_KEYS.SAVED_FORTUNES, []);
+    setStoredItem(STORAGE_KEYS.WORRY_CHALLENGES, []);
+    setStoredItem(STORAGE_KEYS.NEW_CONDITION_REQUESTS, []);
+    setStoredItem(STORAGE_KEYS.EMOTION_LOGS, []);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_STUDENT_ID);
+    }
+
+    DataSafetyService.markIntentionalReset('전체 초기화 (명단까지 삭제)');
+
+    // 3. Sync to Firestore
+    try {
+      await FirestoreSync.clearCollection('students');
+      await FirestoreSync.clearCollection('visits');
+      await FirestoreSync.clearCollection('cookie_logs');
+      await FirestoreSync.clearCollection('gacha_logs');
+      await FirestoreSync.clearCollection('emotion_logs');
+      await FirestoreSync.clearCollection('new_conditions');
+    } catch (e) {
+      console.warn('Firestore cloud sync notice during full reset:', e);
+    }
+
+    return {
+      deletedStudentsCount: currentStudents.length,
+      deletedVisitsCount: visits.length,
+      deletedCookieLogsCount: cookieLogs.length
+    };
   }
 
   // --- DATA SAFETY & BACKUP RECOVERY ---

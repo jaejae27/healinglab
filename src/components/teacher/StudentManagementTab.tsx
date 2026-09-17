@@ -24,7 +24,10 @@ import {
   KeyRound,
   Lock,
   FlaskConical,
-  RotateCcw
+  RotateCcw,
+  ShieldCheck,
+  Eraser,
+  RefreshCw
 } from 'lucide-react';
 
 interface StudentManagementTabProps {
@@ -121,10 +124,27 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
   // Safe In-App Confirmation Modal (bypasses broken window.confirm in iframe)
   const [confirmModal, setConfirmModal] = useState<ConfirmDialogState | null>(null);
 
+  // Dedicated Granular Reset Modal (Content Only vs. Full Reset with Roster)
+  const [resetModalMode, setResetModalMode] = useState<'content_only' | 'full_reset' | null>(null);
+  const [isResetExecuting, setIsResetExecuting] = useState<boolean>(false);
+  const [resetConfirmInput, setResetConfirmInput] = useState<string>('');
+
   // Cookie Adjustment Modal with mandatory reason
   const [cookieModal, setCookieModal] = useState<CookieModalState | null>(null);
 
   // Filtered Students for selected grade/class and search query
+  const availableGrades = useMemo(() => {
+    const gradesSet = new Set<number>([1, 2, 3]);
+    students.forEach((s) => gradesSet.add(s.grade));
+    return Array.from(gradesSet).sort((a, b) => a - b);
+  }, [students]);
+
+  const availableClasses = useMemo(() => {
+    const classesSet = new Set<number>([1, 2, 3]);
+    students.filter((s) => s.grade === selectedGrade).forEach((s) => classesSet.add(s.classNum));
+    return Array.from(classesSet).sort((a, b) => a - b);
+  }, [students, selectedGrade]);
+
   const filteredStudents = useMemo(() => {
     return students
       .filter((s) => {
@@ -395,7 +415,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
       classNum: selectedClass,
       number: num,
       name,
-      cookieBalance: 5,
+      cookieBalance: 0,
       createdAt: new Date().toISOString(),
       isTestStudent: isTest
     };
@@ -428,7 +448,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
       classNum: selectedClass,
       number: nextNum,
       name: `테스트학생${nextNum}`,
-      cookieBalance: 10,
+      cookieBalance: 0,
       createdAt: new Date().toISOString(),
       isTestStudent: true,
       pin: '0000'
@@ -482,7 +502,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
       classNum: selectedClass,
       number: p.number,
       name: p.name,
-      cookieBalance: 5,
+      cookieBalance: 0,
       createdAt: new Date().toISOString()
     }));
 
@@ -555,7 +575,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
             classNum: classVal,
             number: numVal,
             name: nameVal,
-            cookieBalance: 5,
+            cookieBalance: 0,
             createdAt: new Date().toISOString()
           });
         }
@@ -595,6 +615,37 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
     XLSX.writeFile(wb, `힐링약국_학생명단_서식_${selectedGrade}학년${selectedClass}반.xlsx`);
   };
 
+  // Granular Reset Execution Handler (Content Only vs. Full Reset with Roster)
+  const handleExecuteReset = async () => {
+    if (!resetModalMode) return;
+    setIsResetExecuting(true);
+    try {
+      if (resetModalMode === 'content_only') {
+        const res = await StorageService.resetContentOnly();
+        setSelectedStudentIds([]);
+        onStudentsUpdated();
+        showToast(
+          `✨ 학생 명단(${res.affectedStudentsCount}명)은 안전하게 유지되고, 쿠키 잔액 및 모든 활동 기록이 깨끗하게 초기화되었습니다.`,
+          'success'
+        );
+      } else {
+        const res = await StorageService.resetAllWithRoster();
+        setSelectedStudentIds([]);
+        onStudentsUpdated();
+        showToast(
+          `🗑️ 학생 명단(${res.deletedStudentsCount}명)을 포함한 모든 데이터가 완전히 삭제되어 초기 상태(0명)로 리셋되었습니다.`,
+          'success'
+        );
+      }
+      setResetModalMode(null);
+      setResetConfirmInput('');
+    } catch (err: any) {
+      showToast(`초기화 실행 중 오류가 발생했습니다: ${err.message || err}`, 'error');
+    } finally {
+      setIsResetExecuting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Top Class Filter & Toolbar */}
@@ -606,7 +657,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
             onChange={(e) => onGradeChange(Number(e.target.value))}
             className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
           >
-            {[1, 2, 3].map((g) => (
+            {availableGrades.map((g) => (
               <option key={g} value={g}>
                 {g}학년
               </option>
@@ -617,13 +668,16 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
           <select
             value={selectedClass}
             onChange={(e) => onClassChange(Number(e.target.value))}
-            className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+            className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 cursor-pointer"
           >
-            {[1, 2, 3].map((c) => (
-              <option key={c} value={c}>
-                {c}반
-              </option>
-            ))}
+            {availableClasses.map((c) => {
+              const count = students.filter((s) => s.grade === selectedGrade && s.classNum === c).length;
+              return (
+                <option key={c} value={c}>
+                  {c}반 ({count}명)
+                </option>
+              );
+            })}
           </select>
 
           {/* Student Search */}
@@ -696,6 +750,38 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
             <Download className="w-3.5 h-3.5 text-slate-400" />
             <span>양식 받기</span>
           </button>
+
+          {/* Divider */}
+          <div className="hidden md:block h-5 w-px bg-slate-200 my-auto" />
+
+          {/* Granular Reset Buttons Group */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                setResetModalMode('content_only');
+                setResetConfirmInput('');
+              }}
+              className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              title="학생 명단은 안전하게 유지하고 쿠키 잔액, 쿠키 지급 기록, 진료 처방전 등 활동 내용만 0으로 초기화합니다"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+              <span>내용만 초기화 (명단 유지)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setResetModalMode('full_reset');
+                setResetConfirmInput('');
+              }}
+              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              title="등록된 학생 명단을 포함하여 모든 데이터와 기록을 완전 삭제 (0명으로 리셋)"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>전체 초기화 (명단까지 삭제)</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1536,6 +1622,228 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                     ? `${cookieModal.amount}개 차감하기`
                     : '0개로 초기화 실행'}
                 </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: Granular Data Reset Modal (Content Only vs. Full Reset with Roster) */}
+      {resetModalMode !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border-4 border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`p-2.5 rounded-2xl ${
+                    resetModalMode === 'content_only'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-rose-100 text-rose-700'
+                  }`}
+                >
+                  {resetModalMode === 'content_only' ? (
+                    <RotateCcw className="w-5 h-5" />
+                  ) : (
+                    <Trash2 className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-jua text-base text-slate-900">
+                    {resetModalMode === 'content_only'
+                      ? '활동 내용만 초기화 (학생 명단 유지)'
+                      : '전체 초기화 (학생 명단까지 삭제)'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {resetModalMode === 'content_only'
+                      ? '학생 명부(이름, 번호, 비번)는 100% 보존하고 쿠키 및 활동 기록만 0으로 비웁니다'
+                      : '등록된 학생 명단을 포함하여 모든 데이터와 기록을 영구 삭제합니다'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isResetExecuting) return;
+                  setResetModalMode(null);
+                  setResetConfirmInput('');
+                }}
+                disabled={isResetExecuting}
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setResetModalMode('content_only');
+                  setResetConfirmInput('');
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-jua transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  resetModalMode === 'content_only'
+                    ? 'bg-amber-500 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>1. 내용만 초기화 (명단 유지)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setResetModalMode('full_reset');
+                  setResetConfirmInput('');
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-jua transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  resetModalMode === 'full_reset'
+                    ? 'bg-rose-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>2. 전체 초기화 (명단 포함)</span>
+              </button>
+            </div>
+
+            {/* Mode Explanation & Detail Box */}
+            {resetModalMode === 'content_only' ? (
+              <div className="space-y-3">
+                <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>학생 명단 {students.length}명은 100% 안전하게 유지됩니다!</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                    새 학기 또는 새로운 활동 차시를 시작할 때 사용하는 기능입니다. 학생 명단을 다시 등록할 필요 없이, 누적된 활동 기록과 쿠키만 깔끔하게 비웁니다.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-1.5">
+                    <div className="font-bold text-emerald-800 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>그대로 보존되는 항목:</span>
+                    </div>
+                    <ul className="text-[11px] text-emerald-700 space-y-1 pl-4 list-disc">
+                      <li>학생 명부 (이름, 번호, 학년, 반)</li>
+                      <li>학생 로그인 비밀번호 (PIN)</li>
+                      <li>가상질환 130종 백과 데이터</li>
+                      <li>학급 설정 및 시스템 기본값</li>
+                    </ul>
+                  </div>
+
+                  <div className="p-3 bg-rose-50/60 border border-rose-200 rounded-xl space-y-1.5">
+                    <div className="font-bold text-rose-800 flex items-center gap-1">
+                      <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+                      <span>0으로 초기화되는 항목:</span>
+                    </div>
+                    <ul className="text-[11px] text-rose-700 space-y-1 pl-4 list-disc">
+                      <li>모든 학생 칭찬쿠키 잔액 (0개)</li>
+                      <li>쿠키 지급 및 차감 타임라인 기록</li>
+                      <li>마음약국 처방전 & 5일 실천 미션</li>
+                      <li>사전/사후 사회정서 진단평가 기록</li>
+                      <li>가챠 뽑기·스티커·감정 일기 기록</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-rose-900">
+                    <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    <span>주의: 학생 명단 {students.length}명까지 모두 완전히 삭제됩니다!</span>
+                  </div>
+                  <p className="text-[11px] text-rose-800/90 leading-relaxed">
+                    새 학년도가 되어 전교생 명단을 새 엑셀 파일로 완전히 새로 등록하거나, 모든 테스트 데이터를 깨끗하게 비우고 0명 상태에서 시작할 때 사용합니다.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
+                  <div className="font-bold text-slate-800 flex items-center gap-1">
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>영구 삭제되는 대상:</span>
+                  </div>
+                  <ul className="text-[11px] text-slate-600 space-y-1 pl-4 list-disc">
+                    <li>등록된 전교생 학생 명단 {students.length}명 전체 (학생 수 0명으로 리셋)</li>
+                    <li>학생 계정 및 로그인 PIN 비밀번호 정보</li>
+                    <li>모든 진료 처방전, 5일 실천 미션, 진단평가 기록</li>
+                    <li>모든 칭찬쿠키 잔액 및 지급/사용 로그</li>
+                  </ul>
+                </div>
+
+                {/* Double Safety Input for Full Reset */}
+                <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-xl space-y-1.5">
+                  <label className="text-xs font-bold text-rose-900 block">
+                    명단 삭제 안전 확인: 아래에 <span className="underline font-black text-rose-600">전체삭제</span>를 입력해주세요
+                  </label>
+                  <input
+                    type="text"
+                    value={resetConfirmInput}
+                    onChange={(e) => setResetConfirmInput(e.target.value)}
+                    placeholder="전체삭제"
+                    className="w-full px-3 py-1.5 bg-white border border-rose-300 rounded-lg text-xs font-bold text-rose-900 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Automatic Snapshot Safeguard Note */}
+            <div className="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500">
+              <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+              <span>
+                <strong>안심 스냅샷 자동 생성</strong>: 초기화 실행 직전 현재 데이터가 [타임머신 자동 스냅샷]에 저장되므로, 필요 시 [데이터 안전] 탭에서 언제든 되돌릴 수 있습니다.
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isResetExecuting) return;
+                  setResetModalMode(null);
+                  setResetConfirmInput('');
+                }}
+                disabled={isResetExecuting}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+              >
+                취소
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExecuteReset}
+                disabled={
+                  isResetExecuting ||
+                  (resetModalMode === 'full_reset' && resetConfirmInput.trim() !== '전체삭제')
+                }
+                className={`px-5 py-2 rounded-xl text-xs font-jua shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                  resetModalMode === 'content_only'
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white'
+                }`}
+              >
+                {isResetExecuting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>초기화 처리 중...</span>
+                  </>
+                ) : resetModalMode === 'content_only' ? (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>명단 유지하고 내용만 초기화 실행</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>학생 명단 포함 전체 초기화 실행</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
