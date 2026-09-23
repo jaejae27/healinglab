@@ -28,6 +28,10 @@ export default function App() {
   // Initialize database and subscribe to cloud updates
   useEffect(() => {
     StorageService.init();
+    const initialStudentId = StorageService.getCurrentStudentId();
+    if (initialStudentId) {
+      StorageService.recordStudentVisit(initialStudentId);
+    }
     const unsub = StorageService.subscribe(() => {
       setCurrentStudent((prev) => {
         if (!prev) return null;
@@ -98,7 +102,8 @@ export default function App() {
 
   // Login handler
   const handleLogin = (student: Student) => {
-    setCurrentStudent(student);
+    const updated = StorageService.recordStudentVisit(student.id) || student;
+    setCurrentStudent(updated);
     setStudentTab('home');
   };
 

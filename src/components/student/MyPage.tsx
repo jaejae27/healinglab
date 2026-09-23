@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Student, DailyMissionCheckIn } from '../../types';
 import { StorageService } from '../../services/storage';
 import { EmotionCalendarTab } from './EmotionCalendarTab';
+import { GrowthBadgesTab } from './GrowthBadgesTab';
+import { GrowthBadgeEmblem } from './GrowthBadgeEmblem';
 import {
   Award,
   Calendar,
@@ -44,7 +46,7 @@ export const MyPage: React.FC<MyPageProps> = ({
   onOpenWorryGacha,
   onRefreshStudent
 }) => {
-  const [tab, setTab] = useState<'calendar' | 'daily' | 'history' | 'cards' | 'rewards'>('calendar');
+  const [tab, setTab] = useState<'badges' | 'calendar' | 'daily' | 'history' | 'cards' | 'rewards'>('badges');
   const [expandedVisitId, setExpandedVisitId] = useState<string | null>(null);
 
   const visits = useMemo(() => StorageService.getVisitsForStudent(student.id), [student.id]);
@@ -68,6 +70,13 @@ export const MyPage: React.FC<MyPageProps> = ({
     () => StorageService.getAllWorryChallengesHistory(student.id),
     [student.id]
   );
+
+  // Growth Badges evaluated from real stored records
+  const growthBadges = useMemo(() => {
+    return StorageService.getGrowthBadgesForStudent(student.id);
+  }, [student.id, student.visitDates, student.badges, visits, myProposals, savedFortunes, worryHistory]);
+
+  const unlockedGrowthBadges = useMemo(() => growthBadges.filter((b) => b.unlocked), [growthBadges]);
 
   // Aggregate all completed daily check-ins across all visits
   const allDailyCheckIns = useMemo(() => {
@@ -179,26 +188,50 @@ export const MyPage: React.FC<MyPageProps> = ({
           <div className="text-3xl">🗂️</div>
         </div>
 
-        {/* Currency summary */}
-        <div className="mt-4 pt-3 border-t border-white/20 grid grid-cols-2 gap-2 text-center">
-          <div className="bg-white/15 backdrop-blur-xs rounded-2xl p-2.5 border border-white/10">
-            <span className="text-[11px] text-purple-100 block font-medium">보유 칭찬쿠키</span>
-            <span className="font-jua text-xl text-amber-300 flex items-center justify-center gap-1 mt-0.5">
+        {/* Currency & Growth Badges summary */}
+        <div className="mt-4 pt-3 border-t border-white/20 grid grid-cols-3 gap-2 text-center">
+          <div className="bg-white/15 backdrop-blur-xs rounded-2xl p-2 border border-white/10 flex flex-col justify-center">
+            <span className="text-[10px] text-purple-100 block font-medium">칭찬쿠키</span>
+            <span className="font-jua text-base sm:text-lg text-amber-300 flex items-center justify-center gap-1 mt-0.5">
               <span>🍪</span> {student.cookieBalance}개
             </span>
           </div>
-          <div className="bg-white/15 backdrop-blur-xs rounded-2xl p-2.5 border border-white/10">
-            <span className="text-[11px] text-purple-100 block font-medium">신약 연구 제안</span>
-            <span className="font-jua text-xl text-purple-200 flex items-center justify-center gap-1 mt-0.5">
+
+          <button
+            type="button"
+            onClick={() => setTab('badges')}
+            className={`transition-all rounded-2xl p-2 border flex flex-col justify-center cursor-pointer ${
+              tab === 'badges'
+                ? 'bg-white/30 border-amber-300 shadow-xs scale-102'
+                : 'bg-white/15 hover:bg-white/25 border-white/10'
+            }`}
+          >
+            <span className="text-[10px] text-purple-100 block font-medium">성장 배지</span>
+            <span className="font-jua text-base sm:text-lg text-amber-200 flex items-center justify-center gap-1 mt-0.5">
+              <span>🏅</span> {unlockedGrowthBadges.length}/{growthBadges.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTab('rewards')}
+            className={`transition-all rounded-2xl p-2 border flex flex-col justify-center cursor-pointer ${
+              tab === 'rewards'
+                ? 'bg-white/30 border-purple-300 shadow-xs scale-102'
+                : 'bg-white/15 hover:bg-white/25 border-white/10'
+            }`}
+          >
+            <span className="text-[10px] text-purple-100 block font-medium">신약 연구</span>
+            <span className="font-jua text-base sm:text-lg text-purple-200 flex items-center justify-center gap-1 mt-0.5">
               <span>🔬</span> {myProposals.length}건
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Print Portfolio Button */}
         <button
           onClick={onPrintPortfolio}
-          className="w-full mt-3 bg-white/20 hover:bg-white/30 active:scale-98 text-white text-xs font-jua py-2.5 rounded-2xl flex items-center justify-center gap-1.5 transition-all border border-white/30"
+          className="w-full mt-3 bg-white/20 hover:bg-white/30 active:scale-98 text-white text-xs font-jua py-2.5 rounded-2xl flex items-center justify-center gap-1.5 transition-all border border-white/30 cursor-pointer"
         >
           <Printer className="w-3.5 h-3.5 text-amber-200" />
           <span>나의 힐링 포트폴리오 인쇄/PDF 저장</span>
@@ -206,10 +239,25 @@ export const MyPage: React.FC<MyPageProps> = ({
       </div>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto no-scrollbar sm:grid sm:grid-cols-5 bg-slate-100/90 p-1.5 rounded-2xl gap-1">
+      <div className="flex overflow-x-auto no-scrollbar sm:grid sm:grid-cols-6 bg-slate-100/90 p-1.5 rounded-2xl gap-1">
         <button
+          type="button"
+          onClick={() => setTab('badges')}
+          className={`py-2 px-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[70px] sm:min-w-0 flex-1 cursor-pointer ${
+            tab === 'badges'
+              ? 'bg-white text-amber-900 shadow-xs border border-amber-300 font-bold scale-102 sm:scale-100'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <span className="whitespace-nowrap">🏅 성장 배지</span>
+          <span className="text-[9px] font-mono text-amber-700 font-bold whitespace-nowrap">
+            ({unlockedGrowthBadges.length}/{growthBadges.length})
+          </span>
+        </button>
+        <button
+          type="button"
           onClick={() => setTab('calendar')}
-          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
+          className={`py-2 px-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[70px] sm:min-w-0 flex-1 cursor-pointer ${
             tab === 'calendar'
               ? 'bg-white text-amber-900 shadow-xs border border-amber-200/50 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
@@ -219,8 +267,9 @@ export const MyPage: React.FC<MyPageProps> = ({
           <span className="text-[9px] font-mono text-amber-700 font-bold whitespace-nowrap">오늘 기록</span>
         </button>
         <button
+          type="button"
           onClick={() => setTab('daily')}
-          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
+          className={`py-2 px-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[70px] sm:min-w-0 flex-1 cursor-pointer ${
             tab === 'daily'
               ? 'bg-white text-purple-900 shadow-xs border border-purple-200/50 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
@@ -230,8 +279,9 @@ export const MyPage: React.FC<MyPageProps> = ({
           <span className="text-[9px] font-mono text-purple-600 font-bold whitespace-nowrap">({totalDaysLogged}일)</span>
         </button>
         <button
+          type="button"
           onClick={() => setTab('history')}
-          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
+          className={`py-2 px-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[70px] sm:min-w-0 flex-1 cursor-pointer ${
             tab === 'history'
               ? 'bg-white text-slate-800 shadow-xs border border-slate-200 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
@@ -241,8 +291,9 @@ export const MyPage: React.FC<MyPageProps> = ({
           <span className="text-[9px] font-mono font-bold whitespace-nowrap">({visits.length}건)</span>
         </button>
         <button
+          type="button"
           onClick={() => setTab('cards')}
-          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
+          className={`py-2 px-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[70px] sm:min-w-0 flex-1 cursor-pointer ${
             tab === 'cards'
               ? 'bg-white text-indigo-900 shadow-xs border border-indigo-200/50 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
@@ -252,8 +303,9 @@ export const MyPage: React.FC<MyPageProps> = ({
           <span className="text-[9px] font-mono text-indigo-600 font-bold whitespace-nowrap">({savedFortunes.length + worryHistory.length}건)</span>
         </button>
         <button
+          type="button"
           onClick={() => setTab('rewards')}
-          className={`py-2 px-2.5 text-[11px] sm:text-xs font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[74px] sm:min-w-0 flex-1 ${
+          className={`py-2 px-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[70px] sm:min-w-0 flex-1 cursor-pointer ${
             tab === 'rewards'
               ? 'bg-white text-purple-900 shadow-xs border border-purple-200/50 font-bold scale-102 sm:scale-100'
               : 'text-slate-500 hover:text-slate-700'
@@ -263,6 +315,16 @@ export const MyPage: React.FC<MyPageProps> = ({
           <span className="text-[9px] font-mono font-bold text-purple-600 whitespace-nowrap">({myProposals.length}건)</span>
         </button>
       </div>
+
+      {/* ========================================================= */}
+      {/* TAB 0: MIND GROWTH BADGES (마음 성장 배지) */}
+      {/* ========================================================= */}
+      {tab === 'badges' && (
+        <GrowthBadgesTab
+          badges={growthBadges}
+          studentName={student.name}
+        />
+      )}
 
       {/* ========================================================= */}
       {/* TAB 0: TODAY'S EMOTION CALENDAR (오늘의 감정 달력) */}
@@ -297,27 +359,47 @@ export const MyPage: React.FC<MyPageProps> = ({
               작은 발걸음이라도 매일 내 마음에 귀 기울인 시간은 결코 사라지지 않아요. 내가 적은 한 줄 소감들이 나의 단단한 마음 뿌리가 됩니다.
             </p>
 
-            {/* Badges Collection */}
+            {/* Badges Collection Preview */}
             <div className="mt-3.5 pt-3 border-t border-amber-200/60">
-              <span className="text-[11px] font-jua text-[#854D0E] block mb-2">
-                🏆 마음 돌봄 성취 배지
-              </span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-jua text-[#854D0E] flex items-center gap-1">
+                  <Award className="w-3.5 h-3.5 text-amber-600" />
+                  <span>마음 성장 배지 ({unlockedGrowthBadges.length}/{growthBadges.length}개 획득)</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setTab('badges')}
+                  className="text-[10px] font-jua text-amber-800 hover:underline flex items-center gap-0.5 cursor-pointer"
+                >
+                  <span>전체 배지 보기</span>
+                  <span>→</span>
+                </button>
+              </div>
               <div className="grid grid-cols-4 gap-1.5 text-center">
-                {badges.map((b) => (
+                {growthBadges.slice(0, 4).map((b) => (
                   <div
-                    key={b.id}
-                    className={`p-2 rounded-2xl border transition-all ${
+                    key={b.definition.id}
+                    onClick={() => setTab('badges')}
+                    className={`p-2 rounded-2xl border transition-all cursor-pointer ${
                       b.unlocked
-                        ? 'bg-white border-amber-300 shadow-xs text-slate-800'
+                        ? 'bg-white border-amber-300 shadow-2xs text-slate-800 hover:border-amber-400'
                         : 'bg-slate-100/70 border-slate-200 text-slate-400 opacity-60'
                     }`}
                   >
-                    <span className="text-2xl block mb-0.5">{b.emoji}</span>
+                    <div className="flex justify-center mb-1">
+                      <GrowthBadgeEmblem
+                        icon={b.definition.icon}
+                        badgeGraphic={b.definition.badgeGraphic}
+                        colorTheme={b.definition.colorTheme}
+                        unlocked={b.unlocked}
+                        size="sm"
+                      />
+                    </div>
                     <span className="font-jua text-[10px] block leading-tight truncate">
-                      {b.title}
+                      {b.definition.title}
                     </span>
-                    <span className="text-[8px] text-slate-500 block mt-0.5">
-                      {b.unlocked ? '달성 완료 ✨' : '도전 중'}
+                    <span className="text-[8px] font-mono text-slate-500 block mt-0.5">
+                      {b.unlocked ? (b.unlockedAt || '달성 완료') : '도전 중'}
                     </span>
                   </div>
                 ))}

@@ -112,6 +112,25 @@ export interface PrivacyConsent {
   guardianAgreed?: boolean;
 }
 
+export interface StudentBadgeRecord {
+  unlocked: boolean;
+  unlockedAt: string; // YYYY.MM.DD or ISO string
+}
+
+export interface GrowthBadgeDefinition {
+  id: string;
+  title: string;
+  category: 'visit' | 'prescription' | 'routine' | 'done' | 'reflection' | 'special';
+  categoryLabel: string;
+  conditionDescription: string;
+  achievedDescription: string;
+  icon: string;
+  badgeGraphic: string;
+  colorTheme: 'amber' | 'emerald' | 'sky' | 'rose' | 'purple' | 'indigo' | 'teal' | 'lime' | 'violet' | 'fuchsia';
+  targetProgress: number;
+  progressUnit: string;
+}
+
 export interface Student {
   id: string;
   grade: number;
@@ -121,6 +140,8 @@ export interface Student {
   cookieBalance: number;
   gachaTickets?: number;
   lastVisitDate?: string;
+  visitDates?: string[]; // Array of unique YYYY-MM-DD dates visited
+  badges?: Record<string, StudentBadgeRecord>; // badgeId -> StudentBadgeRecord
   createdAt: string;
   privacyConsent?: PrivacyConsent;
   preTest?: AssessmentResult;

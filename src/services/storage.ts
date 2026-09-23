@@ -21,6 +21,7 @@ import { VIRTUAL_CONDITIONS } from '../data/conditions';
 import { CATEGORIES, normalizeCategory, getCategoryFormatted } from '../data/categories';
 import { FirestoreSync } from './firestoreSync';
 import { DataSafetyService } from './dataSafety';
+import { evaluateStudentGrowthBadges, extractUniqueVisitDates, EvaluatedGrowthBadge } from '../utils/growthBadges';
 
 const STORAGE_KEYS = {
   CLASSES: 'healing_pharmacy_classes',
@@ -547,9 +548,105 @@ export class StorageService {
   static setCurrentStudentId(studentId: string | null) {
     if (studentId) {
       localStorage.setItem(STORAGE_KEYS.CURRENT_STUDENT_ID, studentId);
+      this.recordStudentVisit(studentId);
     } else {
       localStorage.removeItem(STORAGE_KEYS.CURRENT_STUDENT_ID);
     }
+  }
+
+  /**
+   * Record a student visit for today without multiple counts on same day or reload.
+   * Also auto-evaluates and retroactively awards any eligible badges.
+   */
+  static recordStudentVisit(studentId: string): Student | null {
+    const student = this.getStudentById(studentId);
+    if (!student) return null;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const studentVisits = this.getVisitsForStudent(studentId);
+    const emotionLogs = this.getEmotionLogs(studentId);
+
+    // Extract all unique historical + stored visit dates
+    const existingDates = new Set<string>(extractUniqueVisitDates(student, studentVisits, emotionLogs));
+    const isNewDay = !existingDates.has(todayStr);
+
+    if (isNewDay) {
+      existingDates.add(todayStr);
+    }
+
+    const updatedVisitDates = Array.from(existingDates).sort();
+
+    // Auto-evaluate growth badges using real stored records
+    const proposals = this.getNewConditionRequests().filter((p) => p.studentId === studentId);
+    const savedFortunes = this.getSavedFortunes(studentId);
+    const { newlyUnlockedMap } = evaluateStudentGrowthBadges(
+      { ...student, visitDates: updatedVisitDates },
+      studentVisits,
+      proposals,
+      emotionLogs,
+      savedFortunes
+    );
+
+    const mergedBadges = {
+      ...(student.badges || {}),
+      ...newlyUnlockedMap
+    };
+
+    const hasBadgeChanges = JSON.stringify(mergedBadges) !== JSON.stringify(student.badges || {});
+
+    if (isNewDay || hasBadgeChanges || !student.visitDates || student.visitDates.length !== updatedVisitDates.length) {
+      const updated = this.updateStudent(studentId, {
+        visitDates: updatedVisitDates,
+        lastVisitDate: todayStr,
+        badges: mergedBadges
+      });
+      return updated;
+    }
+
+    return student;
+  }
+
+  /**
+   * Get evaluated growth badges for student.
+   * Automatically auto-awards badges to students with existing qualifying records.
+   */
+  static getGrowthBadgesForStudent(studentId: string): EvaluatedGrowthBadge[] {
+    const student = this.getStudentById(studentId);
+    if (!student) return [];
+
+    const studentVisits = this.getVisitsForStudent(studentId);
+    const proposals = this.getNewConditionRequests().filter((p) => p.studentId === studentId);
+    const emotionLogs = this.getEmotionLogs(studentId);
+    const savedFortunes = this.getSavedFortunes(studentId);
+
+    const { badges, newlyUnlockedMap } = evaluateStudentGrowthBadges(
+      student,
+      studentVisits,
+      proposals,
+      emotionLogs,
+      savedFortunes
+    );
+
+    // Auto-save new badges if any
+    const currentBadges = student.badges || {};
+    let needsSave = false;
+    for (const [id, record] of Object.entries(newlyUnlockedMap)) {
+      if (!currentBadges[id] || !currentBadges[id].unlocked) {
+        needsSave = true;
+        break;
+      }
+    }
+
+    if (needsSave) {
+      this.updateStudent(studentId, {
+        badges: {
+          ...currentBadges,
+          ...newlyUnlockedMap
+        }
+      });
+    }
+
+    return badges;
   }
 
   // Conditions

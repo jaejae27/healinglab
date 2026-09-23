@@ -11,6 +11,8 @@ interface PortfolioPrintViewProps {
 export const PortfolioPrintView: React.FC<PortfolioPrintViewProps> = ({ student, onBack }) => {
   const visits = useMemo(() => StorageService.getVisitsForStudent(student.id), [student.id]);
   const fortunes = useMemo(() => StorageService.getSavedFortunes(student.id), [student.id]);
+  const growthBadges = useMemo(() => StorageService.getGrowthBadgesForStudent(student.id), [student.id]);
+  const unlockedBadges = useMemo(() => growthBadges.filter((b) => b.unlocked), [growthBadges]);
 
   const completedVisits = visits.filter((v) => v.status === 'rewarded' || v.status === 'submitted');
 
@@ -20,7 +22,7 @@ export const PortfolioPrintView: React.FC<PortfolioPrintViewProps> = ({ student,
       <div className="w-full max-w-2xl flex items-center justify-between mb-4 print:hidden">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 bg-white border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-xs"
+          className="flex items-center gap-1.5 bg-white border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-xs cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>마이페이지로 돌아가기</span>
@@ -28,7 +30,7 @@ export const PortfolioPrintView: React.FC<PortfolioPrintViewProps> = ({ student,
 
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-xs font-jua shadow-md shadow-rose-200"
+          className="flex items-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-xs font-jua shadow-md shadow-rose-200 cursor-pointer"
         >
           <Printer className="w-4 h-4" />
           <span>포트폴리오 인쇄 / PDF 저장</span>
@@ -59,20 +61,48 @@ export const PortfolioPrintView: React.FC<PortfolioPrintViewProps> = ({ student,
         </div>
 
         {/* Overview Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-5 text-center text-xs">
-          <div className="border border-slate-200 bg-slate-50 p-2.5 rounded-xl">
-            <span className="text-slate-500 block">총 처방 완료 횟수</span>
-            <span className="font-jua text-lg text-rose-600">{completedVisits.length}회</span>
+        <div className="grid grid-cols-4 gap-2 mb-5 text-center text-xs">
+          <div className="border border-slate-200 bg-slate-50 p-2 rounded-xl">
+            <span className="text-slate-500 block text-[11px]">총 처방 완료</span>
+            <span className="font-jua text-base sm:text-lg text-rose-600">{completedVisits.length}회</span>
           </div>
-          <div className="border border-slate-200 bg-slate-50 p-2.5 rounded-xl">
-            <span className="text-slate-500 block">적립 칭찬쿠키</span>
-            <span className="font-jua text-lg text-amber-600">{student.cookieBalance}개</span>
+          <div className="border border-slate-200 bg-slate-50 p-2 rounded-xl">
+            <span className="text-slate-500 block text-[11px]">성장 배지</span>
+            <span className="font-jua text-base sm:text-lg text-amber-600">{unlockedBadges.length}개</span>
           </div>
-          <div className="border border-slate-200 bg-slate-50 p-2.5 rounded-xl">
-            <span className="text-slate-500 block">수집한 인생 문장</span>
-            <span className="font-jua text-lg text-purple-600">{fortunes.length}개</span>
+          <div className="border border-slate-200 bg-slate-50 p-2 rounded-xl">
+            <span className="text-slate-500 block text-[11px]">적립 칭찬쿠키</span>
+            <span className="font-jua text-base sm:text-lg text-amber-700">{student.cookieBalance}개</span>
+          </div>
+          <div className="border border-slate-200 bg-slate-50 p-2 rounded-xl">
+            <span className="text-slate-500 block text-[11px]">인생 문장</span>
+            <span className="font-jua text-base sm:text-lg text-purple-600">{fortunes.length}개</span>
           </div>
         </div>
+
+        {/* Section 0: Growth Badges Showcase */}
+        {unlockedBadges.length > 0 && (
+          <div className="mb-5">
+            <h2 className="font-jua text-sm text-slate-800 border-l-4 border-amber-500 pl-2 mb-2 flex items-center justify-between">
+              <span>🏅 획득한 마음 성장 배지 ({unlockedBadges.length}개)</span>
+              <span className="text-[10px] font-normal text-slate-500">경쟁이 아닌 나만의 소중한 실천 발자국</span>
+            </h2>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              {unlockedBadges.map((b) => (
+                <div
+                  key={b.definition.id}
+                  className="border border-amber-200 bg-amber-50/40 p-2 rounded-xl flex items-center gap-2"
+                >
+                  <span className="text-xl shrink-0">{b.definition.icon}</span>
+                  <div className="min-w-0">
+                    <p className="font-jua text-slate-900 truncate text-[11px]">{b.definition.title}</p>
+                    <p className="text-[10px] font-mono text-amber-800">획득일: {b.unlockedAt}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Section 1: Effective Prescriptions */}
         <div className="mb-5">
