@@ -704,7 +704,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
               {/* Safe Guidance */}
               <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed">
-                💡 <strong>운영 주의사항:</strong> 힐링약국의 모든 마음신호는 중학생의 일상적 상태를 알아차리는 교육용 메타포입니다. 특정 마음신호 발급이 지속되거나 심리적 위기 징후(우울, 자해 등)가 감지될 경우 전문 상담교사 및 Weee 센터 연계를 적극 진행해주세요.
+                💡 <strong>운영 주의사항:</strong> 힐링약국의 모든 마음신호는 중학생의 일상적 상태를 알아차리는 교육용 메타포입니다. 특정 마음신호 발급이 지속되거나 심리적 위기 징후(우울, 자해 등)가 감지될 경우 전문 상담교사 및 We 센터 연계를 적극 진행해주세요.
               </div>
             </div>
           )}
