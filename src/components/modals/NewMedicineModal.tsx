@@ -263,6 +263,11 @@ export const NewMedicineModal: React.FC<NewMedicineModalProps> = ({
                 </select>
               </div>
 
+              {/* Privacy Input Reminder */}
+              <div className="p-2 bg-purple-50 rounded-xl border border-purple-200/60 text-[10.5px] text-purple-900 leading-tight">
+                💡 <strong>개인정보 보호 안내:</strong> 자유 입력란에 친구의 실명, 전화번호, 개인 사생활이나 불필요한 의료 정보는 적지 마세요.
+              </div>
+
               {/* When Appears */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">

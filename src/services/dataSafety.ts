@@ -49,7 +49,8 @@ const STORAGE_KEYS = {
   // Safety & Redundancy Keys
   SNAPSHOTS: 'healing_pharmacy_snapshots',
   SAFE_VAULT: 'healing_pharmacy_vault_safe',
-  LAST_BACKUP_TIME: 'healing_pharmacy_last_backup_time'
+  LAST_BACKUP_TIME: 'healing_pharmacy_last_backup_time',
+  TOMBSTONES: 'healing_pharmacy_deleted_student_ids'
 };
 
 function safeGet<T>(key: string, defaultValue: T): T {
@@ -233,38 +234,140 @@ export class DataSafetyService {
   }
 
   /**
+   * Registers a deleted student's ID into the tombstone list so that background
+   * sync, autoHeal, or snapshot restoration will never resurrect this student.
+   */
+  static addDeletedStudentTombstone(studentId: string): void {
+    if (!studentId) return;
+    const current = safeGet<string[]>(STORAGE_KEYS.TOMBSTONES, []);
+    if (!current.includes(studentId)) {
+      safeSet(STORAGE_KEYS.TOMBSTONES, [...current, studentId]);
+    }
+  }
+
+  static isStudentTombstoned(studentId: string): boolean {
+    if (!studentId) return false;
+    const current = safeGet<string[]>(STORAGE_KEYS.TOMBSTONES, []);
+    return current.includes(studentId);
+  }
+
+  static getTombstonedStudentIds(): Set<string> {
+    const current = safeGet<string[]>(STORAGE_KEYS.TOMBSTONES, []);
+    return new Set(current);
+  }
+
+  /**
+   * Deeply purges a specific student and all associated activity records from:
+   * 1. Safe Vault
+   * 2. All stored Snapshot records
+   * 3. Tombstone list (registers student as intentionally purged)
+   */
+  static purgeStudentFromSnapshotsAndVault(studentId: string): void {
+    this.addDeletedStudentTombstone(studentId);
+
+    // 1. Purge from Safe Vault
+    const vault = safeGet<DataBackupPayload | null>(STORAGE_KEYS.SAFE_VAULT, null);
+    if (vault && vault.data) {
+      vault.data.students = (vault.data.students || []).filter((s) => s.id !== studentId);
+      vault.data.visits = (vault.data.visits || []).filter((v) => v.studentId !== studentId);
+      vault.data.cookieLogs = (vault.data.cookieLogs || []).filter((l) => l.studentId !== studentId);
+      vault.data.gachaLogs = (vault.data.gachaLogs || []).filter((l) => l.studentId !== studentId);
+      vault.data.emotionLogs = (vault.data.emotionLogs || []).filter((e) => (e as any).studentId !== studentId);
+      vault.data.newConditions = (vault.data.newConditions || []).filter((c) => c.studentId !== studentId);
+      safeSet(STORAGE_KEYS.SAFE_VAULT, vault);
+    }
+
+    // 2. Purge from all snapshots
+    const snapshots = this.getSnapshots();
+    const updatedSnapshots = snapshots.map((snap) => {
+      if (!snap.payload || !snap.payload.data) return snap;
+      const data = snap.payload.data;
+      const filteredStudents = (data.students || []).filter((s) => s.id !== studentId);
+      const filteredVisits = (data.visits || []).filter((v) => v.studentId !== studentId);
+      const filteredCookieLogs = (data.cookieLogs || []).filter((l) => l.studentId !== studentId);
+      const filteredGachaLogs = (data.gachaLogs || []).filter((l) => l.studentId !== studentId);
+      const filteredEmotionLogs = (data.emotionLogs || []).filter((e) => (e as any).studentId !== studentId);
+      const filteredNewConditions = (data.newConditions || []).filter((c) => c.studentId !== studentId);
+
+      return {
+        ...snap,
+        counts: {
+          students: filteredStudents.length,
+          visits: filteredVisits.length,
+          cookieLogs: filteredCookieLogs.length
+        },
+        payload: {
+          ...snap.payload,
+          data: {
+            ...data,
+            students: filteredStudents,
+            visits: filteredVisits,
+            cookieLogs: filteredCookieLogs,
+            gachaLogs: filteredGachaLogs,
+            emotionLogs: filteredEmotionLogs,
+            newConditions: filteredNewConditions
+          }
+        }
+      };
+    });
+    safeSet(STORAGE_KEYS.SNAPSHOTS, updatedSnapshots);
+    console.log(`[DataSafety] Student ${studentId} completely purged from Vault and Snapshots.`);
+  }
+
+  /**
    * Applies a full backup payload to localStorage.
+   * Strictly filters out tombstoned (permanently deleted) students to prevent resurrection.
    */
   static applyPayload(payload: DataBackupPayload): void {
     if (!payload.data) throw new Error('올바르지 않은 백업 데이터 구조입니다.');
 
+    const tombstoned = this.getTombstonedStudentIds();
+
+    const sanitizedStudents = (payload.data.students || []).filter((s) => !tombstoned.has(s.id));
+    const sanitizedVisits = (payload.data.visits || []).filter((v) => !tombstoned.has(v.studentId));
+    const sanitizedCookieLogs = (payload.data.cookieLogs || []).filter((l) => !tombstoned.has(l.studentId));
+    const sanitizedGachaLogs = (payload.data.gachaLogs || []).filter((l) => !tombstoned.has(l.studentId));
+    const sanitizedEmotionLogs = (payload.data.emotionLogs || []).filter((e) => !tombstoned.has((e as any).studentId));
+    const sanitizedNewConditions = (payload.data.newConditions || []).filter((c) => !tombstoned.has(c.studentId));
+
     if (Array.isArray(payload.data.students)) {
-      safeSet(STORAGE_KEYS.STUDENTS, payload.data.students);
+      safeSet(STORAGE_KEYS.STUDENTS, sanitizedStudents);
     }
     if (Array.isArray(payload.data.classes) && payload.data.classes.length > 0) {
       safeSet(STORAGE_KEYS.CLASSES, payload.data.classes);
     }
     if (Array.isArray(payload.data.visits)) {
-      safeSet(STORAGE_KEYS.VISITS, payload.data.visits);
+      safeSet(STORAGE_KEYS.VISITS, sanitizedVisits);
     }
     if (Array.isArray(payload.data.cookieLogs)) {
-      safeSet(STORAGE_KEYS.COOKIE_LOGS, payload.data.cookieLogs);
+      safeSet(STORAGE_KEYS.COOKIE_LOGS, sanitizedCookieLogs);
     }
     if (Array.isArray(payload.data.gachaLogs)) {
-      safeSet(STORAGE_KEYS.GACHA_LOGS, payload.data.gachaLogs);
+      safeSet(STORAGE_KEYS.GACHA_LOGS, sanitizedGachaLogs);
     }
     if (payload.data.settings) {
       safeSet(STORAGE_KEYS.SETTINGS, payload.data.settings);
     }
     if (Array.isArray(payload.data.newConditions)) {
-      safeSet(STORAGE_KEYS.NEW_CONDITION_REQUESTS, payload.data.newConditions);
+      safeSet(STORAGE_KEYS.NEW_CONDITION_REQUESTS, sanitizedNewConditions);
     }
     if (Array.isArray(payload.data.emotionLogs)) {
-      safeSet(STORAGE_KEYS.EMOTION_LOGS, payload.data.emotionLogs);
+      safeSet(STORAGE_KEYS.EMOTION_LOGS, sanitizedEmotionLogs);
     }
 
-    // Refresh safe vault
-    safeSet(STORAGE_KEYS.SAFE_VAULT, payload);
+    // Refresh safe vault with sanitized data
+    safeSet(STORAGE_KEYS.SAFE_VAULT, {
+      ...payload,
+      data: {
+        ...payload.data,
+        students: sanitizedStudents,
+        visits: sanitizedVisits,
+        cookieLogs: sanitizedCookieLogs,
+        gachaLogs: sanitizedGachaLogs,
+        emotionLogs: sanitizedEmotionLogs,
+        newConditions: sanitizedNewConditions
+      }
+    });
   }
 
   /**

@@ -14,7 +14,9 @@ import {
   DailyMissionCheckIn,
   MissionItemCheck,
   Fortune,
-  EmotionLog
+  EmotionLog,
+  PrivacyConsent,
+  GuardianConsentVerificationInput
 } from '../types';
 import { INITIAL_CLASSES, INITIAL_STUDENTS, INITIAL_VISITS, DEFAULT_SETTINGS, GACHA_PRIZES, INITIAL_COOKIE_LOGS } from '../data/initialData';
 import { VIRTUAL_CONDITIONS } from '../data/conditions';
@@ -22,6 +24,7 @@ import { CATEGORIES, normalizeCategory, getCategoryFormatted } from '../data/cat
 import { FirestoreSync } from './firestoreSync';
 import { DataSafetyService } from './dataSafety';
 import { evaluateStudentGrowthBadges, extractUniqueVisitDates, EvaluatedGrowthBadge } from '../utils/growthBadges';
+import { CryptoAuthService } from '../utils/cryptoAuth';
 
 const STORAGE_KEYS = {
   CLASSES: 'healing_pharmacy_classes',
@@ -250,27 +253,41 @@ export class StorageService {
   }
 
   static deleteStudentsBatch(studentIds: string[]): Student[] {
-    // Safety guard: create snapshot before destructive batch deletion
-    DataSafetyService.createSnapshot(`학생 ${studentIds.length}명 일괄 삭제 전 안전 백업`, true);
+    const idSet = new Set(studentIds);
+
+    // 1. Purge all students from Safe Vault and snapshots, and add tombstones
+    studentIds.forEach((id) => {
+      DataSafetyService.purgeStudentFromSnapshotsAndVault(id);
+    });
 
     const currentStudents = this.getStudents();
-    const idSet = new Set(studentIds);
-    const updated = currentStudents.filter(s => !idSet.has(s.id));
+    const updated = currentStudents.filter((s) => !idSet.has(s.id));
     setStoredItem(STORAGE_KEYS.STUDENTS, updated);
     FirestoreSync.deleteStudentsBatch(studentIds);
 
-    // Also remove visits and cookie logs for deleted students
+    // 2. Cascade remove visits, cookie logs, gacha logs, emotion logs, and proposals
     try {
       const currentVisits = this.getVisits();
-      const toDeleteVisits = currentVisits.filter(v => idSet.has(v.studentId));
-      toDeleteVisits.forEach(v => FirestoreSync.deleteVisit(v.visitId));
-
-      const updatedVisits = currentVisits.filter(v => !idSet.has(v.studentId));
+      const toDeleteVisits = currentVisits.filter((v) => idSet.has(v.studentId));
+      toDeleteVisits.forEach((v) => FirestoreSync.deleteVisit(v.visitId));
+      const updatedVisits = currentVisits.filter((v) => !idSet.has(v.studentId));
       setStoredItem(STORAGE_KEYS.VISITS, updatedVisits);
 
       const currentLogs = this.getCookieLogs();
-      const updatedLogs = currentLogs.filter(l => !idSet.has(l.studentId));
+      const updatedLogs = currentLogs.filter((l) => !idSet.has(l.studentId));
       setStoredItem(STORAGE_KEYS.COOKIE_LOGS, updatedLogs);
+
+      const currentGacha = this.getGachaLogs();
+      const updatedGacha = currentGacha.filter((g) => !idSet.has(g.studentId));
+      setStoredItem(STORAGE_KEYS.GACHA_LOGS, updatedGacha);
+
+      const currentEmotions = this.getEmotionLogs();
+      const updatedEmotions = currentEmotions.filter((e) => !idSet.has((e as any).studentId));
+      setStoredItem(STORAGE_KEYS.EMOTION_LOGS, updatedEmotions);
+
+      const currentRequests = this.getNewConditionRequests();
+      const updatedRequests = currentRequests.filter((r) => !idSet.has(r.studentId));
+      setStoredItem(STORAGE_KEYS.NEW_CONDITION_REQUESTS, updatedRequests);
     } catch (err) {
       console.warn('Error cascading student deletion:', err);
     }
@@ -281,9 +298,103 @@ export class StorageService {
   static deleteStudentsByClass(grade: number, classNum: number): Student[] {
     const currentStudents = this.getStudents();
     const toDeleteIds = currentStudents
-      .filter(s => s.grade === grade && s.classNum === classNum)
-      .map(s => s.id);
+      .filter((s) => s.grade === grade && s.classNum === classNum)
+      .map((s) => s.id);
     return this.deleteStudentsBatch(toDeleteIds);
+  }
+
+  /**
+   * Complete, permanent deletion of a single student (Self-service withdrawal or Admin deletion).
+   * Ensures data is wiped from local storage, Firebase, Safe Vault, Snapshots, and registers a tombstone.
+   */
+  static purgeStudentComplete(studentId: string): boolean {
+    if (!studentId) return false;
+
+    // 1. Register tombstone and purge from snapshots & vault
+    DataSafetyService.purgeStudentFromSnapshotsAndVault(studentId);
+
+    // 2. Delete from local students list
+    const currentStudents = this.getStudents();
+    const updatedStudents = currentStudents.filter((s) => s.id !== studentId);
+    setStoredItem(STORAGE_KEYS.STUDENTS, updatedStudents);
+
+    // 3. Cascade delete all student activities from local storage
+    const currentVisits = this.getVisits();
+    const toDeleteVisits = currentVisits.filter((v) => v.studentId === studentId);
+    setStoredItem(STORAGE_KEYS.VISITS, currentVisits.filter((v) => v.studentId !== studentId));
+
+    const currentLogs = this.getCookieLogs();
+    setStoredItem(STORAGE_KEYS.COOKIE_LOGS, currentLogs.filter((l) => l.studentId !== studentId));
+
+    const currentGacha = this.getGachaLogs();
+    setStoredItem(STORAGE_KEYS.GACHA_LOGS, currentGacha.filter((g) => g.studentId !== studentId));
+
+    const currentEmotions = this.getEmotionLogs();
+    setStoredItem(STORAGE_KEYS.EMOTION_LOGS, currentEmotions.filter((e) => (e as any).studentId !== studentId));
+
+    const currentRequests = this.getNewConditionRequests();
+    setStoredItem(STORAGE_KEYS.NEW_CONDITION_REQUESTS, currentRequests.filter((r) => r.studentId !== studentId));
+
+    // 4. Delete from Firestore
+    FirestoreSync.deleteStudent(studentId);
+    toDeleteVisits.forEach((v) => FirestoreSync.deleteVisit(v.visitId));
+
+    // 5. If this was the logged-in student, clear session
+    if (this.getCurrentStudentId() === studentId) {
+      this.setCurrentStudentId(null);
+    }
+
+    FirestoreSync.notify();
+    return true;
+  }
+
+  /**
+   * Authenticates a student securely using Grade, Class, Number, Name, and PIN.
+   * Prevents leaking the full student roster before authentication.
+   */
+  static authenticateStudent(
+    grade: number,
+    classNum: number,
+    number: number,
+    enteredName: string,
+    enteredPin: string
+  ): { success: boolean; student?: Student; error?: string } {
+    const students = this.getStudents();
+    const trimmedName = (enteredName || '').trim().replace(/\s+/g, '');
+    const trimmedPin = (enteredPin || '').trim();
+
+    // Check if student exists by Grade, Class, Number
+    const candidate = students.find(
+      (s) => s.grade === grade && s.classNum === classNum && s.number === number
+    );
+
+    if (!candidate) {
+      return {
+        success: false,
+        error: `${grade}학년 ${classNum}반 ${number}번 학생 정보를 찾을 수 없습니다.`
+      };
+    }
+
+    const candidateName = (candidate.name || '').trim().replace(/\s+/g, '');
+    if (candidateName !== trimmedName) {
+      return {
+        success: false,
+        error: '입력하신 이름이 등록된 학생 정보와 일치하지 않습니다.'
+      };
+    }
+
+    const expectedPin = (candidate.pin || '0000').trim();
+    if (trimmedPin !== expectedPin) {
+      return {
+        success: false,
+        error: '비밀번호가 일치하지 않습니다. (초기 비밀번호: 0000 / 분실 시 선생님께 초기화를 요청해주세요)'
+      };
+    }
+
+    return {
+      success: true,
+      student: candidate
+    };
   }
 
   // Student PIN / Password Management
@@ -306,28 +417,88 @@ export class StorageService {
     return this.updateStudent(studentId, { pin: trimmed });
   }
 
-  // Teacher Password Management
+  // Teacher Password Management (Bridged to CryptoAuthService)
   static getTeacherPassword(): string {
     return getStoredItem<string>(STORAGE_KEYS.TEACHER_PASSWORD, '1234');
   }
 
-  static setTeacherPassword(newPassword: string): boolean {
-    const trimmed = (newPassword || '').trim();
-    if (trimmed.length < 4) return false;
-    setStoredItem(STORAGE_KEYS.TEACHER_PASSWORD, trimmed);
+  static async setTeacherPassword(newPassword: string): Promise<boolean> {
+    const res = await CryptoAuthService.setTeacherPassword(newPassword);
     FirestoreSync.notify();
-    return true;
+    return res.success;
   }
 
   // Privacy Consent & Assessment
-  static savePrivacyConsent(studentId: string): Student | null {
+  /**
+   * Saves student's own privacy agreement.
+   * NOTE: guardianAgreed is deliberately set to FALSE.
+   * guardianStatus is set to 'pending_verification' until the authorized teacher records
+   * the actual paper or electronic notice verification.
+   */
+  static savePrivacyConsent(
+    studentId: string,
+    options?: {
+      optionalResearchAgreed?: boolean;
+      sensitiveDataAgreed?: boolean;
+    }
+  ): Student | null {
     return this.updateStudent(studentId, {
       privacyConsent: {
+        studentInformed: true,
         agreed: true,
         agreedAt: new Date().toISOString(),
-        guardianAgreed: true
+        consentVersion: '2026.10-v1',
+        guardianStatus: 'pending_verification', // 재확인 필요(확인 대기)
+        guardianAgreed: false, // 학생 단독 클릭으로 보호자 대리 동의 절대 불가
+        sensitiveDataAgreed: options?.sensitiveDataAgreed ?? true,
+        sensitiveDataAgreedAt: new Date().toISOString(),
+        optionalResearchAgreed: options?.optionalResearchAgreed ?? false,
+        optionalResearchAgreedAt: options?.optionalResearchAgreed ? new Date().toISOString() : undefined
       }
     });
+  }
+
+  /**
+   * Records verification of legal guardian consent by an authorized teacher/staff member
+   * based on official paper notices (가정통신문), school e-notices (학교 e-알리미), or written forms.
+   */
+  static verifyGuardianConsent(
+    studentId: string,
+    input: GuardianConsentVerificationInput
+  ): Student | null {
+    const student = this.getStudentById(studentId);
+    if (!student) return null;
+
+    const prev = student.privacyConsent || {
+      studentInformed: true,
+      agreed: true,
+      agreedAt: new Date().toISOString()
+    };
+
+    const updatedConsent: PrivacyConsent = {
+      ...prev,
+      guardianStatus: 'verified',
+      guardianAgreed: true,
+      guardianVerifiedAt: new Date().toISOString(),
+      guardianVerificationMethod: input.method,
+      guardianVerifierName: (input.verifierName || '담당교사').trim(),
+      guardianDocumentRef: (input.documentRef || '').trim(),
+      guardianConsentVersion: input.consentVersion || '2026.10-v1'
+    };
+
+    return this.updateStudent(studentId, { privacyConsent: updatedConsent });
+  }
+
+  static verifyGuardianConsentBatch(
+    studentIds: string[],
+    input: GuardianConsentVerificationInput
+  ): number {
+    let count = 0;
+    studentIds.forEach((id) => {
+      const res = this.verifyGuardianConsent(id, input);
+      if (res) count++;
+    });
+    return count;
   }
 
   static savePreTest(studentId: string, result: AssessmentResult): Student | null {

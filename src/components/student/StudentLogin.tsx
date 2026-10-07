@@ -3,20 +3,27 @@ import { Student } from '../../types';
 import { StorageService } from '../../services/storage';
 import { HealyCharacter } from '../character/HealyCharacter';
 import { AppFooter } from '../common/AppFooter';
-import { Heart, Sparkles, UserCheck, ShieldCheck, Lock, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, ShieldCheck, Lock, Eye, EyeOff, User, FileText, BookOpen } from 'lucide-react';
 
 interface StudentLoginProps {
   onLogin: (student: Student) => void;
   onSwitchToTeacher: () => void;
+  onOpenPrivacyPolicy?: () => void;
+  onOpenTerms?: () => void;
+  onOpenTeacherGuide?: () => void;
 }
 
-export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToTeacher }) => {
-  const [students, setStudents] = useState(() => StorageService.getStudents());
+export const StudentLogin: React.FC<StudentLoginProps> = ({
+  onLogin,
+  onSwitchToTeacher,
+  onOpenPrivacyPolicy,
+  onOpenTerms,
+  onOpenTeacherGuide
+}) => {
   const [classes, setClasses] = useState(() => StorageService.getClasses().filter((c) => c.active));
 
   React.useEffect(() => {
     const unsub = StorageService.subscribe(() => {
-      setStudents(StorageService.getStudents());
       setClasses(StorageService.getClasses().filter((c) => c.active));
     });
     return () => unsub();
@@ -24,39 +31,36 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
 
   const [selectedGrade, setSelectedGrade] = useState<number>(1);
   const [selectedClass, setSelectedClass] = useState<number>(1);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [selectedNumber, setSelectedNumber] = useState<number>(1);
+  const [studentName, setStudentName] = useState<string>('');
   const [pin, setPin] = useState<string>('');
   const [showPin, setShowPin] = useState<boolean>(false);
-  const [pinError, setPinError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Available class numbers for selected grade
   const availableClasses = useMemo(() => {
     return classes.filter((c) => c.grade === selectedGrade);
   }, [classes, selectedGrade]);
 
-  // Students in selected grade and class
-  const classStudents = useMemo(() => {
-    return students
-      .filter((s) => s.grade === selectedGrade && s.classNum === selectedClass)
-      .sort((a, b) => a.number - b.number);
-  }, [students, selectedGrade, selectedClass]);
-
   const handleStart = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudentId) return;
-    const student = StorageService.getStudentById(selectedStudentId);
-    if (!student) return;
+    setAuthError(null);
 
-    const expectedPin = (student.pin || '0000').trim();
-    const enteredPin = pin.trim();
+    const result = StorageService.authenticateStudent(
+      selectedGrade,
+      selectedClass,
+      selectedNumber,
+      studentName,
+      pin
+    );
 
-    if (enteredPin !== expectedPin) {
-      setPinError('비밀번호가 일치하지 않습니다. (초기 비밀번호: 0000 / 분실 시 선생님께 초기화를 요청해주세요)');
+    if (!result.success || !result.student) {
+      setAuthError(result.error || '학생 정보를 확인하지 못했습니다. 번호, 이름, 비밀번호를 다시 확인해주세요.');
       return;
     }
 
-    StorageService.setCurrentStudentId(student.id);
-    onLogin(student);
+    StorageService.setCurrentStudentId(result.student.id);
+    onLogin(result.student);
   };
 
   return (
@@ -74,14 +78,14 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
       <div className="w-full max-w-sm flex justify-end mb-4 relative z-10">
         <button
           onClick={onSwitchToTeacher}
-          className="text-xs text-[#5A5A40] bg-white/80 hover:bg-white border-2 border-white px-4 py-2 rounded-2xl shadow-sm flex items-center gap-1.5 transition-all font-bold whitespace-nowrap"
+          className="text-xs text-[#5A5A40] bg-white/80 hover:bg-white border-2 border-white px-4 py-2 rounded-2xl shadow-sm flex items-center gap-1.5 transition-all font-bold whitespace-nowrap cursor-pointer hover:shadow-md"
         >
           <ShieldCheck className="w-4 h-4 text-[#7C3AED] shrink-0" />
           <span className="whitespace-nowrap">선생님 관리자 모드</span>
         </button>
       </div>
 
-      <div className="w-full max-w-sm bg-white/85 backdrop-blur-md rounded-[44px] border-4 border-white shadow-2xl p-7 relative overflow-hidden z-10">
+      <div className="w-full max-w-sm bg-white/85 backdrop-blur-md rounded-[44px] border-4 border-white shadow-2xl p-6 sm:p-7 relative overflow-hidden z-10">
         {/* Mascot Greeting */}
         <div className="flex flex-col items-center mb-5">
           <HealyCharacter
@@ -92,13 +96,19 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
           />
         </div>
 
+        {/* Privacy Roster Protection Notice */}
+        <div className="mb-4 p-2.5 bg-amber-50/80 rounded-2xl border border-amber-200/80 text-[11px] text-amber-900 leading-tight flex items-start gap-1.5">
+          <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+          <span>개인정보 보호를 위해 학생 전체 명단을 화면에 노출하지 않습니다. 내 번호와 이름, 비밀번호를 직접 입력해주세요.</span>
+        </div>
+
         {/* Login Selection Form */}
-        <form onSubmit={handleStart} className="space-y-4">
-          {/* Grade & Class selectors */}
-          <div className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleStart} className="space-y-3.5">
+          {/* Grade, Class & Number selectors */}
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="block text-xs font-bold text-[#5A5A40] mb-1.5 ml-1">
-                학년 선택
+              <label className="block text-[11px] font-bold text-[#5A5A40] mb-1 ml-1">
+                학년
               </label>
               <select
                 value={selectedGrade}
@@ -106,9 +116,9 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
                   const g = Number(e.target.value);
                   setSelectedGrade(g);
                   setSelectedClass(1);
-                  setSelectedStudentId('');
+                  setAuthError(null);
                 }}
-                className="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-3.5 py-2.5 text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm"
+                className="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-2.5 py-2.5 text-xs font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm"
               >
                 {[1, 2, 3].map((g) => (
                   <option key={g} value={g}>
@@ -119,16 +129,16 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#5A5A40] mb-1.5 ml-1">
-                반 선택
+              <label className="block text-[11px] font-bold text-[#5A5A40] mb-1 ml-1">
+                반
               </label>
               <select
                 value={selectedClass}
                 onChange={(e) => {
                   setSelectedClass(Number(e.target.value));
-                  setSelectedStudentId('');
+                  setAuthError(null);
                 }}
-                className="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-3.5 py-2.5 text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm"
+                className="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-2.5 py-2.5 text-xs font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm"
               >
                 {availableClasses.map((c) => (
                   <option key={c.classNum} value={c.classNum}>
@@ -137,106 +147,155 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLogin, onSwitchToT
                 ))}
               </select>
             </div>
-          </div>
 
-          {/* Student selection */}
-          <div>
-            <label className="block text-xs font-bold text-[#5A5A40] mb-1.5 ml-1">
-              내 이름 (번호)
-            </label>
-            <select
-              value={selectedStudentId}
-              onChange={(e) => {
-                setSelectedStudentId(e.target.value);
-                setPin('');
-                setPinError(null);
-              }}
-              required
-              className="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-4 py-3 text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm"
-            >
-              <option value="">-- 내 이름을 선택해주세요 --</option>
-              {classStudents.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.number}번 {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Student Password Input */}
-          {selectedStudentId && (
-            <div className="space-y-1.5 animate-fade-in text-left">
-              <div className="flex items-center justify-between ml-1">
-                <label className="block text-xs font-bold text-[#5A5A40]">
-                  비밀번호 입력
-                </label>
-                <span className="text-[10px] text-amber-800 bg-amber-100 font-bold px-2 py-0.5 rounded-full border border-amber-200">
-                  초기 비번: 0000
-                </span>
-              </div>
-              <div className="relative">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  type={showPin ? 'text' : 'password'}
-                  required
-                  value={pin}
-                  onChange={(e) => {
-                    setPin(e.target.value);
-                    if (pinError) setPinError(null);
-                  }}
-                  placeholder="비밀번호 입력 (초기: 0000)"
-                  autoComplete="current-password"
-                  className={`w-full pl-10 pr-11 py-3 bg-[#FDFCF0] border-2 rounded-2xl text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm transition-colors ${
-                    pinError ? 'border-rose-400 bg-rose-50/40' : 'border-white'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPin(!showPin)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                  tabIndex={-1}
-                >
-                  {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              {pinError ? (
-                <p className="text-[11px] font-bold text-rose-600 ml-1 flex items-center gap-1 animate-fade-in">
-                  <span>⚠️</span>
-                  <span>{pinError}</span>
-                </p>
-              ) : (
-                <p className="text-[10.5px] text-[#5A5A40]/70 ml-1">
-                  * 잊어버렸을 땐 선생님께 비밀번호 초기화를 부탁하세요.
-                </p>
-              )}
+            <div>
+              <label className="block text-[11px] font-bold text-[#5A5A40] mb-1 ml-1">
+                번호
+              </label>
+              <select
+                value={selectedNumber}
+                onChange={(e) => {
+                  setSelectedNumber(Number(e.target.value));
+                  setAuthError(null);
+                }}
+                className="w-full bg-[#FDFCF0] border-2 border-white rounded-2xl px-2.5 py-2.5 text-xs font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm"
+              >
+                {Array.from({ length: 35 }, (_, i) => i + 1).map((num) => (
+                  <option key={num} value={num}>
+                    {num}번
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
+          </div>
+
+          {/* Student Name Input (Direct input to prevent roster leakage) */}
+          <div>
+            <label className="block text-xs font-bold text-[#5A5A40] mb-1 ml-1">
+              내 이름 (성명)
+            </label>
+            <div className="relative">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <User className="w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                required
+                value={studentName}
+                onChange={(e) => {
+                  setStudentName(e.target.value);
+                  if (authError) setAuthError(null);
+                }}
+                placeholder="이름 입력 (예: 강다온)"
+                autoComplete="name"
+                className="w-full pl-10 pr-4 py-2.5 bg-[#FDFCF0] border-2 border-white rounded-2xl text-xs sm:text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm"
+              />
+            </div>
+          </div>
+
+          {/* Student PIN Input */}
+          <div className="space-y-1 text-left">
+            <div className="flex items-center justify-between ml-1">
+              <label className="block text-xs font-bold text-[#5A5A40]">
+                비밀번호 (PIN)
+              </label>
+              <span className="text-[10px] text-amber-800 bg-amber-100 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                초기: 0000
+              </span>
+            </div>
+            <div className="relative">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <Lock className="w-4 h-4" />
+              </div>
+              <input
+                type={showPin ? 'text' : 'password'}
+                required
+                value={pin}
+                onChange={(e) => {
+                  setPin(e.target.value);
+                  if (authError) setAuthError(null);
+                }}
+                placeholder="비밀번호 4자리 (초기: 0000)"
+                autoComplete="current-password"
+                className={`w-full pl-10 pr-10 py-2.5 bg-[#FDFCF0] border-2 rounded-2xl text-xs sm:text-sm font-bold text-[#5A5A40] focus:outline-none focus:ring-2 focus:ring-amber-300 shadow-sm transition-colors ${
+                  authError ? 'border-rose-400 bg-rose-50/40' : 'border-white'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPin(!showPin)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                tabIndex={-1}
+              >
+                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {authError ? (
+              <p className="text-[11px] font-bold text-rose-600 ml-1 mt-1 leading-snug">
+                ⚠️ {authError}
+              </p>
+            ) : (
+              <p className="text-[10px] text-[#5A5A40]/70 ml-1">
+                * 분실 시 선생님께 비밀번호 초기화를 부탁하세요.
+              </p>
+            )}
+          </div>
 
           {/* Start Button */}
           <button
             type="submit"
-            disabled={!selectedStudentId || !pin.trim()}
-            className="w-full mt-2 bg-gradient-to-r from-amber-400 via-rose-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-white font-jua text-lg py-3.5 rounded-2xl shadow-xl border-2 border-white flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!studentName.trim() || !pin.trim()}
+            className="w-full mt-2 bg-gradient-to-r from-amber-400 via-rose-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-white font-jua text-base sm:text-lg py-3 rounded-2xl shadow-xl border-2 border-white flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <Sparkles className="w-5 h-5 text-amber-100" />
             <span>힐링약국 들어가기</span>
           </button>
         </form>
 
+        {/* Policy Quick Links */}
+        <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-center gap-3 text-[11px] text-[#5A5A40]/80">
+          <button
+            type="button"
+            onClick={onOpenPrivacyPolicy}
+            className="hover:text-teal-700 underline underline-offset-2 font-bold cursor-pointer"
+          >
+            개인정보처리방침
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={onOpenTerms}
+            className="hover:text-amber-700 underline underline-offset-2 font-bold cursor-pointer"
+          >
+            이용약관
+          </button>
+          <span>•</span>
+          <button
+            type="button"
+            onClick={onOpenTeacherGuide}
+            className="hover:text-indigo-700 underline underline-offset-2 font-bold cursor-pointer"
+          >
+            교사열람안내
+          </button>
+        </div>
+
         {/* Safe middle school statement */}
-        <div className="mt-5 pt-4 border-t-2 border-white/60 text-center">
-          <p className="text-[11px] text-[#5A5A40]/70 leading-relaxed font-medium">
-            🌱 힐링약국의 마음신호는 실제 질병을 진단하는 것이 아닙니다. 내 마음 상태를 재미있는 이름으로 알아차려보는 사회정서 실천 공간입니다.
+        <div className="mt-3 text-center">
+          <p className="text-[10.5px] text-[#5A5A40]/70 leading-relaxed font-medium">
+            🌱 힐링약국의 모든 마음신호는 일상적 마음을 성찰하는 교육용 메타포이며 실제 의료 질병 진단이 아닙니다.
           </p>
         </div>
       </div>
 
       {/* Developer and Instagram Credit Footer */}
       <div className="w-full max-w-md mt-4 z-10 px-2">
-        <AppFooter className="bg-transparent border-t-0 py-2 text-slate-500" />
+        <AppFooter
+          className="bg-transparent border-t-0 py-2 text-slate-500"
+          onOpenPrivacyPolicy={onOpenPrivacyPolicy}
+          onOpenTerms={onOpenTerms}
+          onOpenTeacherGuide={onOpenTeacherGuide}
+        />
       </div>
     </div>
   );

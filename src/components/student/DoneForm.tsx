@@ -854,6 +854,9 @@ export const DoneForm: React.FC<DoneFormProps> = ({
                   : 'border-indigo-200 focus:ring-indigo-300'
               }`}
             />
+            <p className="text-[10px] text-slate-400 mt-1">
+              💡 안내: 친구의 실명이나 연락처, 개인 사생활, 민감한 개인정보는 적지 마세요.
+            </p>
 
             {/* Quick Inspiration Chips */}
             <div className="mt-1.5 space-y-1">

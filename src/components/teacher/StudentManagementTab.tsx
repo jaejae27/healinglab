@@ -27,8 +27,10 @@ import {
   RotateCcw,
   ShieldCheck,
   Eraser,
-  RefreshCw
+  RefreshCw,
+  FileCheck2
 } from 'lucide-react';
+import { GuardianConsentModal } from '../modals/GuardianConsentModal';
 
 interface StudentManagementTabProps {
   students: Student[];
@@ -77,6 +79,8 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
   const [newNumber, setNewNumber] = useState('');
   const [newName, setNewName] = useState('');
   const [isTestStudentFlag, setIsTestStudentFlag] = useState(false);
+  const [isGuardianModalOpen, setIsGuardianModalOpen] = useState(false);
+  const [guardianTargetStudents, setGuardianTargetStudents] = useState<Student[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -886,6 +890,20 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
             </button>
             <button
               type="button"
+              onClick={() => {
+                const targets = filteredStudents.filter((s) => selectedStudentIds.includes(s.id));
+                if (targets.length === 0) return;
+                setGuardianTargetStudents(targets);
+                setIsGuardianModalOpen(true);
+              }}
+              className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold flex items-center gap-1 transition-all shadow-xs cursor-pointer"
+              title="선택한 학생들의 가정통신문 보호자 동의 일괄 확인 등록"
+            >
+              <FileCheck2 className="w-3.5 h-3.5" />
+              <span>보호자 동의 확인 ({selectedStudentIds.length}명)</span>
+            </button>
+            <button
+              type="button"
               onClick={handleDeleteSelected}
               className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold flex items-center gap-1 transition-all shadow-xs"
               title="선택한 학생들을 명단에서 안전하게 일괄 삭제"
@@ -926,7 +944,8 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                 </th>
                 <th className="py-3 px-3 w-16">번호</th>
                 <th className="py-3 px-3">이름</th>
-                <th className="py-3 px-3">동의여부</th>
+                <th className="py-3 px-3">학생동의</th>
+                <th className="py-3 px-3">보호자동의(확인)</th>
                 <th className="py-3 px-3">사전검사</th>
                 <th className="py-3 px-3">사후검사</th>
                 <th className="py-3 px-3">처방 미션 실천</th>
@@ -937,7 +956,7 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
             <tbody className="divide-y divide-slate-100">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
+                  <td colSpan={10} className="py-10 text-center text-slate-400">
                     <p className="font-jua text-sm text-slate-500 mb-1">
                       {selectedGrade}학년 {selectedClass}반에 등록된 학생이 없습니다.
                     </p>
@@ -996,6 +1015,32 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
                             미동의
                           </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {s.privacyConsent?.guardianStatus === 'verified' ? (
+                          <span
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 flex items-center gap-1 w-max cursor-pointer hover:bg-teal-200 transition-colors"
+                            title={`${s.privacyConsent.guardianVerificationMethod === 'paper_notice' ? '가정통신문' : '학교 e-알리미'} 확인 (${s.privacyConsent.guardianVerifiedAt?.slice(0, 10) || ''})`}
+                            onClick={() => {
+                              setGuardianTargetStudents([s]);
+                              setIsGuardianModalOpen(true);
+                            }}
+                          >
+                            <span>✅ 확인완료</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setGuardianTargetStudents([s]);
+                              setIsGuardianModalOpen(true);
+                            }}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 flex items-center gap-1 w-max cursor-pointer transition-colors"
+                            title="가정통신문 회신 확인 후 클릭하여 등록"
+                          >
+                            <span>⏳ {s.privacyConsent?.guardianStatus === 'pending_verification' ? '재확인필요' : '미확인'}</span>
+                          </button>
                         )}
                       </td>
                       <td className="py-2.5 px-3">
@@ -1872,6 +1917,17 @@ export const StudentManagementTab: React.FC<StudentManagementTabProps> = ({
           </button>
         </div>
       )}
+
+      {/* Guardian Consent Verification Modal */}
+      <GuardianConsentModal
+        isOpen={isGuardianModalOpen}
+        onClose={() => setIsGuardianModalOpen(false)}
+        selectedStudents={guardianTargetStudents}
+        onComplete={() => {
+          onStudentsUpdated();
+          showToast(`학생 ${guardianTargetStudents.length}명의 법정대리인(보호자) 동의가 공식 확인 등록되었습니다.`, 'success');
+        }}
+      />
     </div>
   );
 };

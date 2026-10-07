@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StorageService } from '../../services/storage';
+import { CryptoAuthService } from '../../utils/cryptoAuth';
 import { KeyRound, Lock, Eye, EyeOff, X, Check, ShieldAlert } from 'lucide-react';
 
 interface TeacherPasswordChangeModalProps {
@@ -19,6 +20,7 @@ export const TeacherPasswordChangeModal: React.FC<TeacherPasswordChangeModalProp
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const currentInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -35,12 +37,14 @@ export const TeacherPasswordChangeModal: React.FC<TeacherPasswordChangeModalProp
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
-    const actualCurrent = StorageService.getTeacherPassword();
-    if (currentPassword.trim() !== actualCurrent) {
+    setIsSubmitting(true);
+    const verifyRes = await CryptoAuthService.verifyPassword(currentPassword.trim());
+    if (!verifyRes.success) {
+      setIsSubmitting(false);
       setErrorMsg('현재 비밀번호가 일치하지 않습니다.');
       currentInputRef.current?.focus();
       return;
@@ -48,16 +52,19 @@ export const TeacherPasswordChangeModal: React.FC<TeacherPasswordChangeModalProp
 
     const trimmedNew = newPassword.trim();
     if (trimmedNew.length < 4) {
+      setIsSubmitting(false);
       setErrorMsg('새 비밀번호는 최소 4자리 이상이어야 합니다.');
       return;
     }
 
     if (trimmedNew !== confirmPassword.trim()) {
+      setIsSubmitting(false);
       setErrorMsg('새 비밀번호와 비밀번호 확인이 일치하지 않습니다.');
       return;
     }
 
-    const ok = StorageService.setTeacherPassword(trimmedNew);
+    const ok = await StorageService.setTeacherPassword(trimmedNew);
+    setIsSubmitting(false);
     if (ok) {
       onSuccess();
       onClose();

@@ -20,6 +20,7 @@ import {
   EmotionLog
 } from '../types';
 import { INITIAL_CLASSES, INITIAL_STUDENTS, INITIAL_VISITS, DEFAULT_SETTINGS } from '../data/initialData';
+import { DataSafetyService } from './dataSafety';
 
 // Clean undefined values before writing to Firestore
 function cleanData<T>(data: T): any {
@@ -311,9 +312,13 @@ class FirestoreSyncManager {
         collection(db, 'students'),
         (snapshot) => {
           this.isConnected = true;
+          const tombstoned = DataSafetyService.getTombstonedStudentIds();
           const students: Student[] = [];
           snapshot.forEach((docSnap) => {
-            students.push(docSnap.data() as Student);
+            const data = docSnap.data() as Student;
+            if (data && !tombstoned.has(data.id)) {
+              students.push(data);
+            }
           });
           // Sort predictably by grade, class, number
           students.sort((a, b) => {

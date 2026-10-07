@@ -16,7 +16,15 @@ export const INITIAL_STUDENTS: Student[] = [
     name: '강다온',
     cookieBalance: 8,
     createdAt: '2026-09-01',
-    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' },
+    privacyConsent: {
+      studentInformed: true,
+      agreed: true,
+      agreedAt: '2026-09-01T09:00:00Z',
+      consentVersion: '2026.10-v1',
+      guardianStatus: 'pending_verification',
+      guardianAgreed: false,
+      sensitiveDataAgreed: true
+    },
     preTest: {
       completed: true,
       completedAt: '2026-09-01T09:10:00Z',
@@ -69,7 +77,15 @@ export const INITIAL_STUDENTS: Student[] = [
     name: '김민준',
     cookieBalance: 7,
     createdAt: '2026-09-01',
-    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' },
+    privacyConsent: {
+      studentInformed: true,
+      agreed: true,
+      agreedAt: '2026-09-01T09:00:00Z',
+      consentVersion: '2026.10-v1',
+      guardianStatus: 'pending_verification',
+      guardianAgreed: false,
+      sensitiveDataAgreed: true
+    },
     preTest: {
       completed: true,
       completedAt: '2026-09-01T09:12:00Z',
@@ -122,7 +138,15 @@ export const INITIAL_STUDENTS: Student[] = [
     name: '박서현',
     cookieBalance: 4,
     createdAt: '2026-09-01',
-    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' },
+    privacyConsent: {
+      studentInformed: true,
+      agreed: true,
+      agreedAt: '2026-09-01T09:00:00Z',
+      consentVersion: '2026.10-v1',
+      guardianStatus: 'pending_verification',
+      guardianAgreed: false,
+      sensitiveDataAgreed: true
+    },
     preTest: {
       completed: true,
       completedAt: '2026-09-01T09:15:00Z',
@@ -151,7 +175,15 @@ export const INITIAL_STUDENTS: Student[] = [
     name: '이지우',
     cookieBalance: 8,
     createdAt: '2026-09-01',
-    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' }
+    privacyConsent: {
+      studentInformed: true,
+      agreed: true,
+      agreedAt: '2026-09-01T09:00:00Z',
+      consentVersion: '2026.10-v1',
+      guardianStatus: 'pending_verification',
+      guardianAgreed: false,
+      sensitiveDataAgreed: true
+    }
   },
   {
     id: 'S-101-05',
@@ -161,7 +193,15 @@ export const INITIAL_STUDENTS: Student[] = [
     name: '정하은',
     cookieBalance: 3,
     createdAt: '2026-09-01',
-    privacyConsent: { agreed: true, agreedAt: '2026-09-01T09:00:00Z' }
+    privacyConsent: {
+      studentInformed: true,
+      agreed: true,
+      agreedAt: '2026-09-01T09:00:00Z',
+      consentVersion: '2026.10-v1',
+      guardianStatus: 'pending_verification',
+      guardianAgreed: false,
+      sensitiveDataAgreed: true
+    }
   },
 
   // 1학년 2반

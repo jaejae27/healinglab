@@ -106,10 +106,44 @@ export interface EmotionLog {
   createdAt: string;
 }
 
+export type GuardianVerificationMethod =
+  | 'paper_notice' // 가정통신문(서면 회신)
+  | 'school_e_notice' // 학교 e-알리미 전자회신
+  | 'written_form' // 별도 서면 동의서
+  | 'other'; // 기타 공문서
+
 export interface PrivacyConsent {
+  // ① 학생 이용 안내 확인
+  studentInformed?: boolean;
+  // ② 개인정보 수집·이용 동의
   agreed: boolean;
   agreedAt: string;
-  guardianAgreed?: boolean;
+  consentVersion?: string;
+
+  // ③ 법정대리인(보호자) 동의 상태
+  // 'none'(미확인) | 'pending_verification'(재확인 필요) | 'verified'(확인 완료) | 'declined'(거부)
+  guardianStatus?: 'none' | 'pending_verification' | 'verified' | 'declined';
+  guardianAgreed?: boolean; // 하위 호환성 (verified 상태일 때 true)
+  guardianVerifiedAt?: string; // 담당자 확인 일시
+  guardianVerificationMethod?: GuardianVerificationMethod; // 확인 근거 방법
+  guardianVerifierName?: string; // 확인 담당 교사/담당자
+  guardianDocumentRef?: string; // 공문/통신문 관리 번호
+  guardianConsentVersion?: string; // 동의서 버전
+
+  // ④ 민감정보(심리/정서 상태 메타포 및 정서 실천) 처리 동의
+  sensitiveDataAgreed?: boolean;
+  sensitiveDataAgreedAt?: string;
+
+  // ⑤ 연구·공모전 등 선택적인 외부 활용 동의
+  optionalResearchAgreed?: boolean;
+  optionalResearchAgreedAt?: string;
+}
+
+export interface GuardianConsentVerificationInput {
+  method: GuardianVerificationMethod;
+  verifierName: string;
+  documentRef: string;
+  consentVersion?: string;
 }
 
 export interface StudentBadgeRecord {

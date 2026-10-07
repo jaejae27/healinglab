@@ -46,8 +46,17 @@ export const MyPage: React.FC<MyPageProps> = ({
   onOpenWorryGacha,
   onRefreshStudent
 }) => {
-  const [tab, setTab] = useState<'badges' | 'calendar' | 'daily' | 'history' | 'cards' | 'rewards'>('badges');
+  const [tab, setTab] = useState<'badges' | 'calendar' | 'daily' | 'history' | 'cards' | 'rewards' | 'privacy'>('badges');
   const [expandedVisitId, setExpandedVisitId] = useState<string | null>(null);
+
+  // Privacy tab state
+  const [currentPinInput, setCurrentPinInput] = useState('');
+  const [newPinInput, setNewPinInput] = useState('');
+  const [newPinConfirm, setNewPinConfirm] = useState('');
+  const [pinChangeMsg, setPinChangeMsg] = useState<{ success: boolean; text: string } | null>(null);
+  const [deleteConfirmPin, setDeleteConfirmPin] = useState('');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const visits = useMemo(() => StorageService.getVisitsForStudent(student.id), [student.id]);
   const cookieLogs = useMemo(
@@ -313,6 +322,18 @@ export const MyPage: React.FC<MyPageProps> = ({
         >
           <span className="whitespace-nowrap">🔬 신약·쿠키</span>
           <span className="text-[9px] font-mono font-bold text-purple-600 whitespace-nowrap">({myProposals.length}건)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('privacy')}
+          className={`py-2 px-2 text-[11px] font-jua rounded-xl transition-all flex flex-col items-center justify-center shrink-0 min-w-[70px] sm:min-w-0 flex-1 cursor-pointer ${
+            tab === 'privacy'
+              ? 'bg-white text-teal-900 shadow-xs border border-teal-300 font-bold scale-102 sm:scale-100'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <span className="whitespace-nowrap">🔒 내 정보</span>
+          <span className="text-[9px] font-mono text-teal-700 font-bold whitespace-nowrap">권리·삭제</span>
         </button>
       </div>
 
@@ -922,6 +943,293 @@ export const MyPage: React.FC<MyPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* ========================================================= */}
+      {/* TAB 6: PRIVACY & DATA RIGHTS MANAGEMENT (내 정보 및 권리 관리) */}
+      {/* ========================================================= */}
+      {tab === 'privacy' && (
+        <div className="space-y-4 animate-fade-in text-xs">
+          {/* Top Banner */}
+          <div className="p-3.5 bg-teal-50 rounded-2xl border border-teal-200 text-teal-950 space-y-1">
+            <h4 className="font-jua text-sm text-teal-900 flex items-center gap-1.5">
+              <span>🔒</span>
+              <span>학생 개인정보 자기결정권 및 기록 관리</span>
+            </h4>
+            <p className="text-[11.5px] text-teal-800 leading-normal">
+              학생 여러분은 힐링약국에 저장된 자신의 모든 정보를 투명하게 확인하고,
+              비밀번호 변경, 공용 기기 캐시 정리, 전체 데이터 영구 삭제(동의 철회)를 언제든지 직접 실행할 수 있습니다.
+            </p>
+          </div>
+
+          {/* Stored Data Summary Table */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-2.5">
+            <h4 className="font-jua text-sm text-slate-800 flex items-center gap-1.5">
+              <span>📋</span>
+              <span>현재 저장된 내 개인정보 현황</span>
+            </h4>
+            <div className="border border-slate-200 rounded-xl overflow-hidden text-[11px]">
+              <table className="w-full text-left">
+                <tbody className="divide-y divide-slate-100">
+                  <tr className="bg-slate-50/70">
+                    <td className="p-2 font-bold text-slate-700 w-28">학생 식별 정보</td>
+                    <td className="p-2 font-medium text-slate-900">
+                      {student.grade}학년 {student.classNum}반 {student.number}번 <strong>{student.name}</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-bold text-slate-700">본인 동의 일시</td>
+                    <td className="p-2 text-slate-800">
+                      {student.privacyConsent?.agreed ? (
+                        <span className="text-teal-700 font-bold">
+                          ✅ 동의 완료 ({student.privacyConsent.agreedAt ? new Date(student.privacyConsent.agreedAt).toLocaleDateString() : '등록됨'})
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">미동의</span>
+                      )}
+                    </td>
+                  </tr>
+                  <tr className="bg-slate-50/70">
+                    <td className="p-2 font-bold text-slate-700">보호자 동의 확인</td>
+                    <td className="p-2 text-slate-800">
+                      {student.privacyConsent?.guardianStatus === 'verified' ? (
+                        <span className="text-teal-700 font-bold">
+                          ✅ 학교 확인 완료 ({student.privacyConsent.guardianVerifiedAt?.slice(0, 10)})
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 font-bold">
+                          ⏳ 학교 가정통신문 회신 확인 대기 (재확인 필요)
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-bold text-slate-700">저장 장소</td>
+                    <td className="p-2 text-slate-800">
+                      기기 브라우저(localStorage) 및 학교 전용 클라우드 DB(Firebase Firestore)
+                    </td>
+                  </tr>
+                  <tr className="bg-slate-50/70">
+                    <td className="p-2 font-bold text-slate-700">보유 및 파기 기간</td>
+                    <td className="p-2 text-slate-800">
+                      <strong>1년</strong> (해당 학년도 종료 시 전량 파기 원칙)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-bold text-slate-700">누적 활동 기록</td>
+                    <td className="p-2 text-slate-800">
+                      처방전 {visits.length}건, 칭찬쿠키 {student.cookieBalance}개, 성장배지 {unlockedGrowthBadges.length}개
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* PIN Management Box */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-3">
+            <h4 className="font-jua text-sm text-slate-800 flex items-center gap-1.5">
+              <span>🔑</span>
+              <span>비밀번호(PIN) 직접 변경</span>
+            </h4>
+            <p className="text-[11px] text-slate-500">
+              초기 비밀번호(0000)를 나만 아는 안전한 4자리 번호로 변경하세요.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setPinChangeMsg(null);
+                const currentExpected = (student.pin || '0000').trim();
+                if (currentPinInput.trim() !== currentExpected) {
+                  setPinChangeMsg({ success: false, text: '현재 비밀번호가 일치하지 않습니다.' });
+                  return;
+                }
+                if (newPinInput.trim().length < 4) {
+                  setPinChangeMsg({ success: false, text: '새 비밀번호는 4자리 이상이어야 합니다.' });
+                  return;
+                }
+                if (newPinInput.trim() !== newPinConfirm.trim()) {
+                  setPinChangeMsg({ success: false, text: '새 비밀번호 확인이 일치하지 않습니다.' });
+                  return;
+                }
+                StorageService.updateStudentPin(student.id, newPinInput.trim());
+                setPinChangeMsg({ success: true, text: '비밀번호가 성공적으로 변경되었습니다!' });
+                setCurrentPinInput('');
+                setNewPinInput('');
+                setNewPinConfirm('');
+                onRefreshStudent?.();
+              }}
+              className="space-y-2 text-xs"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">현재 비밀번호</label>
+                  <input
+                    type="password"
+                    required
+                    value={currentPinInput}
+                    onChange={(e) => setCurrentPinInput(e.target.value)}
+                    placeholder="현재 PIN (초기: 0000)"
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">새 비밀번호 (4자리)</label>
+                  <input
+                    type="password"
+                    required
+                    value={newPinInput}
+                    onChange={(e) => setNewPinInput(e.target.value)}
+                    placeholder="새 PIN 입력"
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">새 비밀번호 확인</label>
+                  <input
+                    type="password"
+                    required
+                    value={newPinConfirm}
+                    onChange={(e) => setNewPinConfirm(e.target.value)}
+                    placeholder="새 PIN 재입력"
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              {pinChangeMsg && (
+                <p
+                  className={`text-[11px] font-bold ${
+                    pinChangeMsg.success ? 'text-teal-700' : 'text-rose-600'
+                  }`}
+                >
+                  {pinChangeMsg.success ? '✅ ' : '⚠️ '}
+                  {pinChangeMsg.text}
+                </p>
+              )}
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-jua text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  비밀번호 변경하기
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Shared Device Logout & Full Purge Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            {/* Action 1: Public device cache cleanup */}
+            <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200 space-y-2">
+              <h5 className="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                <span>🖥️</span>
+                <span>공용 기기 사용 후 안전 로그아웃</span>
+              </h5>
+              <p className="text-[11px] text-amber-800 leading-normal">
+                학교 컴퓨터실이나 교실 공용 태블릿에서 사용한 후, 다음 친구가 내 화면을 보지 못하도록 현재 브라우저의 로그인 상태와 캐시를 안전하게 정리합니다.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  StorageService.setCurrentStudentId(null);
+                  window.location.reload();
+                }}
+                className="w-full py-2 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                공용 기기 안전 로그아웃
+              </button>
+            </div>
+
+            {/* Action 2: Permanent Purge / Consent Withdrawal */}
+            <div className="p-3.5 bg-rose-50/70 rounded-2xl border border-rose-200 space-y-2">
+              <h5 className="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+                <span>🗑️</span>
+                <span>내 전체 기록 삭제 및 동의 철회</span>
+              </h5>
+              <p className="text-[11px] text-rose-800 leading-normal">
+                힐링약국에 등록된 내 모든 처방전, 미션 일지, 감정 달력, 칭찬쿠키, 배지 데이터를 영구히 완전 삭제(Purge)하고 동의를 철회합니다. (복구 불가)
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteConfirmPin('');
+                  setDeleteError(null);
+                  setIsDeleteModalOpen(true);
+                }}
+                className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs transition-colors shadow-xs cursor-pointer"
+              >
+                내 전체 데이터 영구 삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-sm bg-white rounded-3xl border-2 border-rose-200 shadow-2xl p-6 text-slate-800 space-y-4">
+            <div className="flex items-center gap-2.5 text-rose-700">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h4 className="font-jua text-base text-rose-900">내 전체 기록 영구 삭제</h4>
+                <p className="text-[11px] text-rose-700">개인정보보호법에 따른 동의 철회 및 파기</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed bg-rose-50 p-3 rounded-xl border border-rose-100">
+              정말로 삭제하시겠습니까? 삭제 시 브라우저 및 학교 전용 클라우드 DB의 모든 처방전, 실천 일지, 칭찬쿠키, 배지가 <strong>복구 불가능하게 완전 파기</strong>되며 복원되지 않습니다.
+            </p>
+
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-700">
+                본인 확인을 위해 비밀번호(PIN)를 입력하세요
+              </label>
+              <input
+                type="password"
+                value={deleteConfirmPin}
+                onChange={(e) => {
+                  setDeleteConfirmPin(e.target.value);
+                  if (deleteError) setDeleteError(null);
+                }}
+                placeholder="내 비밀번호 4자리"
+                className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold"
+              />
+              {deleteError && (
+                <p className="text-[11px] font-bold text-rose-600 mt-1">⚠️ {deleteError}</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const expectedPin = (student.pin || '0000').trim();
+                  if (deleteConfirmPin.trim() !== expectedPin) {
+                    setDeleteError('비밀번호가 일치하지 않습니다.');
+                    return;
+                  }
+                  StorageService.purgeStudentComplete(student.id);
+                  alert('모든 개인 기록이 안전하고 영구하게 파기되었습니다. 안녕히 가세요.');
+                  window.location.reload();
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-jua shadow-md cursor-pointer"
+              >
+                영구 삭제 확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

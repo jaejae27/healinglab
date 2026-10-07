@@ -13,6 +13,9 @@ import { MindCardModal } from './components/modals/MindCardModal';
 import { WorryGachaModal } from './components/modals/WorryGachaModal';
 import { NewMedicineModal } from './components/modals/NewMedicineModal';
 import { PrivacyConsentModal } from './components/modals/PrivacyConsentModal';
+import { PrivacyPolicyModal } from './components/modals/PrivacyPolicyModal';
+import { TermsOfServiceModal } from './components/modals/TermsOfServiceModal';
+import { TeacherAccessGuideModal } from './components/modals/TeacherAccessGuideModal';
 import { AssessmentModal } from './components/modals/AssessmentModal';
 import { WorkbookPrintView } from './components/print/WorkbookPrintView';
 import { PortfolioPrintView } from './components/print/PortfolioPrintView';
@@ -66,6 +69,9 @@ export default function App() {
   const [isWorryGachaOpen, setIsWorryGachaOpen] = useState(false);
   const [isNewMedicineOpen, setIsNewMedicineOpen] = useState(false);
   const [isPostTestOpen, setIsPostTestOpen] = useState(false);
+  const [isPrivacyPolicyOpen, setIsPrivacyPolicyOpen] = useState(false);
+  const [isTermsOfServiceOpen, setIsTermsOfServiceOpen] = useState(false);
+  const [isTeacherAccessGuideOpen, setIsTeacherAccessGuideOpen] = useState(false);
 
   // Derived onboarding modal states
   const isPrivacyConsentOpen = !!currentStudent && !currentStudent.privacyConsent?.agreed;
@@ -108,9 +114,9 @@ export default function App() {
   };
 
   // Privacy agreement handler
-  const handlePrivacyAgreed = () => {
+  const handlePrivacyAgreed = (options?: { optionalResearchAgreed: boolean }) => {
     if (!currentStudent) return;
-    StorageService.savePrivacyConsent(currentStudent.id);
+    StorageService.savePrivacyConsent(currentStudent.id, options);
     const updated = StorageService.getStudentById(currentStudent.id);
     if (updated) setCurrentStudent(updated);
   };
@@ -211,6 +217,9 @@ export default function App() {
         <StudentLogin
           onLogin={handleLogin}
           onSwitchToTeacher={() => setIsTeacherAuthModalOpen(true)}
+          onOpenPrivacyPolicy={() => setIsPrivacyPolicyOpen(true)}
+          onOpenTerms={() => setIsTermsOfServiceOpen(true)}
+          onOpenTeacherGuide={() => setIsTeacherAccessGuideOpen(true)}
         />
         <TeacherAuthModal
           isOpen={isTeacherAuthModalOpen}
@@ -219,6 +228,18 @@ export default function App() {
             setIsTeacherAuthenticated(true);
             setAppMode('teacher');
           }}
+        />
+        <PrivacyPolicyModal
+          isOpen={isPrivacyPolicyOpen}
+          onClose={() => setIsPrivacyPolicyOpen(false)}
+        />
+        <TermsOfServiceModal
+          isOpen={isTermsOfServiceOpen}
+          onClose={() => setIsTermsOfServiceOpen(false)}
+        />
+        <TeacherAccessGuideModal
+          isOpen={isTeacherAccessGuideOpen}
+          onClose={() => setIsTeacherAccessGuideOpen(false)}
         />
       </>
     );
@@ -398,6 +419,20 @@ export default function App() {
           setIsTeacherAuthenticated(true);
           setAppMode('teacher');
         }}
+      />
+
+      {/* Policy & Terms Modals */}
+      <PrivacyPolicyModal
+        isOpen={isPrivacyPolicyOpen}
+        onClose={() => setIsPrivacyPolicyOpen(false)}
+      />
+      <TermsOfServiceModal
+        isOpen={isTermsOfServiceOpen}
+        onClose={() => setIsTermsOfServiceOpen(false)}
+      />
+      <TeacherAccessGuideModal
+        isOpen={isTeacherAccessGuideOpen}
+        onClose={() => setIsTeacherAccessGuideOpen(false)}
       />
 
       {/* Persistent Student Bottom Navigation */}
