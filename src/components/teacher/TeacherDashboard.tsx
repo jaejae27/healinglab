@@ -58,6 +58,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { TeacherPasswordChangeModal } from '../modals/TeacherPasswordChangeModal';
+import { CryptoAuthService } from '../../utils/cryptoAuth';
 import { AppFooter } from '../common/AppFooter';
 import { checkConditionSimilarity, ConditionSimilarityResult } from '../../utils/conditionSimilarity';
 import { getResearcherTitle, getNextResearcherTitle, checkTitleRewardOnApproval } from '../../utils/researchTitles';
@@ -1857,14 +1858,29 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     교사 대시보드 로그인 시 요구되는 관리자 비밀번호를 안전하게 변경합니다. (기본 비밀번호: 1234)
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsPasswordChangeModalOpen(true)}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-jua shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>비밀번호 변경하기</span>
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm('선생님 관리자 비밀번호를 초기값(1234)으로 초기화하시겠습니까?')) {
+                        await CryptoAuthService.resetToDefault();
+                        showToast('🔑 관리자 비밀번호가 1234로 초기화되었습니다.', 'success');
+                      }
+                    }}
+                    className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-jua transition-all cursor-pointer"
+                    title="기본 비밀번호(1234)로 재설정"
+                  >
+                    1234로 초기화
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPasswordChangeModalOpen(true)}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-jua shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>비밀번호 변경하기</span>
+                  </button>
+                </div>
               </div>
 
               {/* Reset Demo Data */}

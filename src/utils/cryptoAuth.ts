@@ -12,6 +12,7 @@ export interface TeacherAuthConfig {
   salt: string;
   hash: string;
   isDefault: boolean;
+  version?: number;
   updatedAt: string;
 }
 
@@ -21,6 +22,7 @@ const SESSION_TOKEN_KEY = 'healing_pharmacy_teacher_session';
 const ATTEMPTS_KEY = 'healing_pharmacy_teacher_attempts';
 
 const DEFAULT_PW = '1234';
+const CURRENT_AUTH_VERSION = 3; // version 3 enforces reset and migration to 1234
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30 * 1000; // 30 seconds
 const SESSION_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -63,45 +65,63 @@ async function computeSha256(salt: string, text: string): Promise<string> {
 export class CryptoAuthService {
   /**
    * Initializes or gets the teacher auth configuration.
-   * If a legacy plaintext password exists, migrates it to a salted hash.
+   * If an older configuration (version < 3) exists,
+   * it automatically resets and migrates to 1234.
    */
   static async getAuthConfig(): Promise<TeacherAuthConfig> {
     if (typeof window === 'undefined') {
-      return { salt: 'dummy', hash: 'dummy', isDefault: true, updatedAt: '' };
+      return { salt: 'dummy', hash: 'dummy', isDefault: true, version: CURRENT_AUTH_VERSION, updatedAt: '' };
     }
 
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
         const parsed: TeacherAuthConfig = JSON.parse(stored);
-        if (parsed.salt && parsed.hash) {
+        // If already migrated to current version (enforcing 1234)
+        if (parsed.version === CURRENT_AUTH_VERSION && parsed.salt && parsed.hash) {
           return parsed;
         }
+        // Older version or legacy config without version: reset to 1234
+        return await this.resetToDefault();
       }
 
-      // Check legacy plaintext password
-      const legacy = localStorage.getItem(LEGACY_PW_KEY) || DEFAULT_PW;
-      const isDefault = legacy === DEFAULT_PW;
-      const salt = generateRandomSalt();
-      const hash = await computeSha256(salt, legacy);
-
-      const config: TeacherAuthConfig = {
-        salt,
-        hash,
-        isDefault,
-        updatedAt: new Date().toISOString()
-      };
-
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(config));
-      // Remove legacy plaintext key to ensure privacy
-      localStorage.removeItem(LEGACY_PW_KEY);
-      return config;
+      // Default initialization with 1234
+      return await this.resetToDefault();
     } catch (e) {
       console.error('[CryptoAuth] Error getting auth config:', e);
-      const salt = 'fallback_salt';
-      const hash = await computeSha256(salt, DEFAULT_PW);
-      return { salt, hash, isDefault: true, updatedAt: new Date().toISOString() };
+      return await this.resetToDefault();
     }
+  }
+
+  /**
+   * Resets teacher administrator password to default ('1234')
+   * and clears any failed login lockout timers.
+   */
+  static async resetToDefault(): Promise<TeacherAuthConfig> {
+    const salt = generateRandomSalt();
+    const hash = await computeSha256(salt, DEFAULT_PW);
+
+    const config: TeacherAuthConfig = {
+      salt,
+      hash,
+      isDefault: true,
+      version: CURRENT_AUTH_VERSION,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(config));
+        localStorage.removeItem(LEGACY_PW_KEY);
+      }
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(ATTEMPTS_KEY);
+      }
+    } catch {
+      // ignore storage access errors
+    }
+
+    return config;
   }
 
   /**
@@ -121,12 +141,42 @@ export class CryptoAuthService {
       salt,
       hash,
       isDefault,
+      version: CURRENT_AUTH_VERSION,
       updatedAt: new Date().toISOString()
     };
 
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(config));
     localStorage.removeItem(LEGACY_PW_KEY);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(ATTEMPTS_KEY);
+    }
     return { success: true, message: '관리자 비밀번호가 안전하게 암호화되어 변경되었습니다.' };
+  }
+
+  /**
+   * Validates current password and updates to new password.
+   */
+  static async changePassword(
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
+    const verifyRes = await this.verifyPassword(currentPassword);
+    if (!verifyRes.success) {
+      return {
+        success: false,
+        message: verifyRes.error || '현재 비밀번호가 일치하지 않습니다.'
+      };
+    }
+
+    const trimmedNew = (newPassword || '').trim();
+    if (trimmedNew.length < 4) {
+      return {
+        success: false,
+        message: '새 비밀번호는 최소 4자리 이상이어야 합니다.'
+      };
+    }
+
+    return await this.setTeacherPassword(trimmedNew);
   }
 
   /**

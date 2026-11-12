@@ -114,9 +114,23 @@ export const TeacherPasswordChangeModal: React.FC<TeacherPasswordChangeModalProp
 
           {/* Current Password */}
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-slate-700 ml-1">
-              현재 비밀번호
-            </label>
+            <div className="flex items-center justify-between ml-1">
+              <label className="block text-xs font-bold text-slate-700">
+                현재 비밀번호
+              </label>
+              <button
+                type="button"
+                onClick={async () => {
+                  await CryptoAuthService.resetToDefault();
+                  setCurrentPassword('1234');
+                  setErrorMsg('현재 비밀번호가 초기값(1234)으로 재설정되었습니다.');
+                }}
+                className="text-[10.5px] text-indigo-600 hover:text-indigo-800 underline font-bold cursor-pointer"
+                title="현재 비밀번호를 1234로 초기화"
+              >
+                1234로 초기화
+              </button>
+            </div>
             <div className="relative">
               <input
                 ref={currentInputRef}
@@ -127,13 +141,13 @@ export const TeacherPasswordChangeModal: React.FC<TeacherPasswordChangeModalProp
                   setCurrentPassword(e.target.value);
                   if (errorMsg) setErrorMsg(null);
                 }}
-                placeholder="현재 사용 중인 비밀번호"
+                placeholder="현재 비밀번호 (기본: 1234)"
                 className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white"
               />
               <button
                 type="button"
                 onClick={() => setShowCurrent(!showCurrent)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                 tabIndex={-1}
               >
                 {showCurrent ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
