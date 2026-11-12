@@ -113,6 +113,9 @@ export class StorageService {
       setStoredItem(STORAGE_KEYS.COOKIE_LOGS, INITIAL_COOKIE_LOGS);
     }
 
+    // 1.5 Auto-initialize & migrate Teacher Auth to version 3 (1234)
+    CryptoAuthService.getAuthConfig().catch((e) => console.warn('Teacher auth init notice:', e));
+
     // Take baseline snapshot
     DataSafetyService.createSnapshot('앱 부팅 시점 자동 스냅샷');
 
