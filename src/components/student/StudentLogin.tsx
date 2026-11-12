@@ -3,7 +3,7 @@ import { Student } from '../../types';
 import { StorageService } from '../../services/storage';
 import { HealyCharacter } from '../character/HealyCharacter';
 import { AppFooter } from '../common/AppFooter';
-import { Sparkles, ShieldCheck, Lock, Eye, EyeOff, User, FileText, BookOpen } from 'lucide-react';
+import { Sparkles, ShieldCheck, Lock, Eye, EyeOff, User, FileText, BookOpen, School } from 'lucide-react';
 
 interface StudentLoginProps {
   onLogin: (student: Student) => void;
@@ -11,6 +11,7 @@ interface StudentLoginProps {
   onOpenPrivacyPolicy?: () => void;
   onOpenTerms?: () => void;
   onOpenTeacherGuide?: () => void;
+  onOpenAdoptionGuide?: () => void;
 }
 
 export const StudentLogin: React.FC<StudentLoginProps> = ({
@@ -18,7 +19,8 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({
   onSwitchToTeacher,
   onOpenPrivacyPolicy,
   onOpenTerms,
-  onOpenTeacherGuide
+  onOpenTeacherGuide,
+  onOpenAdoptionGuide
 }) => {
   const [classes, setClasses] = useState(() => StorageService.getClasses().filter((c) => c.active));
 
@@ -74,11 +76,22 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({
       <div className="absolute top-1/4 -left-12 w-64 h-64 bg-[#D1FAE5] rounded-full filter blur-3xl opacity-30 pointer-events-none" />
       <div className="absolute bottom-1/4 -right-12 w-72 h-72 bg-[#FFEDD5] rounded-full filter blur-3xl opacity-35 pointer-events-none" />
 
-      {/* Top Teacher Switcher */}
-      <div className="w-full max-w-sm flex justify-end mb-4 relative z-10">
+      {/* Top Action Switchers */}
+      <div className="w-full max-w-sm flex items-center justify-between mb-3.5 relative z-10 gap-2">
         <button
+          type="button"
+          onClick={onOpenAdoptionGuide}
+          className="text-xs text-amber-900 bg-amber-100/90 hover:bg-amber-200/90 border-2 border-white px-3.5 py-2 rounded-2xl shadow-sm flex items-center gap-1.5 transition-all font-jua cursor-pointer hover:shadow-md"
+          title="다른 학교 도입 안내"
+        >
+          <School className="w-4 h-4 text-amber-800 shrink-0" />
+          <span>우리 학교 힐링약국 만들기</span>
+        </button>
+
+        <button
+          type="button"
           onClick={onSwitchToTeacher}
-          className="text-xs text-[#5A5A40] bg-white/80 hover:bg-white border-2 border-white px-4 py-2 rounded-2xl shadow-sm flex items-center gap-1.5 transition-all font-bold whitespace-nowrap cursor-pointer hover:shadow-md"
+          className="text-xs text-[#5A5A40] bg-white/80 hover:bg-white border-2 border-white px-3.5 py-2 rounded-2xl shadow-sm flex items-center gap-1.5 transition-all font-bold whitespace-nowrap cursor-pointer hover:shadow-md"
         >
           <ShieldCheck className="w-4 h-4 text-[#7C3AED] shrink-0" />
           <span className="whitespace-nowrap">선생님 관리자 모드</span>
@@ -288,6 +301,39 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({
         </div>
       </div>
 
+      {/* Dedicated Adoption Guide Card for Other Schools */}
+      <div className="w-full max-w-sm mt-3.5 z-10">
+        <div className="bg-gradient-to-br from-amber-50/95 via-orange-50/90 to-rose-50/95 border-2 border-amber-200/90 rounded-3xl p-4 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <School className="w-3 h-3 text-amber-800" />
+              <span>다른 학교 선생님을 위한 안내</span>
+            </span>
+            <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded-md border border-rose-200/60">
+              0원 무료 설치
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenAdoptionGuide}
+            className="w-full text-left group cursor-pointer"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h4 className="font-jua text-base text-slate-900 group-hover:text-amber-900 transition-colors flex items-center gap-1.5">
+                  <span>우리 학교 힐링약국 만들기</span>
+                  <span className="text-sm text-amber-600 group-hover:translate-x-1 transition-transform">→</span>
+                </h4>
+                <p className="text-[11.5px] text-slate-600 mt-0.5 leading-snug">
+                  처음이어도 괜찮아요. 준비부터 설치·운영까지 차근차근 안내해드려요.
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* Developer and Instagram Credit Footer */}
       <div className="w-full max-w-md mt-4 z-10 px-2">
         <AppFooter
@@ -295,6 +341,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({
           onOpenPrivacyPolicy={onOpenPrivacyPolicy}
           onOpenTerms={onOpenTerms}
           onOpenTeacherGuide={onOpenTeacherGuide}
+          onOpenAdoptionGuide={onOpenAdoptionGuide}
         />
       </div>
     </div>

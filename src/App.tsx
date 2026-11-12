@@ -24,6 +24,7 @@ import { Sparkles } from 'lucide-react';
 import { checkDoneFormEligibility } from './utils/doneFormEligibility';
 import { TeacherAuthModal } from './components/modals/TeacherAuthModal';
 import { AppFooter } from './components/common/AppFooter';
+import { AdoptionGuideView } from './components/adoption/AdoptionGuideView';
 
 export default function App() {
   const [, setSyncTick] = useState(0);
@@ -45,9 +46,9 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // Mode: 'student' | 'teacher' | 'print_workbook' | 'print_portfolio'
+  // Mode: 'student' | 'teacher' | 'print_workbook' | 'print_portfolio' | 'adoption_guide'
   const [appMode, setAppMode] = useState<
-    'student' | 'teacher' | 'print_workbook' | 'print_portfolio'
+    'student' | 'teacher' | 'print_workbook' | 'print_portfolio' | 'adoption_guide'
   >('student');
 
   // Teacher Authentication state (mandatory password gate)
@@ -186,6 +187,7 @@ export default function App() {
           setAppMode('student');
         }}
         onPrintWorkbook={handleViewWorkbookPrint}
+        onOpenAdoptionGuide={() => setAppMode('adoption_guide')}
       />
     );
   }
@@ -210,6 +212,15 @@ export default function App() {
     );
   }
 
+  // 3.5 ADOPTION GUIDE VIEW (For teachers from other schools)
+  if (appMode === 'adoption_guide') {
+    return (
+      <AdoptionGuideView
+        onBack={() => setAppMode('student')}
+      />
+    );
+  }
+
   // 4. STUDENT NOT LOGGED IN -> Login screen
   if (!currentStudent) {
     return (
@@ -220,6 +231,7 @@ export default function App() {
           onOpenPrivacyPolicy={() => setIsPrivacyPolicyOpen(true)}
           onOpenTerms={() => setIsTermsOfServiceOpen(true)}
           onOpenTeacherGuide={() => setIsTeacherAccessGuideOpen(true)}
+          onOpenAdoptionGuide={() => setAppMode('adoption_guide')}
         />
         <TeacherAuthModal
           isOpen={isTeacherAuthModalOpen}

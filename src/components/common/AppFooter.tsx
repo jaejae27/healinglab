@@ -6,13 +6,15 @@ interface AppFooterProps {
   onOpenPrivacyPolicy?: () => void;
   onOpenTerms?: () => void;
   onOpenTeacherGuide?: () => void;
+  onOpenAdoptionGuide?: () => void;
 }
 
 export const AppFooter: React.FC<AppFooterProps> = ({
   className = '',
   onOpenPrivacyPolicy,
   onOpenTerms,
-  onOpenTeacherGuide
+  onOpenTeacherGuide,
+  onOpenAdoptionGuide
 }) => {
   return (
     <footer
@@ -52,6 +54,18 @@ export const AppFooter: React.FC<AppFooterProps> = ({
                 className="hover:text-indigo-700 underline underline-offset-2 transition-colors cursor-pointer"
               >
                 교사열람안내
+              </button>
+            </>
+          )}
+          {onOpenAdoptionGuide && (
+            <>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={onOpenAdoptionGuide}
+                className="hover:text-amber-800 underline underline-offset-2 transition-colors cursor-pointer font-bold text-amber-700"
+              >
+                우리 학교 만들기
               </button>
             </>
           )}

@@ -55,7 +55,8 @@ import {
   AlertCircle,
   Info,
   ThumbsUp,
-  XCircle
+  XCircle,
+  School
 } from 'lucide-react';
 import { TeacherPasswordChangeModal } from '../modals/TeacherPasswordChangeModal';
 import { CryptoAuthService } from '../../utils/cryptoAuth';
@@ -66,11 +67,13 @@ import { getResearcherTitle, getNextResearcherTitle, checkTitleRewardOnApproval 
 interface TeacherDashboardProps {
   onSwitchToStudent: () => void;
   onPrintWorkbook: (conditionIds: string | string[]) => void;
+  onOpenAdoptionGuide?: () => void;
 }
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onSwitchToStudent,
-  onPrintWorkbook
+  onPrintWorkbook,
+  onOpenAdoptionGuide
 }) => {
   const [activeTab, setActiveTab] = useState<
     'stats' | 'medicine' | 'assessment' | 'students' | 'cookies' | 'verify' | 'records' | 'new_med' | 'print' | 'safety' | 'settings'
@@ -522,6 +525,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>파이어베이스 클라우드 동기화 완료</span>
           </div>
+
+          {onOpenAdoptionGuide && (
+            <button
+              type="button"
+              onClick={onOpenAdoptionGuide}
+              className="hidden lg:flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 hover:text-white px-3 py-1.5 rounded-xl text-xs font-jua transition-colors border border-amber-400/40 shadow-xs cursor-pointer"
+              title="다른 학교 도입 안내 페이지 열기"
+            >
+              <School className="w-3.5 h-3.5 text-amber-300" />
+              <span>도입 안내서</span>
+            </button>
+          )}
 
           <button
             type="button"
