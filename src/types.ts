@@ -314,6 +314,7 @@ export interface NewConditionRequest {
   missionIdeas?: string[];
   rewardCookies?: number;
   status: 'new' | 'pending' | 'reviewing' | 'accepted' | 'approved' | 'merged' | 'hold' | 'rejected';
+  conditionStatus?: 'active' | 'inactive';
   assignedId?: string;
   assignedConditionId?: string;
   teacherNote?: string;

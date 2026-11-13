@@ -113,11 +113,12 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
   {
     id: 'W-13',
     categoryId: 'worries',
-    name: '사소한일지구멸망증',
+    name: '사소한일큰충격증',
     summary: '사소한 실수나 지적 하나에 세상이 무너진 것처럼 크게 충격받는 상태',
     medicine: '줌아웃렌즈제',
     advice: '1년 뒤의 내가 이 일을 돌아본다면 과연 얼마나 기억할까요?',
-    sampleItems: ['작은 지적에도 온 세상이 무너진 것 같다', '남들은 신경도 안 쓰는 일에 끙끙 앓는다', '마음의 스케일이 너무 예민해져 있다']
+    sampleItems: ['작은 지적에도 온 세상이 무너진 것 같다', '남들은 신경도 안 쓰는 일에 끙끙 앓는다', '마음의 스케일이 너무 예민해져 있다'],
+    status: 'inactive'
   },
   {
     id: 'W-14',
@@ -155,7 +156,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     summary: '오전엔 신났다가 오후엔 푹 꺼지는 등 하루에도 기분이 롤러코스터를 타는 상태',
     medicine: '완행열차티켓',
     advice: '사춘기의 호르몬 파도는 자연스러운 현상입니다. 자책하지 마세요.',
-    sampleItems: ['기분이 급격하게 오르내린다', '작은 일 하나에 천국과 지옥을 오간다', '내 감정의 진폭에 내가 지친다']
+    sampleItems: ['기분이 급격하게 오르내린다', '작은 일 하나에 기분이 크게 오르내린다', '내 감정의 진폭에 내가 지친다']
   },
   {
     id: 'E-04',
@@ -301,7 +302,8 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     summary: '일어나야 한다고 생각하면서도 몸이 바위처럼 굳어 꼼짝 못 하는 상태',
     medicine: '스트레칭시동수',
     advice: '발가락을 꼼지락거리는 아주 작은 움직임부터 시작해보세요.',
-    sampleItems: ['일어나야지 생각만 30분째 한다', '몸이 바위처럼 무겁다', '동작과 생각이 따로 논다']
+    sampleItems: ['일어나야지 생각만 30분째 한다', '몸이 바위처럼 무겁다', '동작과 생각이 따로 논다'],
+    status: 'inactive'
   },
   {
     id: 'L-06',
@@ -326,7 +328,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     categoryId: 'vitality',
     name: '영상하나만시간순삭증',
     summary: '"딱 하나만 봐야지" 했다가 두세 시간이 순식간에 사라진 상태',
-    medicine: '시간도둑체포령',
+    medicine: '시간지킴이정',
     advice: '알고리즘은 천재 개발자들이 만든 덫이에요. 내가 의지박약인 게 아닙니다.',
     sampleItems: ['5분만 본다는 다짐을 매일 어긴다', '스마트폰 사용 시간이 매주 늘어난다', '시간을 날렸다는 죄책감이 든다']
   },
@@ -364,7 +366,8 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     summary: '할 일은 급한데 누워서 천장만 멍하니 바라보며 괴로워하는 상태',
     medicine: '앉기성공단',
     advice: '침대에서 벗어나 의자에 엉덩이를 붙이는 것까지만 해보세요.',
-    sampleItems: ['누워있으면서도 마음은 지옥이다', '일어나야 하는데 일어나기 싫다', '스스로가 한심하게 느껴진다']
+    sampleItems: ['누워있으면서도 마음이 몹시 괴롭다', '일어나야 하는데 일어나기 싫다', '스스로가 한심하게 느껴진다'],
+    status: 'inactive'
   },
   {
     id: 'L-13',
@@ -411,7 +414,8 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     summary: '용기 내어 도전했다가 상처받아 다시 시작하기 무서운 상태',
     medicine: '작은발걸음시럽',
     advice: '아주 작은 실험이라고 생각하고 가볍게 발가락만 담가보세요.',
-    sampleItems: ['재도전할 엄두가 안 난다', '남들의 시선이 두렵다', '안전지대에만 머물고 싶다']
+    sampleItems: ['재도전할 엄두가 안 난다', '남들의 시선이 두렵다', '안전지대에만 머물고 싶다'],
+    status: 'inactive'
   },
   {
     id: 'G-04',
@@ -438,7 +442,8 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     summary: '완벽하게 잘해내고 싶어서 오히려 첫발조차 못 떼고 주저하는 상태',
     medicine: '엉성한시작정',
     advice: '어설픈 시작이 웅장한 계획보다 100배 가치 있습니다.',
-    sampleItems: ['남들보다 잘할 자신이 없으면 안 한다', '부담감에 짓눌려 손을 뗀다', '결과가 완벽하지 않을까 봐 피한다']
+    sampleItems: ['남들보다 잘할 자신이 없으면 안 한다', '부담감에 짓눌려 손을 뗀다', '결과가 완벽하지 않을까 봐 피한다'],
+    status: 'inactive'
   },
   {
     id: 'G-07',
@@ -483,7 +488,8 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     summary: '다시 애쓰고 노력할 생각에 지레 겁먹고 도전을 피하는 상태',
     medicine: '작은설렘캡슐',
     advice: '거창한 도전 말고 아주 재미있고 작은 놀이처럼 접근해보세요.',
-    sampleItems: ['다시 시작할 에너지가 부족하다', '노력하는 과정이 버겁게 느껴진다', '그냥 이대로 머물고 싶다']
+    sampleItems: ['다시 시작할 에너지가 부족하다', '노력하는 과정이 버겁게 느껴진다', '그냥 이대로 머물고 싶다'],
+    status: 'inactive'
   },
   {
     id: 'G-12',
@@ -519,7 +525,8 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     summary: '뚜렷한 목표 없이 표류하는 배처럼 어디로 가야 할지 헤매는 상태',
     medicine: '나만의항해일지',
     advice: '지금 방황하는 시간은 나만의 항로를 탐색하는 가장 값진 시간입니다.',
-    sampleItems: ['목표가 뚜렷한 친구를 보면 위축된다', '나만 멍하니 사는 것 같다', '언젠가 내 길을 찾을 수 있을까 의심된다']
+    sampleItems: ['목표가 뚜렷한 친구를 보면 위축된다', '나만 멍하니 사는 것 같다', '언젠가 내 길을 찾을 수 있을까 의심된다'],
+    status: 'inactive'
   },
 
   // H. 학교생활·일상 추가 영역 (D-01 ~ D-12) - 7대 핵심 영역으로 통합 배정
@@ -575,7 +582,7 @@ export const RAW_CONDITIONS_PART2: RawConditionItem[] = [
     summary: '모르는 게 있어도 부끄럽거나 혼날까 봐 질문을 꿀꺽 삼키는 상태',
     medicine: '용기있는손들기정',
     advice: '좋은 질문이란 없습니다. 당신의 질문이 교실 친구들을 살립니다.',
-    sampleItems: ['수업 중 이해가 안 가도 손을 못 든다', '교무실 찾아가는 게 무섭다', '바보 같은 질문일까 봐 망설인다']
+    sampleItems: ['수업 중 이해가 안 가도 손을 못 든다', '교무실 찾아가는 게 무섭다', '쉬운 걸 묻는 것 같아 망설인다']
   },
   {
     id: 'D-07',

@@ -9,6 +9,7 @@ export interface RawConditionItem {
   advice: string;
   sampleItems: [string, string, string];
   customMissions?: [string, string, string];
+  status?: 'active' | 'inactive';
 }
 
 export const RAW_CONDITIONS: RawConditionItem[] = [
@@ -29,7 +30,7 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
     summary: 'SNS나 학교에서 잘나가는 친구와 비교하며 스스로 작아지는 상태',
     medicine: '내속도인정제',
     advice: '남의 하이라이트와 나의 비하인드 컷을 비교하지 마세요.',
-    sampleItems: ['친구 SNS를 보면 우울해진다', '남과 비교하느라 기운이 빠진다', '내 삶의 좋은 점을 놓치고 있다']
+    sampleItems: ['친구 SNS를 보면 기분이 가라앉는다', '남과 비교하느라 기운이 빠진다', '내 삶의 좋은 점을 놓치고 있다']
   },
   {
     id: 'S-03',
@@ -47,7 +48,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
     summary: '내 단점만 크게 보이고 좋은 점은 하나도 안 떠오르는 상태',
     medicine: '장점돋보기제',
     advice: '내가 당연하게 여기는 배려와 성실도 멋진 재능입니다.',
-    sampleItems: ['누가 장점을 물어보면 머뭇거리게 된다', '내 단점 목록은 금방 떠오른다', '나를 인정해주는 말이 어색하다']
+    sampleItems: ['누가 장점을 물어보면 머뭇거리게 된다', '내 단점 목록은 금방 떠오른다', '나를 인정해주는 말이 어색하다'],
+    status: 'inactive'
   },
   {
     id: 'S-05',
@@ -184,7 +186,7 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
     summary: '친구에게 먼저 말이나 인사를 건네고 싶은데 입이 안 떨어지는 상태',
     medicine: '스마일인사탕',
     advice: '가벼운 "안녕!" 한마디는 누구나 기분 좋게 만듭니다.',
-    sampleItems: ['다가가고 싶은데 무슨 말을 할지 모르겠다', '거절당하거나 씹힐까 봐 두렵다', '친구가 먼저 다가와 주길 기다린다']
+    sampleItems: ['다가가고 싶은데 무슨 말을 할지 모르겠다', '거절당하거나 무시당할까 봐 두렵다', '친구가 먼저 다가와 주길 기다린다']
   },
   {
     id: 'R-05',
@@ -256,7 +258,8 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
     summary: '친구와 대화하고 온 날 밤, 내 말실수를 곱씹으며 후회하는 상태',
     medicine: '이불킥방지제',
     advice: '친구는 당신이 생각하는 것보다 당신의 실수를 훨씬 덜 기억합니다.',
-    sampleItems: ['낮에 한 대화를 밤에 복기하며 괴로워한다', '상대방이 오해했을까 봐 조마조마하다', '차라리 말을 하지 말 걸 후회한다']
+    sampleItems: ['낮에 한 대화를 밤에 복기하며 괴로워한다', '상대방이 오해했을까 봐 조마조마하다', '차라리 말을 하지 말 걸 후회한다'],
+    status: 'inactive'
   },
   {
     id: 'R-13',
@@ -299,10 +302,10 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
   {
     id: 'A-02',
     categoryId: 'study',
-    name: '숙제산더미멘붕증',
+    name: '숙제산더미막막증',
     summary: '해야 할 숙제와 분량이 너무 많아 어디부터 시작할지 막막한 상태',
-    medicine: '한놈만패기단',
-    advice: '가장 쉬운 것 딱 하나만 집어서 해치워보세요.',
+    medicine: '딱하나만정',
+    advice: '가장 쉬운 것 딱 하나만 골라 먼저 끝내보세요.',
     sampleItems: ['숙제와 시험 범위가 산더미처럼 느껴진다', '생각만 하다가 정작 아무것도 못 한다', '압도당해서 그냥 회피하고 싶다']
   },
   {
@@ -365,7 +368,7 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
     name: '발등불벼락치기증',
     summary: '마감 직전 발등에 불이 떨어져야만 집중해서 몰아치는 상태',
     medicine: '발등소화기',
-    advice: '벼락치기는 수명을 갉아먹어요. 가짜 마감일을 이틀 앞으로 당겨봐요.',
+    advice: '벼락치기는 몸과 마음을 지치게 해요. 가짜 마감일을 이틀 앞으로 당겨봐요.',
     sampleItems: ['위기감이 없으면 집중이 전혀 안 된다', '결국 벼락치기로 해내서 버릇이 안 고쳐진다', '벼락치기 후 극심한 피로가 찾아온다']
   },
   {
@@ -418,7 +421,7 @@ export const RAW_CONDITIONS: RawConditionItem[] = [
     categoryId: 'study',
     name: '완벽부담시작주저증',
     summary: '잘해내야 한다는 부담감 때문에 과제를 시작조차 못 하고 망설이는 상태',
-    medicine: '망작환영제',
+    medicine: '첫시도환영제',
     advice: '첫 번째 초안은 엉망이어도 괜찮습니다. 다듬으면 되니까요.',
     sampleItems: ['과제 제출할 때 기준이 너무 높아 시작이 두렵다', '남들에게 잘하는 모습만 보여주고 싶다', '실패할까 봐 손을 못 댄다']
   }

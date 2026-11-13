@@ -25,7 +25,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
       '칭찬을 들으면 "아니에요 운이 좋았어요"라며 부정한다',
       '좋은 평가를 받으면 다음에 못할까 봐 더 불안해진다',
       '내 장점을 인정하기가 쑥스럽고 어색하다'
-    ]
+    ],
+    status: 'inactive'
   },
   {
     id: 'R-16',
@@ -38,7 +39,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
       '1이 사라졌는데 답장이 없으면 심장이 쿵쾅거린다',
       '내가 보낸 말을 수십 번 다시 읽으며 문제점을 찾는다',
       '상대방 답장이 올 때까지 아무 일도 손에 잡히지 않는다'
-    ]
+    ],
+    status: 'inactive'
   },
   {
     id: 'R-17',
@@ -90,7 +92,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
       '침대에 누우면 오늘 내가 했던 말들이 영화처럼 재생된다',
       '"그때 그 말 하지 말걸" 후회하느라 1시간 넘게 뒤척인다',
       '내일 학교 가서 그 친구가 나를 이상하게 볼까 봐 걱정된다'
-    ]
+    ],
+    status: 'inactive'
   },
   {
     id: 'W-16',
@@ -103,7 +106,8 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
       '일어나지도 않은 최악의 상황을 머릿속으로 시뮬레이션한다',
       '좋은 일이 생겨도 "곧 나쁜 일이 터질 거야" 생각한다',
       '불안감이 꼬리를 물어 가슴이 답답해진다'
-    ]
+    ],
+    status: 'inactive'
   },
   {
     id: 'E-15',
@@ -128,8 +132,9 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
     sampleItems: [
       '슬프거나 속상해도 겉으로는 씩씩한 척 웃는다',
       '혼자 화장실에 가거나 방에 들어오면 눈물이 핑 돈다',
-      '내 진짜 우울한 기분을 아무도 모를 거라 생각한다'
-    ]
+      '내 진짜 가라앉은 기분을 아무도 모를 거라 생각한다'
+    ],
+    status: 'inactive'
   },
   {
     id: 'L-15',
@@ -142,12 +147,13 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
       '토요일 일요일에 낮 2시까지 자도 피로가 안 풀린다',
       '침대 밖으로 나오는 것 자체가 거대한 모험처럼 느껴진다',
       '주말이 순식간에 지나가서 일요일 저녁에 허탈하다'
-    ]
+    ],
+    status: 'inactive'
   },
   {
     id: 'L-16',
     categoryId: 'vitality',
-    name: '이불속심야폰질증',
+    name: '이불속심야폰증',
     summary: '자려고 누워놓고 이불 속에서 폰을 보느라 새벽까지 못 자는 상태',
     medicine: '암막수면안대정',
     advice: '잠들기 15분 전, 폰을 충전기에 꽂고 침대와 1미터 거리를 두어보세요.',
@@ -168,25 +174,27 @@ export const RAW_CONDITIONS_PART3: RawConditionItem[] = [
       '장래희망 적는 칸이 시험 문제보다 더 어렵다',
       '친구들은 진로가 뚜렷해 보여서 나만 뒤처진 것 같다',
       '내가 뭘 좋아하고 뭘 잘하는지 도무지 모르겠다'
-    ]
+    ],
+    status: 'inactive'
   },
   {
     id: 'G-17',
     categoryId: 'future',
     name: '한번삐끗자포자기증',
-    summary: '과제나 시험에서 한 번만 삐끗해도 "망했다"며 다 놓아버리는 상태',
+    summary: '과제나 시험에서 한 번만 삐끗해도 "다 틀렸다"며 다 놓아버리는 상태',
     medicine: '다시일어서기오뚝이단',
     advice: '길을 걷다 한 번 넘어졌다고 목적지 가기를 포기하지 않듯이, 다시 한 걸음 떼면 돼요.',
     sampleItems: [
       '첫 문제 틀리면 나머지 시험지도 대충 찍어버리고 싶다',
       '작심삼일이 되면 "난 역시 안 돼"라며 아예 포기한다',
       '작은 실수 하나가 전체를 망쳤다고 과장해서 생각한다'
-    ]
+    ],
+    status: 'inactive'
   },
   {
     id: 'D-13',
     categoryId: 'study',
-    name: '모둠과제독박운전증',
+    name: '모둠과제혼자다해증',
     summary: '모둠 과제할 때 아무도 안 해서 결국 나 혼자 다 떠맡아 속 터지는 상태',
     medicine: '역할나눔호각단',
     advice: '모든 짐을 혼자 짊어지지 마세요. 작은 분량이라도 친구들에게 역할을 똑 떼어주세요.',

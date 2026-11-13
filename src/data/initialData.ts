@@ -124,7 +124,7 @@ export const INITIAL_STUDENTS: Student[] = [
         q22_stressCoping: '내가 피곤한지 배고픈지 먼저 확인하고 따뜻한 물을 마셔요.',
         q28_mindChanged: '마음에도 감기처럼 약이 필요하다는 걸 알게 되었고 내 기분을 더 챙기게 되었습니다.',
         q29_favoritePrescription: '속마음 털어놓기 및 감사노트 1줄 적기',
-        q30_friendAction: '우울해 보이는 친구에게 먼저 말을 걸어줄 생각입니다.'
+        q30_friendAction: '기운이 없어 보이는 친구에게 먼저 말을 걸어줄 생각입니다.'
       },
       programEffectScores: { PE1: 4, PE2: 4, PE3: 4, PE4: 4, PE5: 4 },
       programEffectAverage: 4.0

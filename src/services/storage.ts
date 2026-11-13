@@ -102,9 +102,22 @@ export class StorageService {
     if (!localStorage.getItem(STORAGE_KEYS.VISITS)) {
       setStoredItem(STORAGE_KEYS.VISITS, INITIAL_VISITS);
     }
-    const existingConds = getStoredItem<VirtualCondition[]>(STORAGE_KEYS.CONDITIONS, []);
-    if (!existingConds || existingConds.length < 130 || existingConds.some((c) => !(c.category || c.categoryId))) {
-      setStoredItem(STORAGE_KEYS.CONDITIONS, VIRTUAL_CONDITIONS);
+    const CONDITIONS_VERSION_KEY = 'healing_pharmacy_conditions_version';
+    const CURRENT_CONDITIONS_VERSION = 3;
+    const storedCondVersion = Number(localStorage.getItem(CONDITIONS_VERSION_KEY) || '1');
+    if (storedCondVersion < CURRENT_CONDITIONS_VERSION) {
+      // Upgrade canonical conditions to reflect latest active/inactive status while strictly PRESERVING student-proposed cards & records
+      const currentStored = getStoredItem<VirtualCondition[]>(STORAGE_KEYS.CONDITIONS, []);
+      const canonicalIds = new Set(VIRTUAL_CONDITIONS.map(c => c.conditionId));
+      const studentProposed = currentStored.filter(c => !canonicalIds.has(c.conditionId) || c.isStudentProposed);
+      setStoredItem(STORAGE_KEYS.CONDITIONS, [...VIRTUAL_CONDITIONS, ...studentProposed]);
+      localStorage.setItem(CONDITIONS_VERSION_KEY, String(CURRENT_CONDITIONS_VERSION));
+    } else {
+      const existingConds = getStoredItem<VirtualCondition[]>(STORAGE_KEYS.CONDITIONS, []);
+      if (!existingConds || existingConds.length < 130 || existingConds.some((c) => !(c.category || c.categoryId))) {
+        setStoredItem(STORAGE_KEYS.CONDITIONS, VIRTUAL_CONDITIONS);
+        localStorage.setItem(CONDITIONS_VERSION_KEY, String(CURRENT_CONDITIONS_VERSION));
+      }
     }
     if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
       setStoredItem(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
@@ -823,12 +836,79 @@ export class StorageService {
     return badges;
   }
 
+  // Helper to construct a VirtualCondition from an approved NewConditionRequest
+  static buildStudentConditionFromRequest(req: NewConditionRequest, existing?: VirtualCondition): VirtualCondition {
+    const condId = req.assignedId || req.assignedConditionId || existing?.conditionId || '';
+    const catNorm = normalizeCategory(req.categoryId || existing?.categoryId || existing?.category) as any;
+    const ideas =
+      req.missionIdeas && req.missionIdeas.length > 0
+        ? req.missionIdeas.filter((m) => m && m.trim())
+        : req.missionIdea && req.missionIdea.trim()
+        ? [req.missionIdea.trim()]
+        : [];
+
+    const prescriptionCandidates =
+      ideas.length > 0
+        ? ideas.map((idea, idx) => ({
+            id: `${condId}-M${idx + 1}`,
+            type: 'action' as const,
+            title: `행동 처방 ${idx + 1}`,
+            description: idea
+          }))
+        : existing?.prescriptionCandidates && existing.prescriptionCandidates.length > 0
+        ? existing.prescriptionCandidates
+        : [
+            {
+              id: `${condId}-M1`,
+              type: 'action' as const,
+              title: '행동 처방 1',
+              description: '마음을 환기하고 다정한 말 건네기'
+            }
+          ];
+
+    return {
+      ...(existing || {}),
+      conditionId: condId,
+      categoryId: catNorm,
+      category: catNorm,
+      categoryLabel: getCategoryFormatted(catNorm),
+      name: req.suggestedName || existing?.name || '학생 제안 마음신호',
+      summary: req.whenAppears || existing?.summary || '학생들이 함께 만든 마음신호',
+      symptoms: req.symptoms ?? existing?.symptoms ?? '',
+      checkItemsSample: [
+        req.symptoms?.trim() || existing?.checkItemsSample?.[0] || '이 상태가 지속되어 마음이 힘들거나 지친다.',
+        req.whenAppears?.trim() || existing?.checkItemsSample?.[1] || '특정 상황에서 비슷한 마음 반응이 나타난다.'
+      ],
+      prescriptionCandidates,
+      prescriptionMedicineName: existing?.prescriptionMedicineName || '응원비타민',
+      prescriptionAdvice:
+        existing?.prescriptionAdvice ||
+        `${req.studentName} 학생이 연구 제안하여 학급 공식 마음신호로 채택된 처방입니다.`,
+      status: req.conditionStatus || existing?.status || 'active',
+      isStudentProposed: true,
+      proposedBy: existing?.proposedBy || req.studentName
+    };
+  }
+
   // Conditions
   static getConditions(): VirtualCondition[] {
     const stored = getStoredItem<VirtualCondition[]>(STORAGE_KEYS.CONDITIONS, VIRTUAL_CONDITIONS);
-    if (!stored || stored.length === 0) return VIRTUAL_CONDITIONS;
+    const baseList = stored && stored.length > 0 ? stored : VIRTUAL_CONDITIONS;
     const canonicalMap = new Map(VIRTUAL_CONDITIONS.map((c) => [c.conditionId, c]));
-    return stored.map((s) => {
+
+    // Map approved student proposals (from localStorage / Firestore new_conditions) by assigned conditionId
+    const approvedRequests = this.getNewConditionRequests().filter(
+      (r) => (r.status === 'approved' || r.status === 'accepted') && (r.assignedId || r.assignedConditionId)
+    );
+    const approvedByCondId = new Map<string, NewConditionRequest>();
+    approvedRequests.forEach((r) => {
+      const cid = r.assignedId || r.assignedConditionId;
+      if (cid) approvedByCondId.set(cid, r);
+    });
+
+    const seenIds = new Set<string>();
+    const merged: VirtualCondition[] = baseList.map((s) => {
+      seenIds.add(s.conditionId);
       const canonical = canonicalMap.get(s.conditionId);
       if (canonical) {
         return {
@@ -843,21 +923,108 @@ export class StorageService {
           prescriptionMedicineName: canonical.prescriptionMedicineName,
           prescriptionAdvice: canonical.prescriptionAdvice,
           prescriptionCandidates: canonical.prescriptionCandidates,
-          checkItemsSample: canonical.checkItemsSample
+          checkItemsSample: canonical.checkItemsSample,
+          status: canonical.status || 'active'
         };
+      }
+      const matchingReq = approvedByCondId.get(s.conditionId);
+      if (matchingReq) {
+        return this.buildStudentConditionFromRequest(matchingReq, s);
       }
       const catNorm = normalizeCategory(s.categoryId || s.category) as any;
       return {
         ...s,
         categoryId: catNorm,
         category: catNorm,
-        categoryLabel: getCategoryFormatted(catNorm)
+        categoryLabel: getCategoryFormatted(catNorm),
+        status: s.status || 'active'
       };
     });
+
+    // Append any approved student proposals synced from Firestore not yet in local STORAGE_KEYS.CONDITIONS
+    approvedRequests.forEach((req) => {
+      const cid = req.assignedId || req.assignedConditionId;
+      if (cid && !seenIds.has(cid)) {
+        seenIds.add(cid);
+        merged.push(this.buildStudentConditionFromRequest(req));
+      }
+    });
+
+    return merged;
   }
 
   static saveConditions(conditions: VirtualCondition[]) {
     setStoredItem(STORAGE_KEYS.CONDITIONS, conditions);
+  }
+
+  static updateConditionStatus(conditionId: string, newStatus: 'active' | 'inactive'): boolean {
+    const allConds = this.getConditions();
+    const target = allConds.find((c) => c.conditionId === conditionId);
+    if (!target) return false;
+    target.status = newStatus;
+    this.saveConditions(allConds);
+
+    // Also sync request record in localStorage and Firestore if it was a student proposal
+    const requests = this.getNewConditionRequests();
+    const req = requests.find((r) => r.assignedId === conditionId || r.assignedConditionId === conditionId);
+    if (req) {
+      this.updateNewConditionRequest(req.id, { conditionStatus: newStatus });
+    }
+    return true;
+  }
+
+  static updateApprovedStudentCondition(
+    requestId: string,
+    updates: {
+      suggestedName: string;
+      whenAppears: string;
+      symptoms: string;
+      missionIdeas: string[];
+    }
+  ): boolean {
+    const requests = this.getNewConditionRequests();
+    const reqIdx = requests.findIndex((r) => r.id === requestId);
+    if (reqIdx === -1) return false;
+
+    const currentReq = requests[reqIdx];
+    const cleanIdeas = updates.missionIdeas.map((m) => m.trim()).filter(Boolean);
+    const requestUpdates: Partial<NewConditionRequest> = {
+      suggestedName: updates.suggestedName.trim(),
+      whenAppears: updates.whenAppears.trim(),
+      symptoms: updates.symptoms.trim(),
+      missionIdeas: cleanIdeas,
+      missionIdea: cleanIdeas[0] || currentReq.missionIdea || ''
+    };
+
+    const updatedReq: NewConditionRequest = {
+      ...currentReq,
+      ...requestUpdates
+    };
+
+    // 1. Save to localStorage NEW_CONDITION_REQUESTS & Firestore new_conditions (preserving req.id and assignedId)
+    requests[reqIdx] = updatedReq;
+    setStoredItem(STORAGE_KEYS.NEW_CONDITION_REQUESTS, requests);
+    FirestoreSync.updateNewConditionRequest(requestId, requestUpdates);
+
+    // 2. Sync localStorage CONDITIONS without touching issued Visit records
+    const condId = updatedReq.assignedId || updatedReq.assignedConditionId;
+    if (condId) {
+      const allConds = this.getConditions();
+      const condIdx = allConds.findIndex((c) => c.conditionId === condId);
+      const rebuilt = this.buildStudentConditionFromRequest(
+        updatedReq,
+        condIdx !== -1 ? allConds[condIdx] : undefined
+      );
+      if (condIdx !== -1) {
+        allConds[condIdx] = rebuilt;
+      } else {
+        allConds.push(rebuilt);
+      }
+      this.saveConditions(allConds);
+    }
+
+    FirestoreSync.notify();
+    return true;
   }
 
   static getConditionById(conditionId: string): VirtualCondition | undefined {

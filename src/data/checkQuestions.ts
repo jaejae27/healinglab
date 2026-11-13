@@ -28,7 +28,7 @@ export const CHECK_ITEMS: CheckItem[] = [
     statement: '누가 나를 칭찬해주어도 진심이 아닐 거라고 생각하게 된다.',
     matches: [
       { conditionId: 'S-06', weight: 3 },
-      { conditionId: 'S-04', weight: 2 },
+      { conditionId: 'S-13', weight: 2 },
       { conditionId: 'S-09', weight: 2 }
     ]
   },
@@ -38,7 +38,7 @@ export const CHECK_ITEMS: CheckItem[] = [
     statement: '내가 무엇을 좋아하고 잘하는지 마음의 소리가 잘 안 들린다.',
     matches: [
       { conditionId: 'S-11', weight: 3 },
-      { conditionId: 'S-04', weight: 3 },
+      { conditionId: 'S-13', weight: 3 },
       { conditionId: 'S-15', weight: 2 }
     ]
   },
@@ -91,7 +91,7 @@ export const CHECK_ITEMS: CheckItem[] = [
     matches: [
       { conditionId: 'R-06', weight: 3 },
       { conditionId: 'R-09', weight: 2 },
-      { conditionId: 'R-12', weight: 2 }
+      { conditionId: 'W-07', weight: 2 }
     ]
   },
   {
@@ -129,7 +129,7 @@ export const CHECK_ITEMS: CheckItem[] = [
   {
     checkId: 'Q-A3',
     categoryId: 'study',
-    statement: '마감 직전이 되어 발등에 불이 떨어져야만 겨우 초능력으로 해치운다.',
+    statement: '마감 직전이 되어 발등에 불이 떨어져야만 겨우 급하게 마친다.',
     matches: [
       { conditionId: 'A-09', weight: 3 },
       { conditionId: 'A-01', weight: 2 },
@@ -204,7 +204,7 @@ export const CHECK_ITEMS: CheckItem[] = [
     statement: '다른 사람에게 직접 물어보지 않고 혼자 부정적인 결론을 내려버린다.',
     matches: [
       { conditionId: 'W-09', weight: 3 },
-      { conditionId: 'W-13', weight: 2 },
+      { conditionId: 'S-10', weight: 2 },
       { conditionId: 'W-05', weight: 2 }
     ]
   },
@@ -298,8 +298,7 @@ export const CHECK_ITEMS: CheckItem[] = [
     statement: '침대나 바닥에 누워만 있고 싶고 일어나서 움직이기가 버겁다.',
     matches: [
       { conditionId: 'L-07', weight: 3 },
-      { conditionId: 'L-05', weight: 3 },
-      { conditionId: 'L-12', weight: 2 }
+      { conditionId: 'A-07', weight: 2 }
     ]
   },
   {
@@ -320,7 +319,6 @@ export const CHECK_ITEMS: CheckItem[] = [
     statement: '한 번 실수하거나 실패했던 경험 때문에 다시 도전하기가 무섭다.',
     matches: [
       { conditionId: 'G-02', weight: 3 },
-      { conditionId: 'G-03', weight: 3 },
       { conditionId: 'G-10', weight: 2 }
     ]
   },
@@ -329,7 +327,7 @@ export const CHECK_ITEMS: CheckItem[] = [
     categoryId: 'future',
     statement: '남들보다 잘할 자신이 없으면 아예 시작하기 전부터 포기하고 싶다.',
     matches: [
-      { conditionId: 'G-06', weight: 3 },
+      { conditionId: 'A-15', weight: 3 },
       { conditionId: 'G-07', weight: 3 },
       { conditionId: 'G-04', weight: 2 }
     ]
@@ -349,7 +347,7 @@ export const CHECK_ITEMS: CheckItem[] = [
     categoryId: 'future',
     statement: '다른 친구들은 목표가 뚜렷해 보이는데 나만 아무 계획 없는 것 같다.',
     matches: [
-      { conditionId: 'G-15', weight: 3 },
+      { conditionId: 'G-05', weight: 3 },
       { conditionId: 'G-14', weight: 2 },
       { conditionId: 'G-13', weight: 2 }
     ]
@@ -361,7 +359,7 @@ export const CHECK_ITEMS: CheckItem[] = [
     matches: [
       { conditionId: 'G-08', weight: 3 },
       { conditionId: 'G-01', weight: 2 },
-      { conditionId: 'G-11', weight: 2 }
+      { conditionId: 'G-02', weight: 2 }
     ]
   },
 

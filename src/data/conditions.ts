@@ -25,7 +25,7 @@ export const VIRTUAL_CONDITIONS: VirtualCondition[] = allRawConditions.map((item
     prescriptionCandidates: generateTailoredMissionsForCondition(item),
     prescriptionMedicineName: item.medicine,
     prescriptionAdvice: item.advice,
-    status: 'active'
+    status: item.status || 'active'
   };
 });
 

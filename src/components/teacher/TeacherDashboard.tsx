@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Student, Visit, NewConditionRequest, AppSettings, SchoolClass, CategoryId } from '../../types';
 import { StorageService } from '../../services/storage';
+import { FirestoreSync } from '../../services/firestoreSync';
 import { CATEGORIES } from '../../data/categories';
 import { StudentManagementTab } from './StudentManagementTab';
 import { AssessmentDashboardTab } from './AssessmentDashboardTab';
@@ -56,7 +57,8 @@ import {
   Info,
   ThumbsUp,
   XCircle,
-  School
+  School,
+  Pencil
 } from 'lucide-react';
 import { TeacherPasswordChangeModal } from '../modals/TeacherPasswordChangeModal';
 import { CryptoAuthService } from '../../utils/cryptoAuth';
@@ -100,6 +102,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [gasApiUrl, setGasApiUrl] = useState<string>(() => localStorage.getItem('hp_gas_url') || '');
   const [gasPingStatus, setGasPingStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [isPasswordChangeModalOpen, setIsPasswordChangeModalOpen] = useState<boolean>(false);
+
+  // Edit Approved Student Card state
+  const [editingApprovedCard, setEditingApprovedCard] = useState<NewConditionRequest | null>(null);
+  const [editCardName, setEditCardName] = useState<string>('');
+  const [editCardWhenAppears, setEditCardWhenAppears] = useState<string>('');
+  const [editCardSymptoms, setEditCardSymptoms] = useState<string>('');
+  const [editCardMissions, setEditCardMissions] = useState<string[]>(['']);
 
   // In-App Toast & Audio Feedback System (safe inside iframe)
   const [toast, setToast] = useState<{
@@ -376,24 +385,53 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       : (req.missionIdea ? 1 : 1);
     const baseCookies = missionCount;
 
-    // 2. Determine assigned ID
+    // 2. Determine assigned ID:
+    // "같은 카테고리 접두어로 이미 쓰인 번호 중 가장 큰 값 + 1"
+    // 비활성 카드, 로컬/스토리지 카드, Firestore 동기화 카드 번호를 모두 포함하여 계산
     const allConds = StorageService.getConditions();
+    const allRequests = StorageService.getNewConditionRequests();
     const catCode = req.categoryId ? req.categoryId[0].toUpperCase() : 'N';
-    const catConds = allConds.filter(c => c.categoryId === req.categoryId);
-    const assignedId = `${catCode}-${100 + catConds.length + 1}`;
+
+    const idSet = new Set<string>();
+    allConds.forEach((c) => {
+      if (c.conditionId) idSet.add(c.conditionId);
+    });
+    allRequests.forEach((r) => {
+      if (r.assignedId) idSet.add(r.assignedId);
+      if (r.assignedConditionId) idSet.add(r.assignedConditionId);
+    });
+
+    const prefixRegex = new RegExp(`^${catCode}-(\\d+)$`, 'i');
+    let maxNum = 100;
+    for (const id of idSet) {
+      const match = id.match(prefixRegex);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+    const assignedId = `${catCode}-${maxNum + 1}`;
 
     // 3. Check previous approved proposals count for this student
-    const allRequests = StorageService.getNewConditionRequests();
     const prevApprovedCount = allRequests.filter(
       r => r.studentId === req.studentId && (r.status === 'approved' || r.status === 'accepted') && r.id !== req.id
     ).length;
     const newApprovedCount = prevApprovedCount + 1;
     const titleReward = checkTitleRewardOnApproval(prevApprovedCount, newApprovedCount);
 
-    // 4. Update request record in storage
+    // 4. Update request record in storage & Firestore
     StorageService.updateNewConditionRequest(req.id, {
       status: 'approved',
       assignedId,
+      conditionStatus: 'active',
+      rewardCookies: baseCookies
+    });
+    FirestoreSync.updateNewConditionRequest(req.id, {
+      status: 'approved',
+      assignedId,
+      conditionStatus: 'active',
       rewardCookies: baseCookies
     });
 
@@ -469,6 +507,70 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     });
     setRequests(StorageService.getNewConditionRequests());
     showToast(`신약 제안 [${req.suggestedName}]을(를) 반려 처리했습니다.`, 'info');
+  };
+
+  // Toggle student proposed condition active / inactive
+  const handleToggleConditionStatus = (req: NewConditionRequest, newStatus: 'active' | 'inactive') => {
+    if (!req.assignedId) return;
+    StorageService.updateConditionStatus(req.assignedId, newStatus);
+    StorageService.updateNewConditionRequest(req.id, { conditionStatus: newStatus });
+    FirestoreSync.updateNewConditionRequest(req.id, { conditionStatus: newStatus });
+    setRequests(StorageService.getNewConditionRequests());
+
+    if (newStatus === 'inactive') {
+      showToast(`[${req.suggestedName}] 카드가 비활성화되었습니다. 학생 진단 및 처방 목록에서 숨겨집니다.`, 'info');
+    } else {
+      showToast(`[${req.suggestedName}] 카드가 다시 활성화되었습니다. 학생 화면에 정상 노출됩니다.`, 'success');
+    }
+  };
+
+  // Open edit modal for approved student proposed condition
+  const handleOpenEditApprovedCard = (req: NewConditionRequest) => {
+    const initialMissions =
+      req.missionIdeas && req.missionIdeas.length > 0
+        ? [...req.missionIdeas]
+        : req.missionIdea
+        ? [req.missionIdea]
+        : [''];
+    setEditingApprovedCard(req);
+    setEditCardName(req.suggestedName || '');
+    setEditCardWhenAppears(req.whenAppears || '');
+    setEditCardSymptoms(req.symptoms || '');
+    setEditCardMissions(initialMissions);
+  };
+
+  const handleSaveEditedApprovedCard = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingApprovedCard) return;
+
+    const trimmedName = editCardName.trim();
+    const cleanedMissions = editCardMissions.map((m) => m.trim()).filter(Boolean);
+    if (!trimmedName) {
+      showToast('카드 이름을 입력해주세요.', 'info');
+      return;
+    }
+    if (cleanedMissions.length === 0) {
+      showToast('행동 처방 문구를 1개 이상 입력해주세요.', 'info');
+      return;
+    }
+
+    const ok = StorageService.updateApprovedStudentCondition(editingApprovedCard.id, {
+      suggestedName: trimmedName,
+      whenAppears: editCardWhenAppears.trim(),
+      symptoms: editCardSymptoms.trim(),
+      missionIdeas: cleanedMissions
+    });
+
+    if (ok) {
+      setRequests(StorageService.getNewConditionRequests());
+      setEditingApprovedCard(null);
+      showToast(
+        `✏️ [${trimmedName}] (${editingApprovedCard.assignedId}) 카드 문구가 수정되어 저장되었습니다.`,
+        'success'
+      );
+    } else {
+      showToast('카드 문구 저장 중 오류가 발생했습니다.', 'info');
+    }
   };
 
   return (
@@ -1286,12 +1388,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
                     const category = CATEGORIES.find((c) => c.id === req.categoryId);
 
+                    // Check approved student card active / inactive status
+                    const matchingCondition = req.assignedId
+                      ? StorageService.getConditions().find((c) => c.conditionId === req.assignedId)
+                      : undefined;
+                    const currentCardStatus: 'active' | 'inactive' = matchingCondition
+                      ? (matchingCondition.status || 'active')
+                      : (req.conditionStatus || 'active');
+
                     return (
                       <div
                         key={req.id}
                         className={`border rounded-2xl p-4.5 bg-white shadow-xs transition-all ${
                           isApproved
-                            ? 'border-emerald-200 bg-emerald-50/20'
+                            ? currentCardStatus === 'inactive'
+                              ? 'border-slate-300 bg-slate-50/70'
+                              : 'border-emerald-200 bg-emerald-50/20'
                             : isRejected
                             ? 'border-slate-200 bg-slate-50/60 opacity-80'
                             : 'border-purple-200 hover:border-purple-300'
@@ -1332,11 +1444,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                           {/* Status Badge */}
                           <div className="shrink-0 flex items-center gap-2">
                             {isApproved ? (
-                              <div className="text-right">
+                              <div className="text-right flex flex-col items-end gap-1">
                                 <span className="text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-xl flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                   <span>정식 승인됨 ({req.assignedId})</span>
                                 </span>
+                                {currentCardStatus === 'inactive' ? (
+                                  <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <span>⏸️</span>
+                                    <span>비활성 (학생 화면 숨김)</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <span>✅</span>
+                                    <span>활성 (정상 운영 중)</span>
+                                  </span>
+                                )}
                                 <span className="text-[10.5px] text-emerald-700 block mt-0.5 font-mono">
                                   쿠키 +{req.rewardCookies || missionCount}개 지급 완료
                                 </span>
@@ -1541,6 +1664,60 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                                 <CheckCircle className="w-3.5 h-3.5 text-amber-200" />
                                 <span>정식 마음신호로 승인 (+{missionCount}쿠키 지급)</span>
                               </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Approved Student Card Management: Toggle Active / Inactive */}
+                        {isApproved && req.assignedId && (
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 mt-2 border-t border-slate-100">
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="font-bold text-slate-700">학생 화면 노출 상태:</span>
+                              {currentCardStatus === 'inactive' ? (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1">
+                                  <span>⏸️</span>
+                                  <span>비활성화됨 (학생 목록에서 숨김)</span>
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                                  <span>✅</span>
+                                  <span>활성 상태 (학생 처방 및 탐색 가능)</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 ml-auto">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditApprovedCard(req)}
+                                className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 font-jua text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span>문구 수정</span>
+                              </button>
+                              {currentCardStatus === 'inactive' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleConditionStatus(req, 'active')}
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-jua text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>다시 활성화하기</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`[${req.suggestedName}] 카드를 비활성화하시겠습니까?\n\n비활성화하면 학생 진단 및 처방 목록에서 숨겨지며, 기존 학생들의 실천 기록은 그대로 안전하게 유지됩니다.`)) {
+                                      handleToggleConditionStatus(req, 'inactive');
+                                    }
+                                  }}
+                                  className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-jua text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+                                >
+                                  <span>⏸️</span>
+                                  <span>비활성화 (학생 화면 숨김)</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}
@@ -2321,6 +2498,157 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Approved Student Condition Modal */}
+      {editingApprovedCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div
+            className="w-full max-w-lg bg-white rounded-3xl border-2 border-indigo-200 shadow-2xl overflow-hidden animate-scale-up"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="bg-gradient-to-r from-indigo-700 to-purple-700 p-4 sm:p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-white/15 flex items-center justify-center">
+                  <Pencil className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-jua text-base flex items-center gap-2">
+                    <span>승인된 학생 제안 카드 문구 수정</span>
+                    <span className="text-[11px] font-mono bg-white/20 px-2 py-0.5 rounded-md">
+                      {editingApprovedCard.assignedId}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-indigo-100">
+                    제안 학생: {editingApprovedCard.studentName} (카드 ID는 변경되지 않습니다)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingApprovedCard(null)}
+                className="p-1.5 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditedApprovedCard} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-3 text-[11.5px] text-indigo-900 leading-relaxed">
+                💡 수정한 문구는 Firestore와 현재 기기에 즉시 반영됩니다. 이미 발급된 학생 처방전 기록에는 영향을 주지 않으며, 카드 ID(<strong>{editingApprovedCard.assignedId}</strong>)는 그대로 유지됩니다.
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  카드 이름 <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editCardName}
+                  onChange={(e) => setEditCardName(e.target.value)}
+                  placeholder="예: 수행평가 부담감증"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  나타나는 상황 (언제 나타나나요?)
+                </label>
+                <textarea
+                  rows={2}
+                  value={editCardWhenAppears}
+                  onChange={(e) => setEditCardWhenAppears(e.target.value)}
+                  placeholder="이 마음신호가 나타나는 상황을 입력해주세요."
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  주요 증상
+                </label>
+                <textarea
+                  rows={2}
+                  value={editCardSymptoms}
+                  onChange={(e) => setEditCardSymptoms(e.target.value)}
+                  placeholder="주요 증상 설명을 입력해주세요."
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700">
+                    행동 처방 문구 ({editCardMissions.length}개) <span className="text-rose-500">*</span>
+                  </label>
+                  {editCardMissions.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={() => setEditCardMissions((prev) => [...prev, ''])}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>처방 추가</span>
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {editCardMissions.map((mission, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 font-bold text-xs flex items-center justify-center shrink-0">
+                        {idx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={mission}
+                        onChange={(e) => {
+                          const next = [...editCardMissions];
+                          next[idx] = e.target.value;
+                          setEditCardMissions(next);
+                        }}
+                        placeholder={`행동 처방 ${idx + 1}`}
+                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white"
+                      />
+                      {editCardMissions.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditCardMissions((prev) => prev.filter((_, i) => i !== idx))
+                          }
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="처방 삭제"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingApprovedCard(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-jua text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>수정 내용 저장하기</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -158,7 +158,7 @@ export const WorryGachaModal: React.FC<WorryGachaModalProps> = ({
                 ) : (
                   <>
                     <Heart className="w-3.5 h-3.5 text-purple-500" />
-                    <span>이 힌트를 시험 과제로 보관하기</span>
+                    <span>이 힌트를 도전 과제로 보관하기</span>
                   </>
                 )}
               </button>

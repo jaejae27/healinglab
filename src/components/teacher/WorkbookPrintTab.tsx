@@ -34,7 +34,7 @@ export const WorkbookPrintTab: React.FC<WorkbookPrintTabProps> = ({ onPrintWorkb
       (c) => !validCategories.has((c.category || c.categoryId) as any)
     );
 
-    const isValid = totalCount === 130 && missingCategory.length === 0 && unknownCategory.length === 0;
+    const isValid = totalCount >= 130 && missingCategory.length === 0 && unknownCategory.length === 0;
 
     return {
       isValid,
@@ -296,6 +296,11 @@ export const WorkbookPrintTab: React.FC<WorkbookPrintTabProps> = ({ onPrintWorkb
                     <span className="font-mono font-bold text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200">
                       {cond.conditionId}
                     </span>
+                    {cond.status === 'inactive' && (
+                      <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded border border-slate-300">
+                        ⏸️ 비활성
+                      </span>
+                    )}
                   </div>
 
                   {catMeta && (

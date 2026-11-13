@@ -38,7 +38,7 @@ const CUSTOM_CONDITION_MISSIONS: Record<string, PrescriptionCandidate[]> = {
     {
       id: 'A-01-TM6',
       type: 'environment',
-      title: '도파민 폰 격리',
+      title: '공부할 땐 폰 잠시 보관',
       description: '공부하는 동안 스마트폰을 가방이나 다른 방 서랍 속에 쏙 넣어두기'
     },
     {
@@ -60,7 +60,7 @@ const CUSTOM_CONDITION_MISSIONS: Record<string, PrescriptionCandidate[]> = {
     {
       id: 'A-02-TM2',
       type: 'action',
-      title: '한 놈만 골라 패기 (딱 1개 선택)',
+      title: '딱 하나만 골라 끝내기',
       description: '산더미 같은 할 일 목록 중 지금 10분 만에 끝낼 수 있는 가장 만만한 것 딱 1개에 별표 치기'
     },
     {
@@ -100,7 +100,7 @@ const CUSTOM_CONDITION_MISSIONS: Record<string, PrescriptionCandidate[]> = {
     {
       id: 'A-04-TM3',
       type: 'environment',
-      title: '스마트폰 20분 격리 서랍행',
+      title: '스마트폰 20분 서랍 보관',
       description: '시작을 방해하는 폰을 가방이나 서랍 속에 넣어두고 알림 소리 끄기'
     },
     {
@@ -138,7 +138,7 @@ const CUSTOM_CONDITION_MISSIONS: Record<string, PrescriptionCandidate[]> = {
     {
       id: 'L-01-TM1',
       type: 'environment',
-      title: '폰 서랍 감금 30분',
+      title: '폰 서랍 보관 30분',
       description: '화면에서 눈을 떼고 스마트폰을 서랍이나 가방 속에 30분간 보이지 않게 넣기'
     },
     {
@@ -279,7 +279,7 @@ export function generateTailoredMissionsForCondition(item: RawConditionItem): Pr
         {
           id: `${condId}-TM2`,
           type: 'environment',
-          title: '책상 위 시야 정돈 & 폰 격리',
+          title: '책상 위 시야 정돈 & 폰 보관',
           description: '시선을 분산시키는 스마트폰과 잡동사니를 서랍이나 가방 속에 쏙 넣어두기'
         },
         {
@@ -503,7 +503,7 @@ export function generateTailoredMissionsForCondition(item: RawConditionItem): Pr
         {
           id: `${condId}-TM1`,
           type: 'environment',
-          title: '취침 전 폰 1미터 격리',
+          title: '취침 전 폰 1미터 거리두기',
           description: '잠들기 15분 전 폰 충전기를 침대에서 멀리 떨어진 책상에 꽂아두기'
         },
         {
